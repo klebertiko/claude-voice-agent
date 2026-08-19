@@ -1,0 +1,33 @@
+[project]
+name = "claude-agent-voice"
+version = "0.1.0"
+description = "Assistente de voz de mão dupla (personas Lilith/Gambit) — LiveKit + Whisper + kokoro/Piper + Claude."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "livekit-agents>=1.0",
+    "livekit-plugins-silero>=1.0",
+    "livekit-plugins-anthropic>=1.0",
+    "kokoro-onnx>=0.4",
+    "soundfile>=0.12",
+    "faster-whisper>=1.0",
+    "numpy>=1.26",
+    "python-dotenv>=1.0",
+    "piper-tts>=1.6.1",
+]
+
+[project.scripts]
+claude-agent-voice = "claude_agent_voice.agent:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["claude_agent_voice"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
