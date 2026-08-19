@@ -10,7 +10,7 @@ Transporte/orquestração: **LiveKit Agents** (modo `console`, sem servidor).
 ## Rodar
 
 ```bash
-cd tools/claude-agent-voice
+cd claude-agent-voice
 uv run python -m claude_agent_voice.agent console
 ```
 
