@@ -1,16 +1,27 @@
 # claude-voice-agent — assistente de voz de mão dupla (local-first)
 
-Voz conversacional estilo JARVIS. Você fala, ela ouve, pensa e responde. Ativação
-por **wake-word "Lilith"**. Tudo local exceto o cérebro (Claude).
+Voz conversacional estilo JARVIS, em português do Brasil. Você fala, ela ouve,
+pensa e responde. A persona padrão é o **Gambit** (voz masculina calma, kokoro
+`pm_alex`). A Lilith continua disponível (`pf_dora`). Tudo local exceto o
+cérebro (Claude).
 
-**Pipeline:** mic → silero VAD → **faster-whisper** (STT, pt-BR) → wake-gate →
-**Claude** (cérebro) → **kokoro** (TTS, voz `pf_dora`) → alto-falante.
-Transporte/orquestração: **LiveKit Agents** (modo `console`, sem servidor).
+**Pipeline:** mic ou texto → **faster-whisper** (STT, pt-BR) → wake-gate →
+**Claude** (cérebro) → **kokoro** (TTS) → alto-falante ou o painel.
 
 ## Rodar
 
+Painel (anel no centro, sem câmera):
+
 ```bash
-cd claude-agent-voice
+uv run python -m claude_agent_voice.web
+```
+
+Abre em http://127.0.0.1:8765. Escreva ou fale **"Gambit, ..."**. O microfone
+pede só áudio. Sem o CLI `claude`, ele ainda fala: hora, data e um aviso curto.
+
+Console, sem painel:
+
+```bash
 uv run python -m claude_agent_voice.agent console
 ```
 
@@ -18,8 +29,9 @@ uv run python -m claude_agent_voice.agent console
 está autenticado na tua assinatura (mesma auth do Claude Code). Não precisa de
 `ANTHROPIC_API_KEY` nem paga por token. Basta o `claude` estar no PATH e logado.
 
-No console: fale **"Lilith, ..."** para ativá-la. Após o wake, a conversa segue
-aberta por ~30s sem repetir o nome. `Ctrl+C` encerra.
+No console, a wake-word é a da persona ativa (`Gambit` por padrão, ou `Lilith`
+com `PERSONA=lilith`). Depois do nome, a conversa segue aberta por ~30s.
+`Ctrl+C` encerra.
 
 Se o `claude` não estiver no PATH, ela ainda te ouve e fala a saudação (prova
 voz+ouvido), mas não pensa.

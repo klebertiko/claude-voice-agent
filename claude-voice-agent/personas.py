@@ -28,6 +28,8 @@ class Persona:
     voice: str
     wake_words: tuple[str, ...]
     form_of_address: str = "Senhor"
+    # 1.0 = ritmo do modelo. <1 deixa a fala mais medida (mordomo).
+    speech_rate: float = 1.0
 
     def system_prompt(self, creator: str = CREATOR) -> str:
         return _system_prompt(
@@ -48,13 +50,17 @@ LILITH = Persona(
     wake_words=("lilith", "lilit", "lili", "lilis", "lilith,"),
 )
 
+# Voz masculina pt-BR do Kokoro. O registro é o de um assistente calmo
+# (o Jarvis do vídeo fala assim em inglês); aqui a língua é português do Brasil.
+# pm_alex é o masculino claro; pm_santa existe, mais grave, via GAMBIT_VOICE.
 GAMBIT = Persona(
     key="gambit",
     name="Gambit",
     gender="masculino",
-    tts_engine="piper",
-    voice="pt_BR-faber-medium",
+    tts_engine="kokoro",
+    voice="pm_alex",
     wake_words=("gambit", "gambi", "gambito", "gamba", "gambe", "gambit,"),
+    speech_rate=0.92,
 )
 
 PERSONAS: dict[str, Persona] = {p.key: p for p in (LILITH, GAMBIT)}
