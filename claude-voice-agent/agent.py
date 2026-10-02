@@ -57,7 +57,7 @@ def interruption_kwargs(settings: Settings) -> dict:
 
 
 def make_tts(settings: Settings, persona: Persona):
-    """Instancia o TTS da persona ativa (Piper p/ Gambit, kokoro p/ Lilith)."""
+    """Instancia o TTS da persona ativa (kokoro ou piper)."""
     if persona.tts_engine == "piper":
         return PiperTTS(
             model_path=settings.piper_model,
@@ -70,13 +70,13 @@ def make_tts(settings: Settings, persona: Persona):
         voices_path=settings.kokoro_voices,
         voice=persona.voice,
         lang=settings.lang,
-        speed=settings.speed,
+        speed=settings.speed * persona.speech_rate,
     )
 
 
 def greeting(persona: Persona) -> str:
     """Saudação falada da persona ativa."""
-    return f"{persona.name} aqui. É só me chamar pelo nome quando precisar."
+    return f"{persona.name} aqui, Senhor. É só me chamar pelo nome."
 
 
 class ClaudeAgentVoice(Agent):

@@ -11,12 +11,13 @@ def test_registry_has_lilith_and_gambit():
     assert isinstance(PERSONAS["gambit"], Persona)
 
 
-def test_gambit_preset_is_piper_masculino():
+def test_gambit_preset_is_kokoro_masculino_ptbr():
     g = PERSONAS["gambit"]
     assert g.name == "Gambit"
     assert g.gender == "masculino"
-    assert g.tts_engine == "piper"
-    assert g.voice == "pt_BR-faber-medium"
+    assert g.tts_engine == "kokoro"
+    assert g.voice == "pm_alex"
+    assert g.speech_rate == 0.92
     assert "gambit" in g.wake_words
     assert g.form_of_address == "Senhor"
 

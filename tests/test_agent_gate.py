@@ -15,7 +15,6 @@ from claude_agent_voice.agent import (
 from claude_agent_voice.personas import get_persona
 from claude_agent_voice.settings import Settings
 from claude_agent_voice.tts_kokoro import KokoroTTS
-from claude_agent_voice.tts_piper import PiperTTS
 from claude_agent_voice.wake import WakeGate
 
 
@@ -72,11 +71,13 @@ def test_noise_transcript_suppressed_with_wake_active():
         asyncio.run(agent.on_user_turn_completed(None, _msg("é é é é")))
 
 
-def test_make_tts_gambit_is_piper():
+def test_make_tts_gambit_is_kokoro_pm_alex():
     s = Settings.from_env(env={"PERSONA": "gambit"})
     t = make_tts(s, get_persona("gambit"))
-    assert isinstance(t, PiperTTS)
-    assert t.sample_rate == 22050
+    assert isinstance(t, KokoroTTS)
+    assert t.sample_rate == 24000
+    assert t._voice == "pm_alex"
+    assert t._speed == 0.92
 
 
 def test_make_tts_lilith_is_kokoro():
@@ -87,7 +88,7 @@ def test_make_tts_lilith_is_kokoro():
 
 
 def test_greeting_uses_active_persona_name():
-    assert greeting(get_persona("gambit")).startswith("Gambit aqui")
+    assert greeting(get_persona("gambit")).startswith("Gambit aqui, Senhor")
     assert greeting(get_persona("lilith")).startswith("Lilith aqui")
 
 
