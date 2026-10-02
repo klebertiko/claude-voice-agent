@@ -32,7 +32,8 @@ _PAGE = """<!DOCTYPE html>
   header {
     display: flex;
     justify-content: space-between;
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 8px 16px;
     padding: 18px 28px 0;
     letter-spacing: 0.22em;
     text-transform: uppercase;
@@ -139,7 +140,12 @@ _PAGE = """<!DOCTYPE html>
   @keyframes pulse { 50% { filter: brightness(1.35); } }
   @media (max-width: 640px) {
     header, .log, form { padding-left: 16px; padding-right: 16px; }
-    header { letter-spacing: 0.12em; }
+    header {
+      flex-direction: column;
+      align-items: flex-start;
+      letter-spacing: 0.06em;
+      font-size: 11px;
+    }
     form { padding-bottom: 16px; }
   }
 </style>
@@ -174,7 +180,13 @@ const text = document.getElementById("text");
 const player = document.getElementById("player");
 const micBtn = document.getElementById("mic");
 const reactor = document.getElementById("reactor");
-const labels = { idle: "PRONTO", listening: "OUVINDO", thinking: "PENSANDO", speaking: "FALANDO" };
+const labels = {
+  idle: "PRONTO",
+  listening: "OUVINDO",
+  thinking: "PENSANDO",
+  speaking: "FALANDO",
+  ignored: "SEM O NOME",
+};
 
 function setState(name) {
   document.body.dataset.state = name;
