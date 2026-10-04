@@ -50,18 +50,17 @@ LILITH = Persona(
     wake_words=("lilith", "lilit", "lili", "lilis", "lilith,"),
 )
 
-# Timbre de mordomo britânico (bm_george) com fonemas pt-BR. 30% de pm_santa
-# segura a pronúncia: george puro o Whisper não entende; esta mistura, sim
-# ("Orião aqui, Senhor... São 15 horas"). Ritmo 0.84 = fala medida.
+# bm_george puro, no ritmo nativo. A mistura com pm_santa em 0.84 ficava lenta
+# e opaca. A 1.08 o george diz "Boa noite, Senhor" e "São 15 horas e 5 minutos".
 ORION = Persona(
     key="orion",
     name="Orion",
     gender="masculino",
     tts_engine="kokoro",
-    voice="bm_george*0.7+pm_santa*0.3",
+    voice="bm_george",
     # variantes que o Whisper costuma ouvir no lugar de "Orion".
     wake_words=("orion", "oriom", "orian", "orions", "oreon"),
-    speech_rate=0.84,
+    speech_rate=1.08,
 )
 
 PERSONAS: dict[str, Persona] = {p.key: p for p in (LILITH, ORION)}

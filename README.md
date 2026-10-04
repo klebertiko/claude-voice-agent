@@ -1,8 +1,8 @@
 # claude-voice-agent — assistente de voz de mão dupla (local-first)
 
 Voz conversacional estilo JARVIS, em português do Brasil. Você fala, ela ouve,
-pensa e responde. A persona padrão é o **Orion** (kokoro `bm_george` a 70%
-com `pm_santa` a 30%, fonemas pt-BR, ritmo 0.84). A Lilith continua disponível
+pensa e responde. A persona padrão é o **Orion** (kokoro `bm_george`,
+fonemas pt-BR, ritmo 1.08). A Lilith continua disponível
 (`pf_dora`). Tudo local exceto o
 cérebro (Claude).
 
@@ -11,7 +11,7 @@ cérebro (Claude).
 
 ## Rodar
 
-Painel (conversa, no visual de um painel escuro):
+Painel (reator ao centro, sistemas à esquerda, conversa à direita):
 
 ```bash
 uv run python -m claude_agent_voice.web

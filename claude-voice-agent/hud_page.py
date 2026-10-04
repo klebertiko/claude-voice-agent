@@ -1,6 +1,6 @@
-"""Painel do Orion: conversa em casca escura, no registro de um painel de agente.
+"""Painel do Orion: reator ao centro, sistemas e a conversa.
 
-Sem vídeo. A placa e o grafo saíram; a tela é a conversa.
+Sem vídeo. O reator é o núcleo; a conversa e os sistemas ficam em volta.
 """
 
 from __future__ import annotations
@@ -17,156 +17,139 @@ _PAGE = r"""<!DOCTYPE html>
 <style>
   :root {
     color-scheme: dark;
-    --bg: #0e0e16;
-    --bg2: #181822;
-    --bg3: #22222e;
-    --border: #36364c;
+    --bg: #07090d;
+    --bg2: #10131a;
+    --bg3: #181c26;
+    --border: #2a3142;
+    --text: #e7edf5;
+    --text2: #b7c0d0;
+    --text3: #7e8aa0;
     --accent: #ff7a3c;
-    --accent-solid: #ff7a3c;
-    --accent-ink: #ffab81;
-    --accent-wash-2: rgba(255, 105, 45, 0.12);
-    --accent-line: rgba(255, 130, 67, 0.30);
-    --text: #f3f3fb;
-    --text2: #c0c0da;
-    --text3: #9a9ab6;
-    --green: #34d36b;
+    --core: #d7f4ff;
+    --ring: #7ec8ff;
+    --green: #3ddc84;
     --red: #f4565a;
-    --hairline: rgba(255, 255, 255, 0.08);
-    --surface-1: rgba(255, 255, 255, 0.025);
-    --on-accent: #1a1400;
     --font: "Be Vietnam Pro", "Segoe UI", sans-serif;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
-  body { font-family: var(--font); font-size: 16px; line-height: 1.45; }
-  .app { display: grid; grid-template-columns: 220px minmax(0, 1fr); height: 100%; }
+  body { font-family: var(--font); font-size: 15px; }
+  .app {
+    height: 100%;
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr) 340px;
+    grid-template-rows: 52px minmax(0, 1fr) auto;
+  }
   .side {
+    grid-row: 1 / -1;
     background: var(--bg2);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    padding: 18px 14px;
+    padding: 16px 14px;
+    gap: 14px;
     min-width: 0;
   }
-  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
   .mark {
-    width: 28px; height: 28px; flex: none;
-    background: var(--accent);
-    color: var(--on-accent);
-    font-weight: 700;
+    width: 28px; height: 28px; flex: none; border-radius: 8px;
+    background: var(--accent); color: #1a1400; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
-    border-radius: 8px;
   }
-  .brand strong { font-size: 14px; letter-spacing: 0.18em; font-weight: 700; }
-  .brand span { display: block; color: var(--text3); font-size: 12px; letter-spacing: 0; font-weight: 400; }
-  .nav {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 10px;
-    border-radius: 8px;
-    background: var(--accent-wash-2);
-    color: var(--text);
-    font-weight: 600;
-    font-size: 14px;
-  }
-  .side .grow { flex: 1; }
-  #status { color: var(--text3); font-size: 13px; padding: 8px 10px; }
-  body[data-state="listening"] #status { color: var(--accent-ink); }
+  .brand strong { letter-spacing: 0.16em; font-size: 14px; }
+  #status { color: var(--text3); font-size: 12px; font-weight: 400; letter-spacing: 0; display: block; }
+  body[data-state="listening"] #status { color: var(--accent); }
   body[data-state="speaking"] #status { color: var(--green); }
+  body[data-state="thinking"] #status { color: var(--ring); }
   body[data-state="ignored"] #status { color: var(--red); }
-  .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-  .top {
-    height: 52px;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 20px;
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border);
+  .side h2 {
+    margin: 8px 0 6px; font-size: 11px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--text3); font-weight: 600;
   }
-  .top h1 { margin: 0; font-size: 16px; font-weight: 600; }
-  #clock { color: var(--text2); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .row {
+    display: flex; justify-content: space-between; gap: 8px;
+    padding: 7px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .row span { color: var(--text3); }
+  .row b { font-weight: 600; text-align: right; }
+  .top {
+    grid-column: 2 / -1;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; background: var(--bg2); border-bottom: 1px solid var(--border);
+  }
+  .top h1 { margin: 0; font-size: 15px; font-weight: 600; }
+  #clock { color: var(--ring); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+  .stage { position: relative; min-width: 0; min-height: 0; }
+  #field { display: block; width: 100%; height: 100%; }
+  .dock {
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  }
+  .dock h2 {
+    margin: 0; padding: 12px 14px 0; font-size: 11px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--text3); font-weight: 600;
+  }
   #log {
     flex: 1; min-height: 0; overflow: auto;
-    display: flex; flex-direction: column; gap: 10px;
-    padding: 18px 20px 8px;
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 12px 14px;
   }
-  #log .empty { margin: auto; color: var(--text3); font-size: 15px; }
-  #log .user, #log .agent, #log .meta { margin: 0; max-width: min(72ch, 100%); }
+  #log .empty { margin: auto; color: var(--text3); }
+  #log .user, #log .agent { margin: 0; max-width: 100%; padding: 8px 12px; line-height: 1.5; }
   #log .user {
     align-self: flex-end;
-    background: var(--accent-wash-2);
-    border: 1px solid var(--accent-line);
+    background: rgba(255, 122, 60, 0.12);
+    border: 1px solid rgba(255, 130, 67, 0.35);
     border-radius: 12px 12px 3px 12px;
-    padding: 8px 12px;
   }
   #log .agent {
     align-self: flex-start;
-    background: var(--surface-1);
-    border: 1px solid var(--hairline);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: 3px 12px 12px 12px;
-    padding: 14px 16px;
-    line-height: 1.65;
   }
-  #log .meta { align-self: center; color: var(--text3); font-size: 13px; background: none; border: 0; padding: 2px 8px; }
+  #log .meta { align-self: center; color: var(--text3); font-size: 13px; margin: 0; }
   .bar {
-    display: flex; align-items: flex-end; gap: 8px;
-    margin: 8px 16px 16px;
-    padding: 8px;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 18px;
+    grid-column: 2 / -1;
+    display: flex; align-items: center; gap: 8px;
+    margin: 10px 12px 12px; padding: 8px;
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 16px;
   }
   #text {
-    flex: 1; min-width: 0;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    color: var(--text);
-    font: inherit;
-    font-size: 16px;
-    padding: 11px 14px;
-    outline: none;
+    flex: 1; min-width: 0; background: var(--bg3); color: var(--text);
+    border: 1px solid var(--border); border-radius: 12px;
+    font: inherit; font-size: 16px; padding: 11px 14px; outline: none;
   }
-  #text:focus { border-color: var(--accent-line); }
+  #text:focus { border-color: var(--ring); }
   #text::placeholder { color: var(--text3); }
   button {
-    font: inherit; font-weight: 600; font-size: 13px;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: var(--bg3);
-    color: var(--text2);
-    height: 44px;
-    padding: 0 12px;
-    border-radius: 12px;
-    flex: none;
+    font: inherit; font-weight: 600; font-size: 13px; cursor: pointer;
+    height: 44px; padding: 0 12px; border-radius: 12px; flex: none;
+    background: var(--bg3); color: var(--text2); border: 1px solid var(--border);
   }
   button:hover { border-color: var(--accent); color: var(--accent); }
   button:disabled { opacity: 0.4; cursor: not-allowed; }
-  button.primary {
-    background: var(--accent-solid);
-    border-color: var(--accent-solid);
-    color: var(--on-accent);
-    width: 44px; padding: 0;
-  }
-  button.primary:hover { opacity: 0.88; color: var(--on-accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #1a1400; width: 44px; padding: 0; }
+  button.primary:hover { color: #1a1400; opacity: 0.9; }
   button[data-state="error"] { border-color: var(--red); color: var(--red); }
-  button[data-state="success"] { border-color: var(--green); color: var(--green); }
   #mic[data-hot="1"] { border-color: var(--red); color: var(--red); }
-  button:focus-visible, #text:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  @media (max-width: 800px) {
-    .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-    .side { flex-direction: row; align-items: center; gap: 12px; border-right: 0; border-bottom: 1px solid var(--border); padding: 10px 12px; }
-    .brand { padding: 0; }
-    .nav, .side .grow { display: none; }
-    #status { margin-left: auto; }
-    .bar { margin: 8px 10px 10px; border-radius: 24px; }
-    #text { border: 0; background: transparent; }
+  button:focus-visible, #text:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto 38vh minmax(180px, 1fr) auto; }
+    .side { grid-row: auto; flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--border); padding: 10px 12px; gap: 8px 16px; }
+    .side h2 { display: none; }
+    .systems { display: flex; gap: 12px; flex: 1; }
+    .row { border: 0; padding: 0; }
+    .top { grid-column: 1; }
+    .dock { border-left: 0; border-top: 1px solid var(--border); }
+    .bar { grid-column: 1; margin: 8px; }
   }
-  @media (prefers-reduced-motion: reduce) {
-    * { scroll-behavior: auto; }
-  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
 </style>
 </head>
 <body data-state="idle" data-name="__NAME__">
-<canvas id="field" hidden></canvas>
 <div class="app">
   <aside class="side">
     <div class="brand">
@@ -176,27 +159,43 @@ _PAGE = r"""<!DOCTYPE html>
         <span id="status">pronto</span>
       </div>
     </div>
-    <div class="nav">Conversa</div>
-    <div class="grow"></div>
+    <div>
+      <h2>Sistemas</h2>
+      <div class="systems">
+        <div class="row"><span>voz</span><b>george</b></div>
+        <div class="row"><span>ritmo</span><b>1.08</b></div>
+        <div class="row"><span>fuso</span><b>Brasília</b></div>
+        <div class="row"><span>sessão</span><b id="sess">à espera do nome</b></div>
+        <div class="row"><span>data</span><b id="date">—</b></div>
+      </div>
+    </div>
   </aside>
-  <section class="main">
-    <header class="top">
-      <h1>Conversa</h1>
-      <div id="clock">00:00:00</div>
-    </header>
+  <header class="top">
+    <h1>Reator</h1>
+    <div id="clock">00:00:00</div>
+  </header>
+  <div class="stage">
+    <canvas id="field" aria-label="reator"></canvas>
+  </div>
+  <section class="dock">
+    <h2>Conversa</h2>
     <div id="log" aria-live="polite"><p class="empty" id="empty">Diga, Senhor.</p></div>
-    <form class="bar" id="form">
-      <input id="text" autocomplete="off" placeholder="Diga, Senhor" aria-label="frase" />
-      <button type="button" id="voice">ouvir</button>
-      <button type="button" id="mic" aria-label="segurar para falar">falar</button>
-      <button class="primary" type="submit" aria-label="enviar">↑</button>
-    </form>
   </section>
+  <form class="bar" id="form">
+    <input id="text" autocomplete="off" placeholder="Diga, Senhor" aria-label="frase" />
+    <button type="button" id="voice">ouvir</button>
+    <button type="button" id="mic" aria-label="segurar para falar">falar</button>
+    <button class="primary" type="submit" aria-label="enviar">↑</button>
+  </form>
 </div>
 <audio id="player"></audio>
 <script>
+const canvas = document.getElementById("field");
+const ctx = canvas.getContext("2d");
 const statusEl = document.getElementById("status");
 const clockEl = document.getElementById("clock");
+const dateEl = document.getElementById("date");
+const sessEl = document.getElementById("sess");
 const logEl = document.getElementById("log");
 const emptyEl = document.getElementById("empty");
 const form = document.getElementById("form");
@@ -205,18 +204,128 @@ const player = document.getElementById("player");
 const micBtn = document.getElementById("mic");
 const voiceBtn = document.getElementById("voice");
 const submitBtn = form.querySelector("[type=submit]");
-const labels = {
-  idle: "pronto",
-  listening: "ouvindo",
-  thinking: "pensando",
-  speaking: "falando",
-  ignored: "sem o nome"
-};
+const DPR = Math.min(devicePixelRatio || 1, 2);
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const labels = { idle: "pronto", listening: "ouvindo", thinking: "pensando", speaking: "falando", ignored: "sem o nome" };
+
+function resize() {
+  const stage = canvas.parentElement;
+  const w = stage.clientWidth, h = stage.clientHeight;
+  canvas.width = Math.max(1, Math.floor(w * DPR));
+  canvas.height = Math.max(1, Math.floor(h * DPR));
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+function ring(cx, cy, r, start, span, width, color) {
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.arc(cx, cy, r, start, start + span);
+  ctx.stroke();
+}
+
+function drawReactor(now) {
+  const w = canvas.width / DPR, h = canvas.height / DPR;
+  const cx = w / 2, cy = h / 2;
+  const R = Math.min(w, h) * 0.36;
+  const state = document.body.dataset.state;
+  const spin = reduce ? 0.4 : now / 1000;
+  const dir = state === "listening" ? -1 : 1;
+  const pace = state === "thinking" ? 1.6 : state === "speaking" ? 0.8 : 0.35;
+  const grd = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, Math.max(w, h) * 0.7);
+  grd.addColorStop(0, "#121820");
+  grd.addColorStop(1, "#07090d");
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.strokeStyle = "rgba(126,200,255,0.18)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 72; i++) {
+    const a = (i / 72) * Math.PI * 2;
+    const inner = R * 1.18, outer = i % 6 === 0 ? R * 1.32 : R * 1.26;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+    ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  const base = spin * pace * dir;
+  for (let s = 0; s < 8; s++) {
+    ring(cx, cy, R, base + s * (Math.PI / 4), Math.PI / 6, 7, "rgba(126,200,255,0.85)");
+  }
+  for (let s = 0; s < 6; s++) {
+    ring(cx, cy, R * 0.78, -base * 1.4 + s * (Math.PI / 3), Math.PI / 5, 4, "rgba(180,220,255,0.55)");
+  }
+  ring(cx, cy, R * 0.58, base * 0.6, Math.PI * 1.55, 2, "rgba(126,200,255,0.45)");
+
+  const load = state === "thinking" ? 0.82 : state === "listening" ? 0.6 : state === "speaking" ? 0.45 + level * 0.5 : 0.28;
+  ring(cx, cy, R * 0.48, -Math.PI / 2, Math.PI * 2 * load, 6, "#ff7a3c");
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(base * 0.5);
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const a = -Math.PI / 2 + i * (Math.PI * 2 / 3);
+    const x = Math.cos(a) * R * 0.28, y = Math.sin(a) * R * 0.28;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = "rgba(215,244,255,0.9)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+
+  const coreR = R * (0.12 + (state === "speaking" ? level * 0.05 : 0));
+  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 3);
+  core.addColorStop(0, "#ffffff");
+  core.addColorStop(0.35, "#d7f4ff");
+  core.addColorStop(1, "rgba(126,200,255,0)");
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(cx, cy, coreR * 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#f4fbff";
+  ctx.beginPath();
+  ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(183,192,208,0.8)";
+  ctx.font = "13px Be Vietnam Pro, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText((labels[state] || state).toUpperCase(), cx, cy + R * 1.48);
+}
+
+let level = 0;
+const timeBuf = new Uint8Array(256);
+function sampleLevel() {
+  if (!analyser || document.body.dataset.state !== "speaking") { level *= 0.9; return; }
+  analyser.getByteTimeDomainData(timeBuf);
+  let s = 0;
+  for (let i = 0; i < timeBuf.length; i++) {
+    const v = (timeBuf[i] - 128) / 128;
+    s += v * v;
+  }
+  level = Math.min(1, Math.sqrt(s / timeBuf.length) * 5);
+}
+function frame(now) {
+  sampleLevel();
+  drawReactor(now || 0);
+  if (!reduce) requestAnimationFrame(frame);
+}
 function tickClock() {
+  const now = new Date();
   clockEl.textContent = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
-  }).format(new Date());
+    timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+  }).format(now);
+  dateEl.textContent = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo", day: "2-digit", month: "short"
+  }).format(now);
 }
 function setState(name) {
   document.body.dataset.state = name;
@@ -277,6 +386,7 @@ async function showTurn(data, sourceBtn) {
   if (data.heard) addLine("user", data.heard);
   if (data.status === "ignored") {
     setState("ignored");
+    sessEl.textContent = "à espera do nome";
     addLine("meta", "Não ouvi o nome. Diga __WAKE__.");
     if (sourceBtn) mark(sourceBtn, "error");
     return;
@@ -286,6 +396,7 @@ async function showTurn(data, sourceBtn) {
     addLine("meta", "Ignorei um ruído.");
     return;
   }
+  if (data.status === "replied") sessEl.textContent = "acordado";
   if (data.reply) addLine("agent", data.reply);
   if (data.audio_b64) await playWav(data.audio_b64);
   else setState("idle");
@@ -305,6 +416,7 @@ voiceBtn.addEventListener("click", async () => {
   try {
     const data = await post("/api/greeting", {});
     if (data.reply) addLine("agent", data.reply);
+    if (data.status === "replied") sessEl.textContent = "acordado";
     if (data.audio_b64) await playWav(data.audio_b64);
     else setState("idle");
     mark(voiceBtn, "success");
@@ -378,8 +490,11 @@ async function stopMic(ev) {
 micBtn.addEventListener("pointerdown", startMic);
 micBtn.addEventListener("pointerup", stopMic);
 micBtn.addEventListener("pointerleave", stopMic);
+addEventListener("resize", resize);
+resize();
 tickClock();
 setInterval(tickClock, 1000);
+requestAnimationFrame(frame);
 </script>
 </body>
 </html>
