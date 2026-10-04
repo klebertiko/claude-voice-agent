@@ -11,7 +11,7 @@ cérebro (Claude).
 
 ## Rodar
 
-Painel (reator ao centro, sistemas à esquerda, conversa à direita):
+Painel (o reator ocupa a sala; sistemas na faixa de cima, conversa na margem):
 
 ```bash
 uv run python -m claude_agent_voice.web

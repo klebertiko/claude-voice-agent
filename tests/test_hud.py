@@ -49,6 +49,42 @@ def test_turn_without_wake_is_ignored():
     assert result.reply == ""
 
 
+def test_spoken_name_when_asked():
+    assert spoken_fallback("Qual seu nome?", "Orion", WHEN) == "O nome é Orion, Senhor."
+    assert spoken_fallback("Quem é você?", "Orion", WHEN) == "O nome é Orion, Senhor."
+
+
+def test_typed_name_is_answered_and_opens_the_window():
+    session = _session()
+    hud = VoiceHud(
+        session=session,
+        reply_fn=_reply,
+        synth_fn=lambda text: (b"\x00\x00" * 4, 24000),
+        transcribe_fn=lambda pcm, rate: "que horas são",
+        clock=lambda: 1.0,
+    )
+    named = hud.handle(text="Qual seu nome?", typed=True)
+    assert named["status"] == "replied"
+    assert named["reply"] == "O nome é Orion, Senhor."
+    assert named["audio_b64"]
+    follow = take_turn(session, "que horas são", 5.0, _reply)
+    assert follow.status == "replied"
+    assert "15 horas" in follow.reply
+
+
+def test_microphone_without_wake_stays_ignored():
+    hud = VoiceHud(
+        session=_session(),
+        reply_fn=_reply,
+        synth_fn=lambda text: (b"\x00\x00" * 4, 24000),
+        transcribe_fn=lambda pcm, rate: "que horas são",
+        clock=lambda: 1.0,
+    )
+    mic = hud.handle(pcm=b"\x00\x00", sample_rate=16000)
+    assert mic["status"] == "ignored"
+    assert mic["reply"] == ""
+
+
 def test_turn_with_wake_answers_and_remembers():
     session = _session()
     result = take_turn(session, "Orion, que horas são", 10.0, _reply)
@@ -129,9 +165,14 @@ def test_http_turn_greeting_and_ignore():
         assert "15 horas" in answered["reply"]
         assert answered["audio_b64"]
 
-        ignored = post("/api/turn", {"text": "somente isso"})
-        assert ignored["status"] == "ignored"
-        assert ignored["audio_b64"] is None
+        named = post("/api/turn", {"text": "Qual seu nome?"})
+        assert named["status"] == "replied"
+        assert named["reply"] == "O nome é Orion, Senhor."
+        assert named["audio_b64"]
+
+        typed = post("/api/turn", {"text": "somente isso"})
+        assert typed["status"] == "replied"
+        assert typed["audio_b64"]
 
         heard = post("/api/turn", {"pcm_b64": "AAAA", "sample_rate": 16000})
         assert heard["heard"] == "Orion ola"

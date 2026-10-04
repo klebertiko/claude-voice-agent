@@ -1,6 +1,6 @@
-"""Painel do Orion: reator ao centro, sistemas e a conversa.
+"""Painel do Orion: o reator é a sala, a conversa é anotação.
 
-Sem vídeo. O reator é o núcleo; a conversa e os sistemas ficam em volta.
+Sem vídeo. A faixa de cima guarda os sistemas; a margem de baixo, a fala.
 """
 
 from __future__ import annotations
@@ -13,179 +13,257 @@ _PAGE = r"""<!DOCTYPE html>
 <title>__NAME__</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
+  /* Hallmark · pre-emit critique: P5 H4 E4 S5 R4 V5 */
+  /* Hallmark · macrostructure: Photographic · genre: atmospheric · theme: custom-reactor
+   * heading: bottom-aligned · body: full-bleed marginalia · divider: hairline
+   * button: typographic-only · image: full-bleed · reveal: none */
   :root {
     color-scheme: dark;
-    --bg: #07090d;
-    --bg2: #10131a;
-    --bg3: #181c26;
-    --border: #2a3142;
-    --text: #e7edf5;
-    --text2: #b7c0d0;
-    --text3: #7e8aa0;
-    --accent: #ff7a3c;
-    --core: #d7f4ff;
-    --ring: #7ec8ff;
-    --green: #3ddc84;
-    --red: #f4565a;
-    --font: "Be Vietnam Pro", "Segoe UI", sans-serif;
+    --color-paper: oklch(0.16 0.018 250);
+    --color-paper-2: oklch(0.21 0.02 250);
+    --color-ink: oklch(0.93 0.012 250);
+    --color-ink-2: oklch(0.74 0.02 250);
+    --color-rule: oklch(0.4 0.02 250);
+    --color-accent: oklch(0.8 0.11 78);
+    --color-accent-ink: oklch(0.22 0.03 78);
+    --color-ring: oklch(0.78 0.05 230);
+    --color-core: oklch(0.95 0.02 220);
+    --color-focus: oklch(0.82 0.07 230);
+    --color-ok: oklch(0.78 0.08 165);
+    --color-bad: oklch(0.7 0.13 25);
+    --font-display: "IBM Plex Mono", ui-monospace, monospace;
+    --font-body: "Familjen Grotesk", "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --space-3xs: 0.25rem;
+    --space-2xs: 0.5rem;
+    --space-xs: 0.75rem;
+    --space-sm: 1rem;
+    --space-md: 1.5rem;
+    --space-lg: 2rem;
+    --space-xl: 3rem;
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-md: 1rem;
+    --text-lg: 1.25rem;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-short: 220ms;
+    --radius-card: 0;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
-  body { font-family: var(--font); font-size: 15px; }
-  .app {
-    height: 100%;
-    display: grid;
-    grid-template-columns: 232px minmax(0, 1fr) 340px;
-    grid-template-rows: 52px minmax(0, 1fr) auto;
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    overflow-x: clip;
+    background: var(--color-paper);
+    color: var(--color-ink);
   }
-  .side {
-    grid-row: 1 / -1;
-    background: var(--bg2);
-    border-right: 1px solid var(--border);
+  body {
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-style: normal;
+  }
+  #field {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    display: block;
+  }
+  .room {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    min-width: 0;
+    display: grid;
+    grid-template-rows: auto minmax(16rem, 1fr) auto auto;
+  }
+  .strip, .floor { background: var(--color-paper); }
+  .strip {
     display: flex;
-    flex-direction: column;
-    padding: 16px 14px;
-    gap: 14px;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--color-rule);
+  }
+  .brand { display: flex; align-items: baseline; gap: var(--space-xs); min-width: 0; }
+  .brand strong {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-style: normal;
+    font-size: var(--text-sm);
+    letter-spacing: 0.18em;
+  }
+  #status {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
+    letter-spacing: 0.06em;
+  }
+  body[data-state="listening"] #status,
+  body[data-state="speaking"] #status { color: var(--color-accent); }
+  body[data-state="thinking"] #status { color: var(--color-ring); }
+  body[data-state="ignored"] #status { color: var(--color-bad); }
+  .systems {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs) var(--space-md);
+    margin: 0;
     min-width: 0;
   }
-  .brand { display: flex; align-items: center; gap: 10px; }
-  .mark {
-    width: 28px; height: 28px; flex: none; border-radius: 8px;
-    background: var(--accent); color: #1a1400; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
+  .systems div { display: flex; gap: var(--space-2xs); align-items: baseline; }
+  .systems dt {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
+    font-weight: 400;
   }
-  .brand strong { letter-spacing: 0.16em; font-size: 14px; }
-  #status { color: var(--text3); font-size: 12px; font-weight: 400; letter-spacing: 0; display: block; }
-  body[data-state="listening"] #status { color: var(--accent); }
-  body[data-state="speaking"] #status { color: var(--green); }
-  body[data-state="thinking"] #status { color: var(--ring); }
-  body[data-state="ignored"] #status { color: var(--red); }
-  .side h2 {
-    margin: 8px 0 6px; font-size: 11px; letter-spacing: 0.16em;
-    text-transform: uppercase; color: var(--text3); font-weight: 600;
+  .systems dd {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-ink);
   }
-  .row {
-    display: flex; justify-content: space-between; gap: 8px;
-    padding: 7px 0; border-bottom: 1px solid var(--border);
-    font-size: 13px;
+  #clock {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ring);
+    margin: 0;
   }
-  .row span { color: var(--text3); }
-  .row b { font-weight: 600; text-align: right; }
-  .top {
-    grid-column: 2 / -1;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 16px; background: var(--bg2); border-bottom: 1px solid var(--border);
+  .well { min-width: 0; min-height: 0; }
+  .talk {
+    max-width: 62ch;
+    padding: 0 var(--space-md) var(--space-sm);
+    background: linear-gradient(to top, var(--color-paper) 70%, transparent);
   }
-  .top h1 { margin: 0; font-size: 15px; font-weight: 600; }
-  #clock { color: var(--ring); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
-  .stage { position: relative; min-width: 0; min-height: 0; }
-  #field { display: block; width: 100%; height: 100%; }
-  .dock {
-    background: var(--bg2);
-    border-left: 1px solid var(--border);
-    display: flex; flex-direction: column; min-width: 0; min-height: 0;
-  }
-  .dock h2 {
-    margin: 0; padding: 12px 14px 0; font-size: 11px; letter-spacing: 0.16em;
-    text-transform: uppercase; color: var(--text3); font-weight: 600;
+  .talk h2 {
+    margin: 0 0 var(--space-2xs);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    font-style: normal;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ink-2);
   }
   #log {
-    flex: 1; min-height: 0; overflow: auto;
-    display: flex; flex-direction: column; gap: 8px;
-    padding: 12px 14px;
+    min-height: 0;
+    max-height: 28vh;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
   }
-  #log .empty { margin: auto; color: var(--text3); }
-  #log .user, #log .agent { margin: 0; max-width: 100%; padding: 8px 12px; line-height: 1.5; }
-  #log .user {
-    align-self: flex-end;
-    background: rgba(255, 122, 60, 0.12);
-    border: 1px solid rgba(255, 130, 67, 0.35);
-    border-radius: 12px 12px 3px 12px;
+  #log .empty { margin: 0; color: var(--color-ink-2); }
+  #log p { margin: 0; line-height: 1.45; overflow-wrap: anywhere; min-width: 0; }
+  #log .user, #log .agent { color: var(--color-ink); }
+  #log .meta { color: var(--color-ink-2); font-size: var(--text-sm); }
+  #log p[data-speaker]::before {
+    content: attr(data-speaker);
+    display: inline-block;
+    min-width: 4.5rem;
+    margin-right: var(--space-xs);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    color: var(--color-ink-2);
   }
-  #log .agent {
-    align-self: flex-start;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 3px 12px 12px 12px;
-  }
-  #log .meta { align-self: center; color: var(--text3); font-size: 13px; margin: 0; }
-  .bar {
-    grid-column: 2 / -1;
-    display: flex; align-items: center; gap: 8px;
-    margin: 10px 12px 12px; padding: 8px;
-    background: var(--bg2); border: 1px solid var(--border); border-radius: 16px;
+  .floor {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-top: 1px solid var(--color-rule);
   }
   #text {
-    flex: 1; min-width: 0; background: var(--bg3); color: var(--text);
-    border: 1px solid var(--border); border-radius: 12px;
-    font: inherit; font-size: 16px; padding: 11px 14px; outline: none;
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    color: var(--color-ink);
+    border: 0;
+    border-bottom: 1px solid var(--color-rule);
+    border-radius: var(--radius-card);
+    font: inherit;
+    font-size: var(--text-md);
+    padding: var(--space-2xs) 0;
+    outline: none;
   }
-  #text:focus { border-color: var(--ring); }
-  #text::placeholder { color: var(--text3); }
-  button {
-    font: inherit; font-weight: 600; font-size: 13px; cursor: pointer;
-    height: 44px; padding: 0 12px; border-radius: 12px; flex: none;
-    background: var(--bg3); color: var(--text2); border: 1px solid var(--border);
+  #text::placeholder { color: var(--color-ink-2); }
+  #text:hover { border-bottom-color: var(--color-ink-2); }
+  #text:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+  #text:active { color: var(--color-ink); }
+  #text:disabled { color: var(--color-ink-2); }
+  #text[data-state="loading"] { border-bottom-color: var(--color-ring); }
+  #text[data-state="error"] { border-bottom-color: var(--color-bad); }
+  #text[data-state="success"] { border-bottom-color: var(--color-ok); }
+  .act {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    height: auto;
+    padding: var(--space-2xs) 0;
+    border: 0;
+    border-radius: var(--radius-card);
+    background: transparent;
+    color: var(--color-ink-2);
+    transition: color var(--dur-short) var(--ease-out);
   }
-  button:hover { border-color: var(--accent); color: var(--accent); }
-  button:disabled { opacity: 0.4; cursor: not-allowed; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #1a1400; width: 44px; padding: 0; }
-  button.primary:hover { color: #1a1400; opacity: 0.9; }
-  button[data-state="error"] { border-color: var(--red); color: var(--red); }
-  #mic[data-hot="1"] { border-color: var(--red); color: var(--red); }
-  button:focus-visible, #text:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .act:hover { color: var(--color-accent); }
+  .act:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+  .act:active { color: var(--color-ink); }
+  .act:disabled { color: var(--color-rule); cursor: not-allowed; }
+  .act[data-state="loading"] { color: var(--color-ring); }
+  .act[data-state="error"] { color: var(--color-bad); }
+  .act[data-state="success"] { color: var(--color-ok); }
+  #mic[data-hot="1"] { color: var(--color-bad); }
   @media (max-width: 900px) {
-    .app { grid-template-columns: 1fr; grid-template-rows: auto 38vh minmax(180px, 1fr) auto; }
-    .side { grid-row: auto; flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--border); padding: 10px 12px; gap: 8px 16px; }
-    .side h2 { display: none; }
-    .systems { display: flex; gap: 12px; flex: 1; }
-    .row { border: 0; padding: 0; }
-    .top { grid-column: 1; }
-    .dock { border-left: 0; border-top: 1px solid var(--border); }
-    .bar { grid-column: 1; margin: 8px; }
+    .strip { flex-wrap: wrap; padding: var(--space-xs) var(--space-sm); }
+    .room { grid-template-rows: auto minmax(14rem, 42vh) auto auto; }
+    .talk { max-width: none; padding: 0 var(--space-sm) var(--space-xs); }
+    #log { max-height: 24vh; }
+    .floor { flex-wrap: wrap; padding: var(--space-xs) var(--space-sm); gap: var(--space-xs); }
+    #text { flex: 1 1 100%; }
   }
-  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+  @media (prefers-reduced-motion: reduce) {
+    .act { transition: none; }
+  }
 </style>
 </head>
 <body data-state="idle" data-name="__NAME__">
-<div class="app">
-  <aside class="side">
+<canvas id="field" aria-label="reator"></canvas>
+<div class="room">
+  <header class="strip">
     <div class="brand">
-      <div class="mark" aria-hidden="true">O</div>
-      <div>
-        <strong>__NAME__</strong>
-        <span id="status">pronto</span>
-      </div>
+      <strong>__NAME__</strong>
+      <span id="status">pronto</span>
     </div>
-    <div>
-      <h2>Sistemas</h2>
-      <div class="systems">
-        <div class="row"><span>voz</span><b>george</b></div>
-        <div class="row"><span>ritmo</span><b>1.08</b></div>
-        <div class="row"><span>fuso</span><b>Brasília</b></div>
-        <div class="row"><span>sessão</span><b id="sess">à espera do nome</b></div>
-        <div class="row"><span>data</span><b id="date">—</b></div>
-      </div>
-    </div>
-  </aside>
-  <header class="top">
-    <h1>Reator</h1>
-    <div id="clock">00:00:00</div>
+    <dl class="systems">
+      <div><dt>voz</dt><dd>george</dd></div>
+      <div><dt>ritmo</dt><dd>1.08</dd></div>
+      <div><dt>fuso</dt><dd>Brasília</dd></div>
+      <div><dt>sessão</dt><dd id="sess">à espera do nome</dd></div>
+      <div><dt>data</dt><dd id="date">—</dd></div>
+    </dl>
+    <p id="clock">00:00:00</p>
   </header>
-  <div class="stage">
-    <canvas id="field" aria-label="reator"></canvas>
-  </div>
-  <section class="dock">
+  <div class="well"></div>
+  <section class="talk">
     <h2>Conversa</h2>
     <div id="log" aria-live="polite"><p class="empty" id="empty">Diga, Senhor.</p></div>
   </section>
-  <form class="bar" id="form">
+  <form class="floor" id="form">
     <input id="text" autocomplete="off" placeholder="Diga, Senhor" aria-label="frase" />
-    <button type="button" id="voice">ouvir</button>
-    <button type="button" id="mic" aria-label="segurar para falar">falar</button>
-    <button class="primary" type="submit" aria-label="enviar">↑</button>
+    <button class="act" type="button" id="voice">ouvir</button>
+    <button class="act" type="button" id="mic" aria-label="segurar para falar">falar</button>
+    <button class="act" type="submit" id="send">enviar</button>
   </form>
 </div>
 <audio id="player"></audio>
@@ -203,14 +281,24 @@ const text = document.getElementById("text");
 const player = document.getElementById("player");
 const micBtn = document.getElementById("mic");
 const voiceBtn = document.getElementById("voice");
-const submitBtn = form.querySelector("[type=submit]");
+const submitBtn = document.getElementById("send");
 const DPR = Math.min(devicePixelRatio || 1, 2);
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const labels = { idle: "pronto", listening: "ouvindo", thinking: "pensando", speaking: "falando", ignored: "sem o nome" };
+const css = getComputedStyle(document.documentElement);
+const tok = (name) => css.getPropertyValue(name).trim();
+const ink = {
+  paper: tok("--color-paper"),
+  paper2: tok("--color-paper-2"),
+  ink2: tok("--color-ink-2"),
+  ring: tok("--color-ring"),
+  accent: tok("--color-accent"),
+  core: tok("--color-core"),
+  mono: tok("--font-mono"),
+};
 
 function resize() {
-  const stage = canvas.parentElement;
-  const w = stage.clientWidth, h = stage.clientHeight;
+  const w = window.innerWidth, h = window.innerHeight;
   canvas.width = Math.max(1, Math.floor(w * DPR));
   canvas.height = Math.max(1, Math.floor(h * DPR));
   canvas.style.width = w + "px";
@@ -228,25 +316,29 @@ function ring(cx, cy, r, start, span, width, color) {
 
 function drawReactor(now) {
   const w = canvas.width / DPR, h = canvas.height / DPR;
-  const cx = w / 2, cy = h / 2;
-  const R = Math.min(w, h) * 0.36;
+  const cx = w / 2, cy = h * 0.46;
+  const R = Math.min(w, h) * 0.28;
   const state = document.body.dataset.state;
-  const spin = reduce ? 0.4 : now / 1000;
+  const spin = reduce ? 0.6 : now / 1000;
   const dir = state === "listening" ? -1 : 1;
-  const pace = state === "thinking" ? 1.6 : state === "speaking" ? 0.8 : 0.35;
-  const grd = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, Math.max(w, h) * 0.7);
-  grd.addColorStop(0, "#121820");
-  grd.addColorStop(1, "#07090d");
-  ctx.fillStyle = grd;
+  const pace = state === "thinking" ? 0.9 : state === "speaking" ? 0.45 : 0.16;
+  ctx.fillStyle = ink.paper;
+  ctx.fillRect(0, 0, w, h);
+  const bloom = ctx.createRadialGradient(cx, cy, R * 0.1, cx, cy, R * 2.4);
+  bloom.addColorStop(0, ink.paper2);
+  bloom.addColorStop(1, ink.paper);
+  ctx.fillStyle = bloom;
   ctx.fillRect(0, 0, w, h);
 
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.strokeStyle = "rgba(126,200,255,0.18)";
+  ctx.globalAlpha = 0.45;
+  ctx.strokeStyle = ink.ring;
   ctx.lineWidth = 1;
-  for (let i = 0; i < 72; i++) {
-    const a = (i / 72) * Math.PI * 2;
-    const inner = R * 1.18, outer = i % 6 === 0 ? R * 1.32 : R * 1.26;
+  for (let i = 0; i < 96; i++) {
+    const a = (i / 96) * Math.PI * 2;
+    const inner = R * 1.22;
+    const outer = i % 8 === 0 ? R * 1.36 : R * 1.28;
     ctx.beginPath();
     ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
     ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
@@ -255,50 +347,54 @@ function drawReactor(now) {
   ctx.restore();
 
   const base = spin * pace * dir;
-  for (let s = 0; s < 8; s++) {
-    ring(cx, cy, R, base + s * (Math.PI / 4), Math.PI / 6, 7, "rgba(126,200,255,0.85)");
+  ctx.globalAlpha = 0.9;
+  for (let s = 0; s < 3; s++) {
+    ring(cx, cy, R, base + s * (Math.PI * 2 / 3), Math.PI / 2.4, 1.5, ink.ring);
   }
-  for (let s = 0; s < 6; s++) {
-    ring(cx, cy, R * 0.78, -base * 1.4 + s * (Math.PI / 3), Math.PI / 5, 4, "rgba(180,220,255,0.55)");
+  ctx.globalAlpha = 0.55;
+  for (let s = 0; s < 3; s++) {
+    ring(cx, cy, R * 0.72, -base * 1.3 + s * (Math.PI * 2 / 3), Math.PI / 3, 1, ink.ring);
   }
-  ring(cx, cy, R * 0.58, base * 0.6, Math.PI * 1.55, 2, "rgba(126,200,255,0.45)");
-
-  const load = state === "thinking" ? 0.82 : state === "listening" ? 0.6 : state === "speaking" ? 0.45 + level * 0.5 : 0.28;
-  ring(cx, cy, R * 0.48, -Math.PI / 2, Math.PI * 2 * load, 6, "#ff7a3c");
+  const load = state === "thinking" ? 0.72 : state === "listening" ? 0.5 : state === "speaking" ? 0.4 + level * 0.55 : 0.22;
+  ctx.globalAlpha = 1;
+  ring(cx, cy, R * 0.46, -Math.PI / 2, Math.PI * 2 * load, 2, ink.accent);
 
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.rotate(base * 0.5);
+  ctx.rotate(base * 0.35);
   ctx.beginPath();
   for (let i = 0; i < 3; i++) {
     const a = -Math.PI / 2 + i * (Math.PI * 2 / 3);
-    const x = Math.cos(a) * R * 0.28, y = Math.sin(a) * R * 0.28;
+    const x = Math.cos(a) * R * 0.26, y = Math.sin(a) * R * 0.26;
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
   ctx.closePath();
-  ctx.strokeStyle = "rgba(215,244,255,0.9)";
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = ink.core;
+  ctx.lineWidth = 1.25;
   ctx.stroke();
   ctx.restore();
 
-  const coreR = R * (0.12 + (state === "speaking" ? level * 0.05 : 0));
-  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 3);
-  core.addColorStop(0, "#ffffff");
-  core.addColorStop(0.35, "#d7f4ff");
-  core.addColorStop(1, "rgba(126,200,255,0)");
+  const coreR = R * (0.07 + (state === "speaking" ? level * 0.04 : 0));
+  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 4);
+  core.addColorStop(0, ink.core);
+  core.addColorStop(0.4, ink.ring);
+  core.addColorStop(1, ink.paper);
+  ctx.globalAlpha = 0.85;
   ctx.fillStyle = core;
   ctx.beginPath();
-  ctx.arc(cx, cy, coreR * 3, 0, Math.PI * 2);
+  ctx.arc(cx, cy, coreR * 4, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#f4fbff";
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = ink.core;
   ctx.beginPath();
   ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = "rgba(183,192,208,0.8)";
-  ctx.font = "13px Be Vietnam Pro, sans-serif";
+  ctx.fillStyle = ink.ink2;
+  ctx.font = "500 12px " + ink.mono;
   ctx.textAlign = "center";
-  ctx.fillText((labels[state] || state).toUpperCase(), cx, cy + R * 1.48);
+  ctx.fillText((labels[state] || state).toUpperCase(), cx, cy + R * 1.55);
+  ctx.globalAlpha = 1;
 }
 
 let level = 0;
@@ -337,6 +433,8 @@ function setState(name) {
     else if (btn.dataset.state === "loading") delete btn.dataset.state;
   }
   text.disabled = busy;
+  if (busy) text.dataset.state = "loading";
+  else if (text.dataset.state === "loading") delete text.dataset.state;
 }
 function mark(btn, state) {
   btn.dataset.state = state;
@@ -347,6 +445,8 @@ function addLine(cls, message) {
   const p = document.createElement("p");
   p.className = cls;
   p.textContent = message;
+  if (cls === "user") p.dataset.speaker = "senhor";
+  if (cls === "agent") p.dataset.speaker = "orion";
   logEl.appendChild(p);
   logEl.scrollTop = logEl.scrollHeight;
 }

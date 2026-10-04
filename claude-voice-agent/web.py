@@ -55,13 +55,28 @@ class VoiceHud:
         self._lock = threading.Lock()
         self._greet_n = 0
 
-    def handle(self, *, text: str | None = None, pcm: bytes | None = None, sample_rate: int = 16000) -> dict:
+    def handle(
+        self,
+        *,
+        text: str | None = None,
+        pcm: bytes | None = None,
+        sample_rate: int = 16000,
+        typed: bool = False,
+    ) -> dict:
         with self._lock:
             if pcm:
                 heard = self.transcribe_fn(pcm, sample_rate)
+                enforce_wake = None
             else:
                 heard = text or ""
-            result = take_turn(self.session, heard, self.clock(), self.reply_fn)
+                enforce_wake = False if typed else None
+            result = take_turn(
+                self.session,
+                heard,
+                self.clock(),
+                self.reply_fn,
+                enforce_wake=enforce_wake,
+            )
             return self._with_audio(result.status, result.heard, result.reply)
 
     def warm(self) -> None:
@@ -186,6 +201,7 @@ def _handler(hud: VoiceHud, page: str):
                         text=data.get("text"),
                         pcm=pcm,
                         sample_rate=int(data.get("sample_rate") or 16000),
+                        typed=pcm is None,
                     )
                 else:
                     self._send(404, b"{}", "application/json")

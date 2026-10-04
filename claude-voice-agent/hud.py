@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -49,11 +50,19 @@ def brazil_now() -> datetime:
     return datetime.now(ZoneInfo("America/Sao_Paulo"))
 
 
+def _plain(text: str) -> str:
+    folded = unicodedata.normalize("NFKD", (text or "").lower())
+    stripped = "".join(ch for ch in folded if not unicodedata.combining(ch))
+    return " ".join(stripped.split())
+
+
 def spoken_fallback(cleaned: str, name: str, moment: datetime) -> str:
     """Resposta curta quando o cérebro não está disponível. Pura."""
-    norm = " ".join((cleaned or "").lower().split())
+    norm = _plain(cleaned)
     if not norm:
         return "Pois não, Senhor."
+    if "seu nome" in norm or "se chama" in norm or "quem e voce" in norm:
+        return f"O nome é {name}, Senhor."
     if {"hora", "horas"} & set(norm.split()):
         return _speak_clock(moment)
     if "que dia" in norm or "qual a data" in norm or norm in {"data", "que data"}:
@@ -138,18 +147,28 @@ def take_turn(
     heard: str,
     now: float,
     reply_fn,
+    *,
+    enforce_wake: bool | None = None,
 ) -> TurnResult:
-    """Aplica ruído e wake-gate. ``reply_fn(cleaned, history) -> str``."""
+    """Aplica ruído e wake-gate. ``reply_fn(cleaned, history) -> str``.
+
+    ``enforce_wake=False`` é a barra de texto: a pessoa já está na conversa
+    e a pergunta não pode morrer por falta do nome. O microfone deixa o
+    argumento ausente e continua no portão.
+    """
     heard = (heard or "").strip()
     if not heard:
         return TurnResult("empty", "", "")
     if is_noise_transcript(heard):
         return TurnResult("noise", heard, "")
 
-    if session.require_wake:
+    require = session.require_wake if enforce_wake is None else enforce_wake
+    if require:
         should, cleaned = session.gate.process(heard, now)
         if not should:
             return TurnResult("ignored", heard, "")
+    elif session.require_wake:
+        cleaned = session.gate.admit(heard, now)
     else:
         cleaned = heard
 
