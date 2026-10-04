@@ -36,7 +36,8 @@ def test_orion_prompt_masculino_senhor_orion():
     p = PERSONAS["orion"].system_prompt()
     assert "Orion" in p
     assert "Senhor" in p
-    assert "um assistente" in p  # gênero masculino
+    assert "mordomo" in p
+    assert "Jarvis" in p
     assert "uma assistente" not in p
 
 

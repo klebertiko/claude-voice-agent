@@ -15,7 +15,9 @@ import os
 import threading
 import time
 import wave
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from zoneinfo import ZoneInfo
 
 from .agent import greeting, make_tts
 from .hud import HudSession, make_reply_fn, take_turn
@@ -43,14 +45,15 @@ def wav_bytes(pcm: bytes, sample_rate: int) -> bytes:
 class VoiceHud:
     """Um painel: sessão de wake, fala e (se houver) o cérebro."""
 
-    def __init__(self, session: HudSession, reply_fn, synth_fn, transcribe_fn, clock) -> None:
+    def __init__(self, session: HudSession, reply_fn, synth_fn, transcribe_fn, clock, now=None) -> None:
         self.session = session
         self.reply_fn = reply_fn
         self.synth_fn = synth_fn
         self.transcribe_fn = transcribe_fn
         self.clock = clock
+        self.now = now or (lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
         self._lock = threading.Lock()
-        self._greeting_audio: tuple[bytes, int] | None = None
+        self._greet_n = 0
 
     def handle(self, *, text: str | None = None, pcm: bytes | None = None, sample_rate: int = 16000) -> dict:
         with self._lock:
@@ -61,13 +64,16 @@ class VoiceHud:
             result = take_turn(self.session, heard, self.clock(), self.reply_fn)
             return self._with_audio(result.status, result.heard, result.reply)
 
+    def warm(self) -> None:
+        """Carrega o modelo de voz sem gastar a primeira saudação do dia."""
+        self.synth_fn("Boa noite, Senhor.")
+
     def greeting_payload(self) -> dict:
-        line = greeting(self.session.persona)
         with self._lock:
-            if self._greeting_audio is None:
-                pcm, rate = self.synth_fn(line)
-                self._greeting_audio = wav_bytes(pcm, rate), rate
-            audio, rate = self._greeting_audio
+            line = greeting(self.session.persona, when=self.now(), salt=self._greet_n)
+            self._greet_n += 1
+            pcm, rate = self.synth_fn(line)
+            audio = wav_bytes(pcm, rate)
         return {
             "status": "replied",
             "heard": "",
@@ -213,7 +219,7 @@ def main() -> None:
     port = int(os.environ.get("CLAUDE_VOICE_HUD_PORT", "8765"))
     hud = create_hud()
     logger.info("aquecendo a voz %s...", hud.session.persona.voice)
-    hud.greeting_payload()
+    hud.warm()
     httpd = serve(hud, host, port)
     bound = httpd.server_address
     logger.info("Painel em http://%s:%s", bound[0], bound[1])

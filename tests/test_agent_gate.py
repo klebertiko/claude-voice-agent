@@ -87,9 +87,21 @@ def test_make_tts_lilith_is_kokoro():
     assert t.sample_rate == 24000
 
 
-def test_greeting_uses_active_persona_name():
-    assert greeting(get_persona("orion")).startswith("Orion aqui, Senhor")
-    assert greeting(get_persona("lilith")).startswith("Lilith aqui")
+def test_greeting_follows_the_hour_and_changes():
+    from datetime import datetime
+
+    orion = get_persona("orion")
+    morning = greeting(orion, datetime(2026, 10, 2, 9, 0))
+    again = greeting(orion, datetime(2026, 10, 2, 9, 0), salt=1)
+    evening = greeting(orion, datetime(2026, 10, 2, 20, 10))
+    late = greeting(orion, datetime(2026, 10, 2, 2, 0))
+    assert "bom dia" in morning.lower()
+    assert again != morning
+    assert "boa noite" in evening.lower()
+    assert late != morning
+    assert "Orion aqui" not in morning
+    assert "chamar" not in morning
+    assert "Senhor" in greeting(get_persona("lilith"), datetime(2026, 10, 2, 15, 0))
 
 
 def test_agent_uses_persona_wake_words_by_default():

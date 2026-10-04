@@ -11,7 +11,7 @@ cérebro (Claude).
 
 ## Rodar
 
-Painel (mapa da sessão e a conversa ao lado):
+Painel (conversa, no visual de um painel escuro):
 
 ```bash
 uv run python -m claude_agent_voice.web

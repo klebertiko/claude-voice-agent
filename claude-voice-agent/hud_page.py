@@ -1,4 +1,7 @@
-"""Painel do Orion: grafo em tela cheia e a conversa na lateral. Sem vídeo."""
+"""Painel do Orion: conversa em casca escura, no registro de um painel de agente.
+
+Sem vídeo. A placa e o grafo saíram; a tela é a conversa.
+"""
 
 from __future__ import annotations
 
@@ -10,142 +13,190 @@ _PAGE = r"""<!DOCTYPE html>
 <title>__NAME__</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --paper: #07090d;
-    --ink: #e7e9ee;
-    --muted: #9aa3b2;
-    --line: #1f2937;
-    --chip: #0d1320;
-    --accent: #34d399;
-    --accent-ink: #04281a;
-    --dock: 300px;
-    --font: "Geist", ui-sans-serif, sans-serif;
+    color-scheme: dark;
+    --bg: #0e0e16;
+    --bg2: #181822;
+    --bg3: #22222e;
+    --border: #36364c;
+    --accent: #ff7a3c;
+    --accent-solid: #ff7a3c;
+    --accent-ink: #ffab81;
+    --accent-wash-2: rgba(255, 105, 45, 0.12);
+    --accent-line: rgba(255, 130, 67, 0.30);
+    --text: #f3f3fb;
+    --text2: #c0c0da;
+    --text3: #9a9ab6;
+    --green: #34d36b;
+    --red: #f4565a;
+    --hairline: rgba(255, 255, 255, 0.08);
+    --surface-1: rgba(255, 255, 255, 0.025);
+    --on-accent: #1a1400;
+    --font: "Be Vietnam Pro", "Segoe UI", sans-serif;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--paper); }
-  body {
-    color: var(--ink);
-    font-family: var(--font);
-    font-size: 15px;
-    line-height: 1.45;
-  }
-  #field { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
-  #field.drag { cursor: grabbing; }
-  .vignette {
-    position: fixed; inset: 0; z-index: 1; pointer-events: none;
-    background: radial-gradient(ellipse at 42% 48%, transparent 42%, rgba(0,0,0,.55) 100%);
-  }
-  .brand, .dock { position: fixed; z-index: 4; }
-  .brand { top: 18px; left: 20px; }
-  .brand a {
-    color: var(--ink); text-decoration: none;
-    font-weight: 600; font-size: 20px; letter-spacing: -0.03em;
-  }
-  .brand p {
-    margin: 2px 0 0; color: var(--muted); font-size: 12px; letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  body[data-state="listening"] .brand p,
-  body[data-state="speaking"] .brand p { color: var(--accent); }
-  .legend {
-    display: flex; flex-wrap: wrap; gap: 4px 12px;
-    padding: 0 0 4px;
-  }
-  .legend .row { display: flex; align-items: center; gap: 6px; color: #cbd5e1; font-size: 12px; }
-  .legend .dot { width: 9px; height: 9px; border-radius: 50%; }
-  .dock {
-    top: 12px; right: 12px; bottom: 12px; width: var(--dock);
-    display: flex; flex-direction: column; gap: 10px;
-    background: rgba(10,13,18,.94);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 14px;
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
+  body { font-family: var(--font); font-size: 16px; line-height: 1.45; }
+  .app { display: grid; grid-template-columns: 220px minmax(0, 1fr); height: 100%; }
+  .side {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 18px 14px;
     min-width: 0;
   }
-  .dock h2 {
-    margin: 0; font-size: 13px; font-weight: 500; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--muted);
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 16px; }
+  .mark {
+    width: 28px; height: 28px; flex: none;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px;
   }
+  .brand strong { font-size: 14px; letter-spacing: 0.18em; font-weight: 700; }
+  .brand span { display: block; color: var(--text3); font-size: 12px; letter-spacing: 0; font-weight: 400; }
+  .nav {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 10px;
+    border-radius: 8px;
+    background: var(--accent-wash-2);
+    color: var(--text);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .side .grow { flex: 1; }
+  #status { color: var(--text3); font-size: 13px; padding: 8px 10px; }
+  body[data-state="listening"] #status { color: var(--accent-ink); }
+  body[data-state="speaking"] #status { color: var(--green); }
+  body[data-state="ignored"] #status { color: var(--red); }
+  .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .top {
+    height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+  .top h1 { margin: 0; font-size: 16px; font-weight: 600; }
+  #clock { color: var(--text2); font-size: 13px; font-variant-numeric: tabular-nums; }
   #log {
-    flex: 1; min-height: 0; overflow: auto; padding-right: 4px;
+    flex: 1; min-height: 0; overflow: auto;
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 18px 20px 8px;
   }
-  #log p { margin: 0 0 10px; }
-  #log .empty {
-    margin: auto; text-align: center; max-width: 18ch;
-    color: #d5dbe6; font-size: 18px; letter-spacing: -0.02em;
+  #log .empty { margin: auto; color: var(--text3); font-size: 15px; }
+  #log .user, #log .agent, #log .meta { margin: 0; max-width: min(72ch, 100%); }
+  #log .user {
+    align-self: flex-end;
+    background: var(--accent-wash-2);
+    border: 1px solid var(--accent-line);
+    border-radius: 12px 12px 3px 12px;
+    padding: 8px 12px;
   }
-  #log .meta { color: var(--muted); font-size: 14px; }
-  #log .user { color: #d7deea; }
-  #log .agent { color: var(--ink); }
-  .find, .composer { display: flex; gap: 8px; }
-  .composer { flex-wrap: wrap; }
-  input, button {
-    font: inherit; color: var(--ink);
+  #log .agent {
+    align-self: flex-start;
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: 3px 12px 12px 12px;
+    padding: 14px 16px;
+    line-height: 1.65;
   }
-  input {
-    min-width: 0; min-height: 40px; flex: 1;
-    background: var(--chip); border: 1px solid #283548; border-radius: 999px;
-    padding: 0 14px;
+  #log .meta { align-self: center; color: var(--text3); font-size: 13px; background: none; border: 0; padding: 2px 8px; }
+  .bar {
+    display: flex; align-items: flex-end; gap: 8px;
+    margin: 8px 16px 16px;
+    padding: 8px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
   }
-  input:focus-visible, button:focus-visible, .brand a:focus-visible {
-    outline: 2px solid var(--accent); outline-offset: 2px;
+  #text {
+    flex: 1; min-width: 0;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font: inherit;
+    font-size: 16px;
+    padding: 11px 14px;
+    outline: none;
   }
+  #text:focus { border-color: var(--accent-line); }
+  #text::placeholder { color: var(--text3); }
   button {
-    min-height: 40px; padding: 0 14px; white-space: nowrap; cursor: pointer;
-    background: #111827; color: #d1d5db; border: 1px solid #283548; border-radius: 999px;
+    font: inherit; font-weight: 600; font-size: 13px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text2);
+    height: 44px;
+    padding: 0 12px;
+    border-radius: 12px;
+    flex: none;
   }
-  button:hover { background: #1c2a3f; }
-  button:active { transform: translateY(1px); }
+  button:hover { border-color: var(--accent); color: var(--accent); }
   button:disabled { opacity: 0.4; cursor: not-allowed; }
-  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
-  button.primary:hover { background: #5ee0b0; }
-  button[data-state="error"] { border-color: #f0a0a8; color: #f0a0a8; }
-  button[data-state="success"] { border-color: var(--accent); }
-  .composer .primary { flex: 1 1 100%; }
-  @media (max-width: 800px) {
-    .dock {
-      top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; height: 46vh;
-    }
-    .brand { top: 12px; left: 12px; }
+  button.primary {
+    background: var(--accent-solid);
+    border-color: var(--accent-solid);
+    color: var(--on-accent);
+    width: 44px; padding: 0;
   }
-  @media (max-width: 414px) {
-    .composer { display: grid; grid-template-columns: 1fr 1fr; }
-    .composer input, .composer .primary { grid-column: 1 / -1; }
+  button.primary:hover { opacity: 0.88; color: var(--on-accent); }
+  button[data-state="error"] { border-color: var(--red); color: var(--red); }
+  button[data-state="success"] { border-color: var(--green); color: var(--green); }
+  #mic[data-hot="1"] { border-color: var(--red); color: var(--red); }
+  button:focus-visible, #text:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    .side { flex-direction: row; align-items: center; gap: 12px; border-right: 0; border-bottom: 1px solid var(--border); padding: 10px 12px; }
+    .brand { padding: 0; }
+    .nav, .side .grow { display: none; }
+    #status { margin-left: auto; }
+    .bar { margin: 8px 10px 10px; border-radius: 24px; }
+    #text { border: 0; background: transparent; }
   }
   @media (prefers-reduced-motion: reduce) {
-    button:active { transform: none; }
+    * { scroll-behavior: auto; }
   }
 </style>
 </head>
 <body data-state="idle" data-name="__NAME__">
-<canvas id="field" aria-label="mapa da sessão"></canvas>
-<div class="vignette" aria-hidden="true"></div>
-<header class="brand">
-  <a href="#log">__NAME__</a>
-  <p id="status">pronto</p>
-</header>
-<aside class="dock">
-  <div class="legend" id="legend" aria-label="grupos"></div>
-  <h2>conversa</h2>
-  <div id="log" aria-live="polite"><p class="empty" id="empty">chame pelo nome.</p></div>
-  <form class="find" id="find-form">
-    <input id="find" type="search" autocomplete="off" placeholder="achar na sessão" aria-label="achar na sessão" />
-  </form>
-  <form class="composer" id="form">
-    <input id="text" autocomplete="off" placeholder="diga __WAKE__, e depois a frase" aria-label="frase" />
-    <button class="primary" type="submit">enviar</button>
-    <button type="button" id="voice">ouvir</button>
-    <button type="button" id="mic" aria-label="segurar para falar">falar</button>
-  </form>
-</aside>
+<canvas id="field" hidden></canvas>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">O</div>
+      <div>
+        <strong>__NAME__</strong>
+        <span id="status">pronto</span>
+      </div>
+    </div>
+    <div class="nav">Conversa</div>
+    <div class="grow"></div>
+  </aside>
+  <section class="main">
+    <header class="top">
+      <h1>Conversa</h1>
+      <div id="clock">00:00:00</div>
+    </header>
+    <div id="log" aria-live="polite"><p class="empty" id="empty">Diga, Senhor.</p></div>
+    <form class="bar" id="form">
+      <input id="text" autocomplete="off" placeholder="Diga, Senhor" aria-label="frase" />
+      <button type="button" id="voice">ouvir</button>
+      <button type="button" id="mic" aria-label="segurar para falar">falar</button>
+      <button class="primary" type="submit" aria-label="enviar">↑</button>
+    </form>
+  </section>
+</div>
 <audio id="player"></audio>
 <script>
-const NAME = document.body.dataset.name || "Orion";
-const canvas = document.getElementById("field");
-const ctx = canvas.getContext("2d");
 const statusEl = document.getElementById("status");
+const clockEl = document.getElementById("clock");
 const logEl = document.getElementById("log");
 const emptyEl = document.getElementById("empty");
 const form = document.getElementById("form");
@@ -154,265 +205,19 @@ const player = document.getElementById("player");
 const micBtn = document.getElementById("mic");
 const voiceBtn = document.getElementById("voice");
 const submitBtn = form.querySelector("[type=submit]");
-const legendEl = document.getElementById("legend");
-const DPR = Math.min(devicePixelRatio || 1, 2);
-const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const labels = { idle: "pronto", listening: "ouvindo", thinking: "pensando", speaking: "falando", ignored: "sem o nome" };
-const GROUPS = [
-  { id: "orion", name: "orion", color: "#f4efe4" },
-  { id: "escuta", name: "escuta", color: "#8eb6ff" },
-  { id: "voz", name: "voz", color: "#f0c36a" },
-  { id: "tempo", name: "tempo", color: "#f0a0c0" },
-  { id: "sessao", name: "sessão", color: "#5ee0b5" },
-];
-const HOMES = {
-  orion: [0, 0],
-  escuta: [-70, -48],
-  voz: [74, -36],
-  tempo: [-64, 58],
-  sessao: [68, 52],
+const labels = {
+  idle: "pronto",
+  listening: "ouvindo",
+  thinking: "pensando",
+  speaking: "falando",
+  ignored: "sem o nome"
 };
-let seed = 11;
-function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
-const nodes = [];
-const links = [];
-let selected = null;
-let hover = null;
-let view = { x: 0, y: 0, k: 1 };
-let userCam = false;
-let W = 1, H = 1;
-
-function addNode(group, label, r, home) {
-  const h = home || HOMES[group];
-  const n = {
-    i: nodes.length, g: group, label: label || "",
-    r: r, x: h[0] + (rnd() - 0.5) * 80, y: h[1] + (rnd() - 0.5) * 80,
-    vx: 0, vy: 0, homeX: h[0], homeY: h[1],
-  };
-  nodes.push(n);
-  return n;
+function tickClock() {
+  clockEl.textContent = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+  }).format(new Date());
 }
-function link(a, b) { links.push({ source: a, target: b }); }
-
-const hub = {};
-for (const g of GROUPS) {
-  const big = g.id === "orion" ? 9 : 6.2;
-  hub[g.id] = addNode(g.id, g.id === "orion" ? NAME : g.name, big);
-  legendEl.insertAdjacentHTML("beforeend", `<div class="row"><span class="dot" style="background:${g.color}"></span>${g.name}</div>`);
-}
-for (const id of ["escuta", "voz", "tempo", "sessao"]) link(hub.orion, hub[id]);
-const words = {
-  escuta: ["nome", "janela", "acordo"],
-  voz: ["kokoro", "pt-br", "ritmo"],
-  tempo: ["hora", "data", "hoje"],
-  sessao: ["fala", "resposta"],
-};
-for (const [g, list] of Object.entries(words)) {
-  for (const word of list) link(hub[g], addNode(g, word, 3.4));
-}
-for (const g of GROUPS) {
-  const kids = nodes.filter((n) => n.g === g.id && n !== hub[g.id]);
-  const count = 28;
-  for (let i = 0; i < count; i++) {
-    const parent = kids.length && rnd() > 0.25 ? kids[Math.floor(rnd() * kids.length)] : hub[g.id];
-    const dust = addNode(g.id, "", 1.15 + rnd() * 3.1, [parent.homeX + (rnd() - 0.5) * 40, parent.homeY + (rnd() - 0.5) * 40]);
-    link(parent, dust);
-  }
-}
-for (let i = 0; i < 48; i++) {
-  const a = nodes[Math.floor(rnd() * nodes.length)];
-  const b = nodes[Math.floor(rnd() * nodes.length)];
-  if (a !== b) link(a, b);
-}
-const labeled = nodes.filter((n) => n.label && n.r < 6);
-for (let i = 0; i < labeled.length; i++) {
-  link(labeled[i], labeled[(i + 3) % labeled.length]);
-}
-
-function step(times) {
-  const list = nodes;
-  for (let s = 0; s < times; s++) {
-    for (const n of list) { n.ax = 0; n.ay = 0; }
-    for (let i = 0; i < list.length; i++) {
-      const a = list[i];
-      for (let j = i + 1; j < list.length; j++) {
-        const b = list[j];
-        let dx = b.x - a.x, dy = b.y - a.y;
-        let d2 = dx * dx + dy * dy + 8;
-        let d = Math.sqrt(d2);
-        let f = 900 / d2;
-        let fx = f * dx / d, fy = f * dy / d;
-        a.ax -= fx; a.ay -= fy; b.ax += fx; b.ay += fy;
-      }
-    }
-    for (const l of links) {
-      const a = l.source, b = l.target;
-      let dx = b.x - a.x, dy = b.y - a.y;
-      let dist = Math.hypot(dx, dy) || 0.01;
-      let diff = (dist - (a.r + b.r + 62)) * 0.06;
-      let fx = diff * dx / dist, fy = diff * dy / dist;
-      a.ax += fx; a.ay += fy; b.ax -= fx; b.ay -= fy;
-    }
-    for (const n of list) {
-      if (n.pinx != null) { n.x = n.pinx; n.y = n.piny; n.vx = 0; n.vy = 0; continue; }
-      n.ax += (n.homeX - n.x) * 0.006;
-      n.ay += (n.homeY - n.y) * 0.006;
-      n.ax += -n.x * 0.004;
-      n.ay += -n.y * 0.004;
-      n.vx = (n.vx + n.ax) * 0.55;
-      n.vy = (n.vy + n.ay) * 0.55;
-      n.x += n.vx; n.y += n.vy;
-    }
-  }
-}
-step(420);
-
-function resize() {
-  W = innerWidth; H = innerHeight;
-  canvas.width = Math.floor(W * DPR); canvas.height = Math.floor(H * DPR);
-  canvas.style.width = W + "px"; canvas.style.height = H + "px";
-  if (!userCam) fit();
-}
-function stage() {
-  const dock = document.querySelector(".dock").getBoundingClientRect();
-  if (dock.width > W * 0.8) {
-    return { cx: W / 2, cy: Math.max(80, (H - dock.height) / 2), vw: W - 36, vh: Math.max(120, H - dock.height - 36) };
-  }
-  return { cx: (W - dock.width) / 2, cy: H / 2, vw: W - dock.width - 36, vh: H - 36 };
-}
-function fit() {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const n of nodes) {
-    minX = Math.min(minX, n.x - n.r); minY = Math.min(minY, n.y - n.r);
-    maxX = Math.max(maxX, n.x + n.r); maxY = Math.max(maxY, n.y + n.r);
-  }
-  const box = stage();
-  const bw = Math.max(40, maxX - minX), bh = Math.max(40, maxY - minY);
-  view.k = Math.max(0.45, Math.min(1.8, Math.min(box.vw / bw, box.vh / bh)));
-  view.x = (minX + maxX) / 2;
-  view.y = (minY + maxY) / 2;
-}
-function world(px, py) {
-  const box = stage();
-  return [(px - box.cx) / view.k + view.x, (py - box.cy) / view.k + view.y];
-}
-function hit(px, py) {
-  const [x, y] = world(px, py);
-  let best = null, bestD = 14 / view.k;
-  for (const n of nodes) {
-    const d = Math.hypot(n.x - x, n.y - y);
-    if (d < n.r + bestD) { best = n; bestD = d; }
-  }
-  return best;
-}
-const colorOf = Object.fromEntries(GROUPS.map((g) => [g.id, g.color]));
-function draw() {
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  ctx.fillStyle = "#07090d";
-  ctx.fillRect(0, 0, W, H);
-  const box = stage();
-  ctx.translate(box.cx, box.cy);
-  ctx.scale(view.k, view.k);
-  ctx.translate(-view.x, -view.y);
-  const focus = selected || hover;
-  let lit = null;
-  if (focus) {
-    lit = new Set([focus.i]);
-    for (const l of links) {
-      if (l.source === focus) lit.add(l.target.i);
-      if (l.target === focus) lit.add(l.source.i);
-    }
-  }
-  ctx.lineWidth = 1.05 / view.k;
-  for (const l of links) {
-    const on = lit && lit.has(l.source.i) && lit.has(l.target.i);
-    ctx.strokeStyle = lit ? (on ? "rgba(170,196,220,.85)" : "rgba(90,110,140,.06)") : "rgba(150,175,205,.42)";
-    ctx.beginPath();
-    ctx.moveTo(l.source.x, l.source.y);
-    ctx.lineTo(l.target.x, l.target.y);
-    ctx.stroke();
-  }
-  for (const n of nodes) {
-    const dim = lit && !lit.has(n.i);
-    ctx.globalAlpha = dim ? 0.1 : 1;
-    ctx.fillStyle = colorOf[n.g];
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-  ctx.textAlign = "center";
-  ctx.font = `500 ${12 / view.k}px Geist, ui-sans-serif, sans-serif`;
-  ctx.fillStyle = "rgba(231,233,238,.9)";
-  for (const n of nodes) {
-    if (!n.label) continue;
-    const show = lit ? lit.has(n.i) : (n.r > 3 || view.k > 1.35);
-    if (!show) continue;
-    ctx.fillText(n.label, n.x, n.y - n.r - 6 / view.k);
-  }
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-}
-
-let panning = false, dragN = null, mx = 0, my = 0, moved = 0;
-canvas.addEventListener("wheel", (e) => {
-  e.preventDefault();
-  userCam = true;
-  const k2 = Math.max(0.25, Math.min(4, view.k * Math.exp(-e.deltaY * 0.0014)));
-  const [wx, wy] = world(e.clientX, e.clientY);
-  const box = stage();
-  view.x = wx - (e.clientX - box.cx) / k2;
-  view.y = wy - (e.clientY - box.cy) / k2;
-  view.k = k2;
-}, { passive: false });
-canvas.addEventListener("pointerdown", (e) => {
-  moved = 0; mx = e.clientX; my = e.clientY;
-  dragN = hit(e.clientX, e.clientY);
-  if (dragN) { dragN.pinx = dragN.x; dragN.piny = dragN.y; }
-  else panning = true;
-  canvas.classList.add("drag");
-  canvas.setPointerCapture(e.pointerId);
-});
-canvas.addEventListener("pointermove", (e) => {
-  moved += Math.abs(e.clientX - mx) + Math.abs(e.clientY - my);
-  if (dragN) {
-    const [wx, wy] = world(e.clientX, e.clientY);
-    dragN.pinx = wx; dragN.piny = wy; dragN.x = wx; dragN.y = wy;
-  } else if (panning) {
-    userCam = true;
-    view.x -= (e.clientX - mx) / view.k;
-    view.y -= (e.clientY - my) / view.k;
-  } else hover = hit(e.clientX, e.clientY);
-  mx = e.clientX; my = e.clientY;
-});
-canvas.addEventListener("pointerup", (e) => {
-  if (moved < 5) {
-    const n = hit(e.clientX, e.clientY);
-    selected = n && n !== selected ? n : null;
-  }
-  if (dragN) { dragN.pinx = null; dragN.piny = null; }
-  dragN = null; panning = false;
-  canvas.classList.remove("drag");
-});
-addEventListener("keydown", (e) => {
-  if (e.target.tagName === "INPUT") return;
-  if (e.key === "Escape") selected = null;
-});
-document.getElementById("find-form").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const q = document.getElementById("find").value.trim().toLowerCase();
-  const input = document.getElementById("find");
-  if (!q) return;
-  const n = nodes.find((node) => node.label && node.label.toLowerCase().includes(q));
-  if (!n) { input.dataset.state = "error"; return; }
-  delete input.dataset.state;
-  selected = n; userCam = true; view.x = n.x; view.y = n.y; view.k = Math.max(view.k, 1.8);
-});
-
-function frame() {
-  draw();
-  requestAnimationFrame(frame);
-}
-
 function setState(name) {
   document.body.dataset.state = name;
   statusEl.textContent = labels[name] || name;
@@ -436,16 +241,6 @@ function addLine(cls, message) {
   logEl.appendChild(p);
   logEl.scrollTop = logEl.scrollHeight;
 }
-function remember(phrase) {
-  const clean = (phrase || "").trim();
-  if (!clean) return;
-  const label = clean.length > 26 ? clean.slice(0, 25) + "…" : clean;
-  const n = addNode("sessao", label, 3.6, HOMES.sessao);
-  link(hub.sessao, n);
-  step(28);
-  if (!userCam) fit();
-}
-
 let audioCtx, analyser;
 function ensureAnalyser() {
   if (analyser) return;
@@ -479,7 +274,7 @@ async function post(url, body) {
   return res.json();
 }
 async function showTurn(data, sourceBtn) {
-  if (data.heard) { addLine("user", data.heard); remember(data.heard); }
+  if (data.heard) addLine("user", data.heard);
   if (data.status === "ignored") {
     setState("ignored");
     addLine("meta", "Não ouvi o nome. Diga __WAKE__.");
@@ -491,7 +286,7 @@ async function showTurn(data, sourceBtn) {
     addLine("meta", "Ignorei um ruído.");
     return;
   }
-  if (data.reply) { addLine("agent", data.reply); remember(data.reply); }
+  if (data.reply) addLine("agent", data.reply);
   if (data.audio_b64) await playWav(data.audio_b64);
   else setState("idle");
   if (sourceBtn && data.reply) mark(sourceBtn, "success");
@@ -499,8 +294,7 @@ async function showTurn(data, sourceBtn) {
 form.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const value = text.value.trim();
-  if (!value) { text.dataset.state = "error"; return; }
-  delete text.dataset.state;
+  if (!value) return;
   text.value = "";
   setState("thinking");
   try { await showTurn(await post("/api/turn", { text: value }), submitBtn); }
@@ -510,7 +304,7 @@ voiceBtn.addEventListener("click", async () => {
   setState("thinking");
   try {
     const data = await post("/api/greeting", {});
-    if (data.reply) { addLine("agent", data.reply); remember(data.reply); }
+    if (data.reply) addLine("agent", data.reply);
     if (data.audio_b64) await playWav(data.audio_b64);
     else setState("idle");
     mark(voiceBtn, "success");
@@ -520,7 +314,6 @@ voiceBtn.addEventListener("click", async () => {
     mark(voiceBtn, "error");
   }
 });
-
 let micStream, captureCtx, processor, chunks = [], capturing = false;
 async function startMic(ev) {
   ev.preventDefault();
@@ -546,12 +339,14 @@ async function startMic(ev) {
   source.connect(processor);
   processor.connect(sink);
   sink.connect(captureCtx.destination);
+  micBtn.dataset.hot = "1";
   setState("listening");
 }
 async function stopMic(ev) {
   if (!capturing) return;
   ev.preventDefault();
   capturing = false;
+  delete micBtn.dataset.hot;
   const rate = captureCtx.sampleRate;
   processor.disconnect();
   micStream.getTracks().forEach((track) => track.stop());
@@ -583,9 +378,8 @@ async function stopMic(ev) {
 micBtn.addEventListener("pointerdown", startMic);
 micBtn.addEventListener("pointerup", stopMic);
 micBtn.addEventListener("pointerleave", stopMic);
-addEventListener("resize", resize);
-resize();
-requestAnimationFrame(frame);
+tickClock();
+setInterval(tickClock, 1000);
 </script>
 </body>
 </html>

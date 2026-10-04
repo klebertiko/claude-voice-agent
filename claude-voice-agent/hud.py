@@ -53,7 +53,7 @@ def spoken_fallback(cleaned: str, name: str, moment: datetime) -> str:
     """Resposta curta quando o cérebro não está disponível. Pura."""
     norm = " ".join((cleaned or "").lower().split())
     if not norm:
-        return f"Pois não, Senhor. {name} na escuta."
+        return "Pois não, Senhor."
     if {"hora", "horas"} & set(norm.split()):
         return _speak_clock(moment)
     if "que dia" in norm or "qual a data" in norm or norm in {"data", "que data"}:

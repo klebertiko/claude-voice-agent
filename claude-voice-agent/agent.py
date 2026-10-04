@@ -16,6 +16,8 @@ import shutil
 import sys
 import time
 from collections.abc import Callable
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from livekit.agents import (
     Agent,
@@ -74,9 +76,47 @@ def make_tts(settings: Settings, persona: Persona):
     )
 
 
-def greeting(persona: Persona) -> str:
-    """Saudação falada da persona ativa."""
-    return f"{persona.name} aqui, Senhor. É só me chamar pelo nome."
+_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def _greet_pool(address: str, hour: int) -> tuple[str, ...]:
+    """Frases de mordomo. Nenhuma se apresenta nem ensina a wake-word."""
+    # Só frases que esta voz consegue dizer por inteiro. Linha curta demais
+    # ("Bom dia, Senhor.") o ataque some; frase esperta vira loop.
+    if 5 <= hour < 12:
+        return (
+            f"Então, bom dia, {address}.",
+            f"Pode dizer, {address}.",
+            f"Diga, {address}.",
+        )
+    if 12 <= hour < 18:
+        return (
+            f"Boa tarde, {address}.",
+            f"{address}. Boa tarde.",
+            f"Pode dizer, {address}.",
+        )
+    if 18 <= hour < 23:
+        return (
+            f"Boa noite, {address}.",
+            f"{address}. Boa noite.",
+            f"Boa noite. Diga, {address}.",
+        )
+    return (
+        f"Diga, {address}.",
+        f"Pode dizer, {address}.",
+        f"{address}. Boa noite.",
+    )
+
+
+def greeting(persona: Persona, when: datetime | None = None, salt: int = 0) -> str:
+    """Saudação falada. Muda com a hora e com ``salt``, para não repetir a mesma linha."""
+    moment = when or datetime.now(_TZ)
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=_TZ)
+    else:
+        moment = moment.astimezone(_TZ)
+    pool = _greet_pool(persona.form_of_address, moment.hour)
+    return pool[salt % len(pool)]
 
 
 class ClaudeAgentVoice(Agent):

@@ -116,7 +116,11 @@ def test_http_turn_greeting_and_ignore():
                 return json.load(res)
 
         greeted = post("/api/greeting", {})
-        assert greeted["reply"].startswith("Orion aqui, Senhor")
+        again = post("/api/greeting", {})
+        assert greeted["reply"]
+        assert "Orion aqui" not in greeted["reply"]
+        assert "chamar pelo nome" not in greeted["reply"]
+        assert again["reply"] != greeted["reply"]
         assert greeted["audio_b64"]
 
         answered = post("/api/turn", {"text": "Orion, que horas são"})
