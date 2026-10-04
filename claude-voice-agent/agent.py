@@ -83,7 +83,7 @@ class ClaudeAgentVoice(Agent):
     """O agente. O wake-gate decide, a cada turno, se ele deve responder.
 
     A classe é persona-agnóstica: a persona ativa vem de ``settings.persona`` —
-    prompt, wake-words e saudação saem da persona (Lilith, Gambit, ...), não são
+    prompt, wake-words e saudação saem da persona (Lilith, Orion, ...), não são
     fixos na classe.
     """
 

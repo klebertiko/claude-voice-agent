@@ -2,7 +2,7 @@
 
     uv run python -m claude_agent_voice.web
 
-Abre em http://127.0.0.1:8765. Não há câmera: a página não pede vídeo.
+Abre em http://127.0.0.1:8765. A página pede só áudio.
 """
 
 from __future__ import annotations
@@ -216,7 +216,7 @@ def main() -> None:
     hud.greeting_payload()
     httpd = serve(hud, host, port)
     bound = httpd.server_address
-    logger.info("Painel em http://%s:%s  (sem câmera)", bound[0], bound[1])
+    logger.info("Painel em http://%s:%s", bound[0], bound[1])
     try:
         httpd.hud_thread.join()  # type: ignore[attr-defined]
     except KeyboardInterrupt:

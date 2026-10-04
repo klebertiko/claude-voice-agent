@@ -21,6 +21,39 @@ from livekit.agents import (
 SAMPLE_RATE = 24000  # kokoro-v1.0
 
 
+def parse_voice_spec(spec: str) -> list[tuple[str, float]]:
+    """``bm_george*0.7+pm_santa*0.3`` vira pesos que somam 1.
+
+    Um nome só (``pm_alex``) continua uma voz inteira. Os pesos são
+    normalizados, então ``a*2+b*1`` equivale a 2/3 e 1/3.
+    """
+    if "*" not in spec and "+" not in spec:
+        return [(spec, 1.0)]
+    parts: list[tuple[str, float]] = []
+    for piece in spec.split("+"):
+        name, sep, weight = piece.partition("*")
+        name = name.strip()
+        if not name:
+            raise ValueError(f"voz inválida: {spec!r}")
+        parts.append((name, float(weight) if sep else 1.0))
+    total = sum(weight for _, weight in parts)
+    if total <= 0:
+        raise ValueError(f"voz inválida: {spec!r}")
+    return [(name, weight / total) for name, weight in parts]
+
+
+def mix_voice(engine, spec: str):
+    """Nome de voz, ou a matriz de estilo misturada quando o spec tem ``+``."""
+    parts = parse_voice_spec(spec)
+    if len(parts) == 1 and abs(parts[0][1] - 1.0) < 1e-9:
+        return parts[0][0]
+    mixed = None
+    for name, weight in parts:
+        style = np.asarray(engine.get_voice_style(name), dtype=np.float32)
+        mixed = style * weight if mixed is None else mixed + style * weight
+    return mixed
+
+
 def pcm16_bytes(samples) -> bytes:
     """float32/64 em [-1,1] -> PCM16 little-endian. Pura e determinística."""
     arr = np.asarray(samples, dtype=np.float32)
@@ -60,8 +93,12 @@ class KokoroTTS(tts.TTS):
 
     def create(self, text: str):
         """Síntese crua -> (samples float32, sample_rate). Usada pelo stream."""
-        return self._get_engine().create(
-            text, voice=self._voice, speed=self._speed, lang=self._lang
+        engine = self._get_engine()
+        return engine.create(
+            text,
+            voice=mix_voice(engine, self._voice),
+            speed=self._speed,
+            lang=self._lang,
         )
 
     def synthesize(

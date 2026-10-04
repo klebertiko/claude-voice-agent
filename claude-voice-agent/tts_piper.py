@@ -1,4 +1,4 @@
-"""TTS do Gambit: Piper (ONNX local) plugado no LiveKit Agents — voz masculina BR.
+"""TTS Piper (ONNX local) plugado no LiveKit Agents — voz masculina BR.
 
 Espelha ``tts_kokoro.KokoroTTS``: carga TARDIA do modelo (só no primeiro synth),
 síntese em thread (``asyncio.to_thread``), engine injetável nos testes. Diferente

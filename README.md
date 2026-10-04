@@ -1,8 +1,9 @@
 # claude-voice-agent — assistente de voz de mão dupla (local-first)
 
 Voz conversacional estilo JARVIS, em português do Brasil. Você fala, ela ouve,
-pensa e responde. A persona padrão é o **Gambit** (voz masculina calma, kokoro
-`pm_alex`). A Lilith continua disponível (`pf_dora`). Tudo local exceto o
+pensa e responde. A persona padrão é o **Orion** (kokoro `bm_george` a 70%
+com `pm_santa` a 30%, fonemas pt-BR, ritmo 0.84). A Lilith continua disponível
+(`pf_dora`). Tudo local exceto o
 cérebro (Claude).
 
 **Pipeline:** mic ou texto → **faster-whisper** (STT, pt-BR) → wake-gate →
@@ -10,13 +11,13 @@ cérebro (Claude).
 
 ## Rodar
 
-Painel (anel no centro, sem câmera):
+Painel (mapa da sessão e a conversa ao lado):
 
 ```bash
 uv run python -m claude_agent_voice.web
 ```
 
-Abre em http://127.0.0.1:8765. Escreva ou fale **"Gambit, ..."**. O microfone
+Abre em http://127.0.0.1:8765. Escreva ou fale **"Orion, ..."**. O microfone
 pede só áudio. Sem o CLI `claude`, ele ainda fala: hora, data e um aviso curto.
 
 Console, sem painel:
@@ -29,7 +30,7 @@ uv run python -m claude_agent_voice.agent console
 está autenticado na tua assinatura (mesma auth do Claude Code). Não precisa de
 `ANTHROPIC_API_KEY` nem paga por token. Basta o `claude` estar no PATH e logado.
 
-No console, a wake-word é a da persona ativa (`Gambit` por padrão, ou `Lilith`
+No console, a wake-word é a da persona ativa (`Orion` por padrão, ou `Lilith`
 com `PERSONA=lilith`). Depois do nome, a conversa segue aberta por ~30s.
 `Ctrl+C` encerra.
 

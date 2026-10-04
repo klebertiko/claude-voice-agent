@@ -60,9 +60,9 @@ def test_settings_empty_llm_model_is_none():
     assert s.llm_model is None
 
 
-def test_settings_persona_default_is_gambit():
+def test_settings_persona_default_is_orion():
     s = Settings.from_env(env={})
-    assert s.persona == "gambit"
+    assert s.persona == "orion"
     assert s.piper_model.name == "pt_BR-faber-medium.onnx"
     assert s.piper_config.name == "pt_BR-faber-medium.onnx.json"
 

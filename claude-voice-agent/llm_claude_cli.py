@@ -35,7 +35,7 @@ def render_prompt(
 
     ``system`` junta as mensagens de sistema; o resto vira um roteiro
     ``Usuário:/<persona>:`` terminando em ``<persona>:`` (deixa o modelo
-    continuar). ``assistant_label`` é o nome da persona ativa (ex.: "Gambit"),
+    continuar). ``assistant_label`` é o nome da persona ativa (ex.: "Orion"),
     senão o modelo se confunde de quem está falando.
     """
     system_parts: list[str] = []

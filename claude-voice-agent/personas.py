@@ -1,9 +1,9 @@
-"""Registry de personas selecionáveis (Lilith + Gambit).
+"""Registry de personas selecionáveis (Lilith + Orion).
 
 Cada persona é um **preset autocontido**: nome, gênero, forma de tratamento, voz,
 engine de TTS, wake-words e o system prompt. Um só seletor (``PERSONA=…``) troca o
 KIT INTEIRO — não se mistura env var entre personas. Overrides pontuais de voz são
-namespaced por persona (``GAMBIT_VOICE`` / ``LILITH_VOICE``), nunca um knob global.
+namespaced por persona (``ORION_VOICE`` / ``LILITH_VOICE``), nunca um knob global.
 
 Módulo ``claude_agent_voice/``; aqui só a
 persona vira selecionável.
@@ -16,7 +16,7 @@ from dataclasses import dataclass, replace
 from .persona import CREATOR
 from .persona import system_prompt as _system_prompt
 
-DEFAULT_PERSONA = "gambit"
+DEFAULT_PERSONA = "orion"
 
 
 @dataclass(frozen=True)
@@ -50,27 +50,28 @@ LILITH = Persona(
     wake_words=("lilith", "lilit", "lili", "lilis", "lilith,"),
 )
 
-# Voz masculina pt-BR do Kokoro. O registro é o de um assistente calmo
-# (o Jarvis do vídeo fala assim em inglês); aqui a língua é português do Brasil.
-# pm_alex é o masculino claro; pm_santa existe, mais grave, via GAMBIT_VOICE.
-GAMBIT = Persona(
-    key="gambit",
-    name="Gambit",
+# Timbre de mordomo britânico (bm_george) com fonemas pt-BR. 30% de pm_santa
+# segura a pronúncia: george puro o Whisper não entende; esta mistura, sim
+# ("Orião aqui, Senhor... São 15 horas"). Ritmo 0.84 = fala medida.
+ORION = Persona(
+    key="orion",
+    name="Orion",
     gender="masculino",
     tts_engine="kokoro",
-    voice="pm_alex",
-    wake_words=("gambit", "gambi", "gambito", "gamba", "gambe", "gambit,"),
-    speech_rate=0.92,
+    voice="bm_george*0.7+pm_santa*0.3",
+    # variantes que o Whisper costuma ouvir no lugar de "Orion".
+    wake_words=("orion", "oriom", "orian", "orions", "oreon"),
+    speech_rate=0.84,
 )
 
-PERSONAS: dict[str, Persona] = {p.key: p for p in (LILITH, GAMBIT)}
+PERSONAS: dict[str, Persona] = {p.key: p for p in (LILITH, ORION)}
 
 
 def get_persona(key: str | None, env: dict[str, str] | None = None) -> Persona:
     """Resolve o preset da persona a partir do seletor.
 
     ``key`` vazio/None cai no ``DEFAULT_PERSONA``. ``env`` (opcional) permite um
-    override de voz namespaced por persona: ``{KEY}_VOICE`` (ex.: ``GAMBIT_VOICE``).
+    override de voz namespaced por persona: ``{KEY}_VOICE`` (ex.: ``ORION_VOICE``).
     Seletor inválido levanta ``ValueError`` com mensagem clara.
     """
     k = (key or DEFAULT_PERSONA).strip().lower()

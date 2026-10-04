@@ -1,4 +1,4 @@
-"""Painel de voz: decide o turno e fala em pt-BR, sem câmera.
+"""Painel de voz: decide o turno e fala em pt-BR.
 
 A página só mostra o anel e o texto. O microfone, quando existe, é áudio.
 Sem o CLI ``claude``, a resposta é local (hora, data, ou um aviso curto)

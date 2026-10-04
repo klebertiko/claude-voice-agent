@@ -4,16 +4,16 @@ from claude_agent_voice.personas import get_persona
 from claude_agent_voice.wake import WakeGate, _normalize
 
 
-def test_gambit_wake_activates_with_its_own_words():
-    gate = WakeGate(wake_words=get_persona("gambit").wake_words, window_s=30.0)
-    should, text = gate.process("Gambit que horas são", now=100.0)
+def test_orion_wake_activates_with_its_own_words():
+    gate = WakeGate(wake_words=get_persona("orion").wake_words, window_s=30.0)
+    should, text = gate.process("Orion que horas são", now=100.0)
     assert should is True
     assert text == "que horas sao"
 
 
-def test_gambit_gate_ignores_other_personas_wake():
-    # a wake-word da Lilith NÃO deve abrir a janela do Gambit
-    gate = WakeGate(wake_words=get_persona("gambit").wake_words, window_s=30.0)
+def test_orion_gate_ignores_other_personas_wake():
+    # a wake-word da Lilith NÃO deve abrir a janela do Orion
+    gate = WakeGate(wake_words=get_persona("orion").wake_words, window_s=30.0)
     should, _ = gate.process("Lilith oi", now=100.0)
     assert should is False
 

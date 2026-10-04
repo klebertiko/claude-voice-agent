@@ -17,14 +17,14 @@ _CACHE = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "claud
 class Settings:
     # Persona ativa — seletor NEUTRO (não prefixado com nome de persona); traz o
     # kit inteiro (voz/engine/wake/prompt) via claude_agent_voice.personas.get_persona.
-    persona: str = "gambit"
+    persona: str = "orion"
     # Voz (kokoro — persona Lilith)
     voice: str = "pf_dora"
     lang: str = "pt-br"
     speed: float = 1.0
     kokoro_model: Path = _CACHE / "kokoro-v1.0.onnx"
     kokoro_voices: Path = _CACHE / "voices-v1.0.bin"
-    # Voz (Piper — persona Gambit): ONNX local + config no cache.
+    # Voz Piper (opcional, se a persona usar esse engine): ONNX local + config no cache.
     piper_model: Path = _CACHE / "pt_BR-faber-medium.onnx"
     piper_config: Path = _CACHE / "pt_BR-faber-medium.onnx.json"
     # Ritmo da fala do Piper: >1.0 = mais lento (default do faber é rápido demais).

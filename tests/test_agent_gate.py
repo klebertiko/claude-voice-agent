@@ -71,13 +71,13 @@ def test_noise_transcript_suppressed_with_wake_active():
         asyncio.run(agent.on_user_turn_completed(None, _msg("é é é é")))
 
 
-def test_make_tts_gambit_is_kokoro_pm_alex():
-    s = Settings.from_env(env={"PERSONA": "gambit"})
-    t = make_tts(s, get_persona("gambit"))
+def test_make_tts_orion_is_kokoro_british_blend():
+    s = Settings.from_env(env={"PERSONA": "orion"})
+    t = make_tts(s, get_persona("orion"))
     assert isinstance(t, KokoroTTS)
     assert t.sample_rate == 24000
-    assert t._voice == "pm_alex"
-    assert t._speed == 0.92
+    assert t._voice == "bm_george*0.7+pm_santa*0.3"
+    assert t._speed == 0.84
 
 
 def test_make_tts_lilith_is_kokoro():
@@ -88,21 +88,21 @@ def test_make_tts_lilith_is_kokoro():
 
 
 def test_greeting_uses_active_persona_name():
-    assert greeting(get_persona("gambit")).startswith("Gambit aqui, Senhor")
+    assert greeting(get_persona("orion")).startswith("Orion aqui, Senhor")
     assert greeting(get_persona("lilith")).startswith("Lilith aqui")
 
 
 def test_agent_uses_persona_wake_words_by_default():
     # sem gate explícito, o agente monta o WakeGate com as wake-words da persona
-    s = Settings.from_env(env={"PERSONA": "gambit"})
+    s = Settings.from_env(env={"PERSONA": "orion"})
     agent = ClaudeAgentVoice(s, clock=lambda: 100.0)
-    msg = _msg("Gambit que horas são")
+    msg = _msg("Orion que horas são")
     asyncio.run(agent.on_user_turn_completed(None, msg))
     assert msg.text_content == "que horas sao"
 
 
 def test_agent_default_gate_ignores_other_persona_wake():
-    s = Settings.from_env(env={"PERSONA": "gambit"})
+    s = Settings.from_env(env={"PERSONA": "orion"})
     agent = ClaudeAgentVoice(s, clock=lambda: 100.0)
     with pytest.raises(StopResponse):
         asyncio.run(agent.on_user_turn_completed(None, _msg("Lilith que horas são")))
