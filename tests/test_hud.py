@@ -114,6 +114,10 @@ def test_page_has_microphone_and_no_camera():
     assert "sem câmera" not in page
     assert 'id="field"' in page
     assert 'id="log"' in page
+    assert 'id="brain"' in page
+    assert 'id="permit"' in page
+    assert "permitir" in page
+    assert "recusar" in page
     assert "reator" in page.lower()
 
 

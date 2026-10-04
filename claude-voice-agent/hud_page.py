@@ -1,6 +1,6 @@
-"""Painel do Orion: o reator é a sala, a conversa é anotação.
+"""Painel do Orion: o reator é o centro, a casa fica nas laterais.
 
-Sem vídeo. A faixa de cima guarda os sistemas; a margem de baixo, a fala.
+Sem vídeo. Uma ordem no computador aparece inteira e espera permissão.
 """
 
 from __future__ import annotations
@@ -13,28 +13,23 @@ _PAGE = r"""<!DOCTYPE html>
 <title>__NAME__</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
 <style>
-  /* Hallmark · pre-emit critique: P5 H4 E4 S5 R4 V5 */
-  /* Hallmark · macrostructure: Photographic · genre: atmospheric · theme: custom-reactor
-   * heading: bottom-aligned · body: full-bleed marginalia · divider: hairline
-   * button: typographic-only · image: full-bleed · reveal: none */
   :root {
     color-scheme: dark;
-    --color-paper: oklch(0.16 0.018 250);
-    --color-paper-2: oklch(0.21 0.02 250);
-    --color-ink: oklch(0.93 0.012 250);
-    --color-ink-2: oklch(0.74 0.02 250);
-    --color-rule: oklch(0.4 0.02 250);
-    --color-accent: oklch(0.8 0.11 78);
-    --color-accent-ink: oklch(0.22 0.03 78);
-    --color-ring: oklch(0.78 0.05 230);
-    --color-core: oklch(0.95 0.02 220);
-    --color-focus: oklch(0.82 0.07 230);
-    --color-ok: oklch(0.78 0.08 165);
-    --color-bad: oklch(0.7 0.13 25);
-    --font-display: "IBM Plex Mono", ui-monospace, monospace;
-    --font-body: "Familjen Grotesk", "Segoe UI", sans-serif;
+    --color-paper: oklch(0.12 0.02 250);
+    --color-paper-2: oklch(0.18 0.025 250);
+    --color-ink: oklch(0.94 0.015 220);
+    --color-ink-2: oklch(0.74 0.03 220);
+    --color-rule: oklch(0.42 0.04 230);
+    --color-accent: oklch(0.82 0.13 85);
+    --color-ring: oklch(0.82 0.08 220);
+    --color-core: oklch(0.96 0.03 200);
+    --color-focus: oklch(0.86 0.08 220);
+    --color-ok: oklch(0.8 0.1 165);
+    --color-bad: oklch(0.7 0.15 25);
+    --font-display: "Rajdhani", "Segoe UI", sans-serif;
+    --font-body: "Rajdhani", "Segoe UI", sans-serif;
     --font-mono: "IBM Plex Mono", ui-monospace, monospace;
     --space-3xs: 0.25rem;
     --space-2xs: 0.5rem;
@@ -42,202 +37,122 @@ _PAGE = r"""<!DOCTYPE html>
     --space-sm: 1rem;
     --space-md: 1.5rem;
     --space-lg: 2rem;
-    --space-xl: 3rem;
     --text-xs: 0.75rem;
     --text-sm: 0.875rem;
-    --text-md: 1rem;
-    --text-lg: 1.25rem;
+    --text-md: 1.125rem;
+    --text-lg: 1.5rem;
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-    --dur-short: 220ms;
-    --radius-card: 0;
+    --dur-short: 180ms;
   }
   * { box-sizing: border-box; }
-  html, body {
-    margin: 0;
-    min-height: 100%;
-    overflow-x: clip;
-    background: var(--color-paper);
-    color: var(--color-ink);
-  }
-  body {
-    font-family: var(--font-body);
-    font-size: var(--text-md);
-    font-style: normal;
-  }
-  #field {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-    display: block;
-  }
+  html, body { margin: 0; min-height: 100%; overflow-x: clip; background: var(--color-paper); color: var(--color-ink); }
+  body { font-family: var(--font-body); font-size: var(--text-md); font-style: normal; }
+  #field { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
   .room {
-    position: relative;
-    z-index: 1;
-    min-height: 100vh;
-    min-width: 0;
+    position: relative; z-index: 1; min-height: 100vh; min-width: 0;
     display: grid;
-    grid-template-rows: auto minmax(16rem, 1fr) auto auto;
+    grid-template-columns: 17rem minmax(0, 1fr) 24rem;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
   }
-  .strip, .floor { background: var(--color-paper); }
+  .strip, .telemetry, .talk, .floor, #permit {
+    background: color-mix(in oklch, var(--color-paper) 86%, transparent);
+  }
   .strip {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    grid-column: 1 / -1;
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: var(--space-sm); padding: var(--space-xs) var(--space-md);
     border-bottom: 1px solid var(--color-rule);
   }
-  .brand { display: flex; align-items: baseline; gap: var(--space-xs); min-width: 0; }
+  .brand { display: flex; align-items: baseline; gap: var(--space-sm); min-width: 0; }
   .brand strong {
-    font-family: var(--font-display);
-    font-weight: 500;
-    font-style: normal;
-    font-size: var(--text-sm);
-    letter-spacing: 0.18em;
+    font-family: var(--font-display); font-weight: 700; font-style: normal;
+    font-size: var(--text-lg); letter-spacing: 0.22em;
   }
-  #status {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    color: var(--color-ink-2);
-    letter-spacing: 0.06em;
-  }
-  body[data-state="listening"] #status,
-  body[data-state="speaking"] #status { color: var(--color-accent); }
-  body[data-state="thinking"] #status { color: var(--color-ring); }
+  #status { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-ring); letter-spacing: 0.14em; }
+  body[data-state="listening"] #status, body[data-state="speaking"] #status { color: var(--color-accent); }
   body[data-state="ignored"] #status { color: var(--color-bad); }
-  .systems {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2xs) var(--space-md);
-    margin: 0;
-    min-width: 0;
+  #clock { margin: 0; font-family: var(--font-mono); font-size: var(--text-md); color: var(--color-ring); font-variant-numeric: tabular-nums; }
+  .telemetry { grid-column: 1; grid-row: 2; border-right: 1px solid var(--color-rule); padding: var(--space-sm) var(--space-md); }
+  .talk { grid-column: 3; grid-row: 2; border-left: 1px solid var(--color-rule); display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: var(--space-sm) var(--space-md); }
+  .well { grid-column: 2; grid-row: 2; min-width: 0; min-height: 12rem; }
+  h2 {
+    margin: 0 0 var(--space-sm); font-family: var(--font-mono); font-size: var(--text-xs);
+    font-weight: 500; font-style: normal; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-ink-2);
   }
-  .systems div { display: flex; gap: var(--space-2xs); align-items: baseline; }
-  .systems dt {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    color: var(--color-ink-2);
-    font-weight: 400;
+  .systems { margin: 0; }
+  .systems div {
+    display: flex; justify-content: space-between; gap: var(--space-xs);
+    padding: var(--space-2xs) 0; border-bottom: 1px solid color-mix(in oklch, var(--color-rule) 55%, transparent);
   }
-  .systems dd {
-    margin: 0;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    color: var(--color-ink);
-  }
-  #clock {
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    font-variant-numeric: tabular-nums;
-    color: var(--color-ring);
-    margin: 0;
-  }
-  .well { min-width: 0; min-height: 0; }
-  .talk {
-    max-width: 62ch;
-    padding: 0 var(--space-md) var(--space-sm);
-    background: linear-gradient(to top, var(--color-paper) 70%, transparent);
-  }
-  .talk h2 {
-    margin: 0 0 var(--space-2xs);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    font-weight: 500;
-    font-style: normal;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-ink-2);
-  }
-  #log {
-    min-height: 0;
-    max-height: 28vh;
-    overflow: auto;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2xs);
-  }
-  #log .empty { margin: 0; color: var(--color-ink-2); }
-  #log p { margin: 0; line-height: 1.45; overflow-wrap: anywhere; min-width: 0; }
-  #log .user, #log .agent { color: var(--color-ink); }
-  #log .meta { color: var(--color-ink-2); font-size: var(--text-sm); }
+  .systems dt { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-ink-2); font-weight: 400; }
+  .systems dd { margin: 0; font-family: var(--font-mono); font-size: var(--text-xs); text-align: right; }
+  #log { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--space-2xs); }
+  #log p { margin: 0; line-height: 1.35; overflow-wrap: anywhere; min-width: 0; font-size: var(--text-md); }
+  #log .empty, #log .meta { color: var(--color-ink-2); font-size: var(--text-sm); }
   #log p[data-speaker]::before {
     content: attr(data-speaker);
-    display: inline-block;
-    min-width: 4.5rem;
-    margin-right: var(--space-xs);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: 0.08em;
-    color: var(--color-ink-2);
+    display: block; font-family: var(--font-mono); font-size: var(--text-xs);
+    letter-spacing: 0.12em; color: var(--color-ring);
+  }
+  #permit {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-md);
+    border-top: 1px solid var(--color-accent);
+  }
+  #permit[hidden] { display: none; }
+  #permit p { margin: 0; font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.14em; color: var(--color-accent); }
+  #permit-cmd {
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-family: var(--font-mono); font-size: var(--text-sm); color: var(--color-ink);
   }
   .floor {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-md);
     border-top: 1px solid var(--color-rule);
   }
   #text {
-    flex: 1;
-    min-width: 0;
-    background: transparent;
-    color: var(--color-ink);
-    border: 0;
-    border-bottom: 1px solid var(--color-rule);
-    border-radius: var(--radius-card);
-    font: inherit;
-    font-size: var(--text-md);
-    padding: var(--space-2xs) 0;
-    outline: none;
+    flex: 1; min-width: 0; background: transparent; color: var(--color-ink);
+    border: 0; border-bottom: 1px solid var(--color-rule); border-radius: 0;
+    font-family: var(--font-mono); font-size: var(--text-sm); padding: var(--space-2xs) 0; outline: none;
   }
   #text::placeholder { color: var(--color-ink-2); }
   #text:hover { border-bottom-color: var(--color-ink-2); }
-  #text:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+  #text:focus-visible, .act:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
   #text:active { color: var(--color-ink); }
-  #text:disabled { color: var(--color-ink-2); }
+  #text:disabled, .act:disabled { color: var(--color-rule); cursor: not-allowed; }
   #text[data-state="loading"] { border-bottom-color: var(--color-ring); }
   #text[data-state="error"] { border-bottom-color: var(--color-bad); }
   #text[data-state="success"] { border-bottom-color: var(--color-ok); }
   .act {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    cursor: pointer;
-    height: auto;
-    padding: var(--space-2xs) 0;
-    border: 0;
-    border-radius: var(--radius-card);
-    background: transparent;
-    color: var(--color-ink-2);
+    font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap;
+    cursor: pointer; padding: var(--space-2xs) 0; border: 0; border-radius: 0;
+    background: transparent; color: var(--color-ink-2);
     transition: color var(--dur-short) var(--ease-out);
   }
   .act:hover { color: var(--color-accent); }
-  .act:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
   .act:active { color: var(--color-ink); }
-  .act:disabled { color: var(--color-rule); cursor: not-allowed; }
   .act[data-state="loading"] { color: var(--color-ring); }
   .act[data-state="error"] { color: var(--color-bad); }
   .act[data-state="success"] { color: var(--color-ok); }
+  #allow { color: var(--color-accent); }
   #mic[data-hot="1"] { color: var(--color-bad); }
   @media (max-width: 900px) {
-    .strip { flex-wrap: wrap; padding: var(--space-xs) var(--space-sm); }
-    .room { grid-template-rows: auto minmax(14rem, 42vh) auto auto; }
-    .talk { max-width: none; padding: 0 var(--space-sm) var(--space-xs); }
+    .room { grid-template-columns: 1fr; grid-template-rows: auto auto minmax(16rem, 48vh) minmax(8rem, 1fr) auto auto; }
+    .telemetry, .well, .talk, .strip, #permit, .floor { grid-column: 1; grid-row: auto; }
+    .telemetry, .talk { border: 0; border-top: 1px solid var(--color-rule); }
+    .systems { display: flex; flex-wrap: wrap; gap: var(--space-2xs) var(--space-md); }
+    .systems div { border: 0; padding: 0; }
     #log { max-height: 24vh; }
-    .floor { flex-wrap: wrap; padding: var(--space-xs) var(--space-sm); gap: var(--space-xs); }
+    .floor { flex-wrap: wrap; }
     #text { flex: 1 1 100%; }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .act { transition: none; }
-  }
+  @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
 </style>
 </head>
-<body data-state="idle" data-name="__NAME__">
+<body data-state="idle" data-name="__NAME__" data-load="0">
 <canvas id="field" aria-label="reator"></canvas>
 <div class="room">
   <header class="strip">
@@ -245,20 +160,31 @@ _PAGE = r"""<!DOCTYPE html>
       <strong>__NAME__</strong>
       <span id="status">pronto</span>
     </div>
+    <p id="clock">00:00:00</p>
+  </header>
+  <aside class="telemetry">
+    <h2>Casa</h2>
     <dl class="systems">
+      <div><dt>cérebro</dt><dd id="brain">—</dd></div>
+      <div><dt>carga</dt><dd id="load">—</dd></div>
       <div><dt>voz</dt><dd>george</dd></div>
       <div><dt>ritmo</dt><dd>1.08</dd></div>
       <div><dt>fuso</dt><dd>Brasília</dd></div>
       <div><dt>sessão</dt><dd id="sess">à espera do nome</dd></div>
       <div><dt>data</dt><dd id="date">—</dd></div>
     </dl>
-    <p id="clock">00:00:00</p>
-  </header>
+  </aside>
   <div class="well"></div>
   <section class="talk">
     <h2>Conversa</h2>
     <div id="log" aria-live="polite"><p class="empty" id="empty">Diga, Senhor.</p></div>
   </section>
+  <div id="permit" hidden>
+    <p>permissão</p>
+    <code id="permit-cmd"></code>
+    <button class="act" type="button" id="allow">permitir</button>
+    <button class="act" type="button" id="deny">recusar</button>
+  </div>
   <form class="floor" id="form">
     <input id="text" autocomplete="off" placeholder="Diga, Senhor" aria-label="frase" />
     <button class="act" type="button" id="voice">ouvir</button>
@@ -274,6 +200,8 @@ const statusEl = document.getElementById("status");
 const clockEl = document.getElementById("clock");
 const dateEl = document.getElementById("date");
 const sessEl = document.getElementById("sess");
+const brainEl = document.getElementById("brain");
+const loadEl = document.getElementById("load");
 const logEl = document.getElementById("log");
 const emptyEl = document.getElementById("empty");
 const form = document.getElementById("form");
@@ -282,20 +210,20 @@ const player = document.getElementById("player");
 const micBtn = document.getElementById("mic");
 const voiceBtn = document.getElementById("voice");
 const submitBtn = document.getElementById("send");
+const permitEl = document.getElementById("permit");
+const permitCmd = document.getElementById("permit-cmd");
+const allowBtn = document.getElementById("allow");
+const denyBtn = document.getElementById("deny");
 const DPR = Math.min(devicePixelRatio || 1, 2);
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const labels = { idle: "pronto", listening: "ouvindo", thinking: "pensando", speaking: "falando", ignored: "sem o nome" };
 const css = getComputedStyle(document.documentElement);
 const tok = (name) => css.getPropertyValue(name).trim();
 const ink = {
-  paper: tok("--color-paper"),
-  paper2: tok("--color-paper-2"),
-  ink2: tok("--color-ink-2"),
-  ring: tok("--color-ring"),
-  accent: tok("--color-accent"),
-  core: tok("--color-core"),
-  mono: tok("--font-mono"),
+  paper: tok("--color-paper"), paper2: tok("--color-paper-2"), ink2: tok("--color-ink-2"),
+  ring: tok("--color-ring"), accent: tok("--color-accent"), core: tok("--color-core"), mono: tok("--font-mono"),
 };
+let permitId = "";
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -305,7 +233,6 @@ function resize() {
   canvas.style.height = h + "px";
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
-
 function ring(cx, cy, r, start, span, width, color) {
   ctx.beginPath();
   ctx.strokeStyle = color;
@@ -313,100 +240,110 @@ function ring(cx, cy, r, start, span, width, color) {
   ctx.arc(cx, cy, r, start, start + span);
   ctx.stroke();
 }
-
 function drawReactor(now) {
   const w = canvas.width / DPR, h = canvas.height / DPR;
-  const cx = w / 2, cy = h * 0.46;
-  const R = Math.min(w, h) * 0.28;
+  const rect = document.querySelector(".well").getBoundingClientRect();
+  if (rect.width < 40 || rect.height < 40) {
+    ctx.fillStyle = ink.paper;
+    ctx.fillRect(0, 0, w, h);
+    return;
+  }
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const R = Math.min(rect.width, rect.height) * 0.4;
   const state = document.body.dataset.state;
-  const spin = reduce ? 0.6 : now / 1000;
+  const spin = reduce ? 0.4 : now / 1000;
   const dir = state === "listening" ? -1 : 1;
-  const pace = state === "thinking" ? 0.9 : state === "speaking" ? 0.45 : 0.16;
+  const pace = state === "thinking" ? 1.1 : state === "speaking" ? 0.55 : 0.22;
   ctx.fillStyle = ink.paper;
   ctx.fillRect(0, 0, w, h);
-  const bloom = ctx.createRadialGradient(cx, cy, R * 0.1, cx, cy, R * 2.4);
+  const bloom = ctx.createRadialGradient(cx, cy, R * 0.05, cx, cy, R * 1.8);
   bloom.addColorStop(0, ink.paper2);
   bloom.addColorStop(1, ink.paper);
   ctx.fillStyle = bloom;
   ctx.fillRect(0, 0, w, h);
-
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 1.18, 0, Math.PI * 2);
+  ctx.fillStyle = ink.paper2;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = ink.ring;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 0.42, 0, Math.PI * 2);
+  ctx.fillStyle = ink.paper;
+  ctx.fill();
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.globalAlpha = 0.45;
   ctx.strokeStyle = ink.ring;
+  ctx.globalAlpha = 0.55;
   ctx.lineWidth = 1;
-  for (let i = 0; i < 96; i++) {
-    const a = (i / 96) * Math.PI * 2;
-    const inner = R * 1.22;
-    const outer = i % 8 === 0 ? R * 1.36 : R * 1.28;
+  for (let i = 0; i < 144; i++) {
+    const a = (i / 144) * Math.PI * 2;
+    const inner = R * 1.05;
+    const outer = i % 12 === 0 ? R * 1.2 : i % 3 === 0 ? R * 1.14 : R * 1.09;
     ctx.beginPath();
     ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
     ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
     ctx.stroke();
   }
   ctx.restore();
-
   const base = spin * pace * dir;
-  ctx.globalAlpha = 0.9;
-  for (let s = 0; s < 3; s++) {
-    ring(cx, cy, R, base + s * (Math.PI * 2 / 3), Math.PI / 2.4, 1.5, ink.ring);
-  }
-  ctx.globalAlpha = 0.55;
-  for (let s = 0; s < 3; s++) {
-    ring(cx, cy, R * 0.72, -base * 1.3 + s * (Math.PI * 2 / 3), Math.PI / 3, 1, ink.ring);
-  }
-  const load = state === "thinking" ? 0.72 : state === "listening" ? 0.5 : state === "speaking" ? 0.4 + level * 0.55 : 0.22;
+  ctx.globalAlpha = 0.95;
+  for (let s = 0; s < 6; s++) ring(cx, cy, R, base + s * (Math.PI / 3), Math.PI / 6, 14, ink.ring);
+  ctx.globalAlpha = 0.75;
+  for (let s = 0; s < 3; s++) ring(cx, cy, R * 0.78, -base * 1.4 + s * (Math.PI * 2 / 3), Math.PI / 2.2, 8, ink.ring);
+  ctx.globalAlpha = 0.45;
+  ring(cx, cy, R * 0.62, base * 0.5, Math.PI * 1.7, 1, ink.ring);
+  const load = state === "thinking" ? 0.78 : state === "listening" ? 0.55 : state === "speaking" ? 0.42 + level * 0.5 : 0.3;
   ctx.globalAlpha = 1;
-  ring(cx, cy, R * 0.46, -Math.PI / 2, Math.PI * 2 * load, 2, ink.accent);
-
+  ring(cx, cy, R * 0.5, -Math.PI / 2, Math.PI * 2 * load, 4, ink.accent);
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.rotate(base * 0.35);
+  ctx.rotate(base * 0.25);
   ctx.beginPath();
   for (let i = 0; i < 3; i++) {
     const a = -Math.PI / 2 + i * (Math.PI * 2 / 3);
-    const x = Math.cos(a) * R * 0.26, y = Math.sin(a) * R * 0.26;
+    const x = Math.cos(a) * R * 0.28, y = Math.sin(a) * R * 0.28;
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
   ctx.closePath();
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = ink.core;
+  ctx.fill();
+  ctx.globalAlpha = 1;
   ctx.strokeStyle = ink.core;
-  ctx.lineWidth = 1.25;
+  ctx.lineWidth = 2;
   ctx.stroke();
   ctx.restore();
-
-  const coreR = R * (0.07 + (state === "speaking" ? level * 0.04 : 0));
-  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 4);
+  const coreR = R * (0.08 + (state === "speaking" ? level * 0.04 : 0));
+  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 5);
   core.addColorStop(0, ink.core);
-  core.addColorStop(0.4, ink.ring);
+  core.addColorStop(0.35, ink.ring);
   core.addColorStop(1, ink.paper);
-  ctx.globalAlpha = 0.85;
+  ctx.globalAlpha = 0.9;
   ctx.fillStyle = core;
   ctx.beginPath();
-  ctx.arc(cx, cy, coreR * 4, 0, Math.PI * 2);
+  ctx.arc(cx, cy, coreR * 5, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
   ctx.fillStyle = ink.core;
   ctx.beginPath();
   ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.fillStyle = ink.ink2;
-  ctx.font = "500 12px " + ink.mono;
+  ctx.font = "500 13px " + ink.mono;
   ctx.textAlign = "center";
-  ctx.fillText((labels[state] || state).toUpperCase(), cx, cy + R * 1.55);
+  ctx.fillText((labels[state] || state).toUpperCase(), cx, cy + R * 1.02);
   ctx.globalAlpha = 1;
 }
-
 let level = 0;
 const timeBuf = new Uint8Array(256);
 function sampleLevel() {
   if (!analyser || document.body.dataset.state !== "speaking") { level *= 0.9; return; }
   analyser.getByteTimeDomainData(timeBuf);
   let s = 0;
-  for (let i = 0; i < timeBuf.length; i++) {
-    const v = (timeBuf[i] - 128) / 128;
-    s += v * v;
-  }
+  for (let i = 0; i < timeBuf.length; i++) { const v = (timeBuf[i] - 128) / 128; s += v * v; }
   level = Math.min(1, Math.sqrt(s / timeBuf.length) * 5);
 }
 function frame(now) {
@@ -427,7 +364,7 @@ function setState(name) {
   document.body.dataset.state = name;
   statusEl.textContent = labels[name] || name;
   const busy = name === "thinking";
-  for (const btn of [submitBtn, voiceBtn, micBtn]) {
+  for (const btn of [submitBtn, voiceBtn, micBtn, allowBtn, denyBtn]) {
     btn.disabled = busy;
     if (busy) btn.dataset.state = "loading";
     else if (btn.dataset.state === "loading") delete btn.dataset.state;
@@ -449,6 +386,23 @@ function addLine(cls, message) {
   if (cls === "agent") p.dataset.speaker = "orion";
   logEl.appendChild(p);
   logEl.scrollTop = logEl.scrollHeight;
+}
+function showPermit(id, command) {
+  permitId = id || "";
+  permitCmd.textContent = command || "";
+  permitEl.hidden = !permitId;
+}
+async function refreshBrain() {
+  try {
+    const data = await (await fetch("/api/status")).json();
+    brainEl.textContent = data.up ? (data.model || "sem modelo") : "ausente";
+    if (data.load && data.load.length) {
+      loadEl.textContent = String(data.load[0]);
+      document.body.dataset.load = String(data.load[0]);
+    }
+  } catch (err) {
+    brainEl.textContent = "ausente";
+  }
 }
 let audioCtx, analyser;
 function ensureAnalyser() {
@@ -475,9 +429,7 @@ async function playWav(b64) {
 }
 async function post(url, body) {
   const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body || {}),
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}),
   });
   if (!res.ok) throw new Error("falha " + res.status);
   return res.json();
@@ -496,11 +448,28 @@ async function showTurn(data, sourceBtn) {
     addLine("meta", "Ignorei um ruído.");
     return;
   }
+  if (data.status === "permit") {
+    sessEl.textContent = "ordem pendente";
+    showPermit(data.permit_id, data.command);
+    if (data.reply) addLine("agent", data.reply);
+    if (data.audio_b64) await playWav(data.audio_b64);
+    else setState("idle");
+    return;
+  }
   if (data.status === "replied") sessEl.textContent = "acordado";
   if (data.reply) addLine("agent", data.reply);
+  if (data.output) addLine("meta", data.output);
   if (data.audio_b64) await playWav(data.audio_b64);
   else setState("idle");
   if (sourceBtn && data.reply) mark(sourceBtn, "success");
+}
+async function decide(allow) {
+  if (!permitId) return;
+  const id = permitId;
+  showPermit("", "");
+  setState("thinking");
+  try { await showTurn(await post("/api/permit", { id, allow }), allow ? allowBtn : denyBtn); }
+  catch (err) { setState("idle"); addLine("meta", "Não consegui cumprir a ordem."); }
 }
 form.addEventListener("submit", async (ev) => {
   ev.preventDefault();
@@ -526,6 +495,8 @@ voiceBtn.addEventListener("click", async () => {
     mark(voiceBtn, "error");
   }
 });
+allowBtn.addEventListener("click", () => decide(true));
+denyBtn.addEventListener("click", () => decide(false));
 let micStream, captureCtx, processor, chunks = [], capturing = false;
 async function startMic(ev) {
   ev.preventDefault();
@@ -579,13 +550,8 @@ async function stopMic(ev) {
     binary += String.fromCharCode(...bytes.subarray(i, i + stepSize));
   }
   setState("thinking");
-  try {
-    await showTurn(await post("/api/turn", { pcm_b64: btoa(binary), sample_rate: rate }), micBtn);
-  } catch (err) {
-    setState("idle");
-    addLine("meta", "Não consegui ouvir agora.");
-    mark(micBtn, "error");
-  }
+  try { await showTurn(await post("/api/turn", { pcm_b64: btoa(binary), sample_rate: rate }), micBtn); }
+  catch (err) { setState("idle"); addLine("meta", "Não consegui ouvir agora."); mark(micBtn, "error"); }
 }
 micBtn.addEventListener("pointerdown", startMic);
 micBtn.addEventListener("pointerup", stopMic);
@@ -594,6 +560,8 @@ addEventListener("resize", resize);
 resize();
 tickClock();
 setInterval(tickClock, 1000);
+refreshBrain();
+setInterval(refreshBrain, 5000);
 requestAnimationFrame(frame);
 </script>
 </body>
