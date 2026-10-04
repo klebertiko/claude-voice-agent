@@ -7,6 +7,7 @@ para a voz ainda poder ser ouvida.
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import unicodedata
@@ -14,7 +15,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from .actions import local_command
 from .llm_claude_cli import render_prompt
+from .llm_ollama import ask_ollama, probe_ollama
 from .noise import is_noise_transcript
 from .personas import Persona
 from .speech import strip_for_speech
@@ -182,11 +185,33 @@ def take_turn(
 
 
 def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now):
-    """Cérebro via CLI quando ``claude`` está no PATH; senão, fallback falado."""
+    """Ordem local, depois Ollama, depois o CLI, depois a fala de reserva.
+
+    Hora, data, nome e ``execute …`` não dependem de rede. O resto tenta o
+    Ollama em ``settings.ollama_host`` e só então o ``claude``.
+    """
     cli = settings.claude_cli
     model = settings.llm_model
+    host = settings.ollama_host
+    preferred = settings.ollama_model
 
     def reply(cleaned: str, history: list[tuple[str, str]]) -> str:
+        cmd = local_command(cleaned)
+        if cmd:
+            return f"ACAO: {cmd}"
+        local = spoken_fallback(cleaned, persona.name, moment_fn())
+        if not local.startswith("Entendido, Senhor. Ainda não"):
+            return local
+        if host:
+            try:
+                info = probe_ollama(host)
+                chosen = preferred or info.get("model")
+                if info.get("up") and chosen:
+                    text = ask_ollama(host, chosen, persona.system_prompt(), history, cleaned)
+                    if text:
+                        return text
+            except (OSError, TimeoutError, json.JSONDecodeError, ValueError):
+                pass
         if shutil.which(cli):
             try:
                 text = ask_claude(cli, model, persona, cleaned, history)
@@ -195,6 +220,6 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now):
                     return spoken
             except (OSError, subprocess.TimeoutExpired, RuntimeError):
                 pass
-        return spoken_fallback(cleaned, persona.name, moment_fn())
+        return local
 
     return reply

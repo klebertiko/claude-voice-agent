@@ -39,6 +39,9 @@ class Settings:
     # Cérebro (Claude via subscription — CLI `claude -p`, sem API key)
     llm_model: str | None = None  # None => modelo default do CLI/assinatura
     claude_cli: str = "claude"
+    # Cérebro local. Ollama na máquina; vazio em ollama_model = o primeiro instalado.
+    ollama_host: str = "http://127.0.0.1:11434"
+    ollama_model: str = ""
     # Wake-word
     require_wake: bool = True
     wake_window_s: float = 30.0
@@ -91,6 +94,12 @@ class Settings:
             whisper_lang=e.get("CLAUDE_VOICE_WHISPER_LANG", cls.whisper_lang),
             llm_model=e.get("CLAUDE_VOICE_LLM_MODEL") or None,
             claude_cli=e.get("CLAUDE_VOICE_CLAUDE_CLI", cls.claude_cli),
+            ollama_host=e.get("OLLAMA_HOST")
+            or e.get("CLAUDE_VOICE_OLLAMA_HOST")
+            or cls.ollama_host,
+            ollama_model=e.get("OLLAMA_MODEL")
+            or e.get("CLAUDE_VOICE_OLLAMA_MODEL")
+            or cls.ollama_model,
             require_wake=_bool("CLAUDE_VOICE_REQUIRE_WAKE", cls.require_wake),
             wake_window_s=float(e.get("CLAUDE_VOICE_WAKE_WINDOW_S", cls.wake_window_s)),
             vad_threshold=float(e.get("CLAUDE_VOICE_VAD_THRESHOLD", cls.vad_threshold)),

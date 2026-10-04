@@ -1,13 +1,14 @@
 # claude-voice-agent — assistente de voz de mão dupla (local-first)
 
 Voz conversacional estilo JARVIS, em português do Brasil. Você fala, ela ouve,
-pensa e responde. A persona padrão é o **Orion** (kokoro `bm_george`,
-fonemas pt-BR, ritmo 1.08). A Lilith continua disponível
-(`pf_dora`). Tudo local exceto o
-cérebro (Claude).
+pensa e — com a sua permissão — age no computador. A persona padrão é o
+**Orion** (kokoro `bm_george`, fonemas pt-BR, ritmo 1.08). A Lilith continua
+disponível (`pf_dora`).
 
 **Pipeline:** mic ou texto → **faster-whisper** (STT, pt-BR) → wake-gate →
-**Claude** (cérebro) → **kokoro** (TTS) → alto-falante ou o painel.
+**Ollama local** (ou o CLI `claude`, se o Ollama não responder) → **kokoro**
+(TTS). Uma ordem (`execute …`, ou uma linha `ACAO:` do modelo) aparece no
+painel e só corre depois de permitir.
 
 ## Rodar
 
@@ -18,7 +19,8 @@ uv run python -m claude_agent_voice.web
 ```
 
 Abre em http://127.0.0.1:8765. Escreva ou fale **"Orion, ..."**. O microfone
-pede só áudio. Sem o CLI `claude`, ele ainda fala: hora, data e um aviso curto.
+pede só áudio. O cérebro é o Ollama em `127.0.0.1:11434`. Sem ele, e sem o
+CLI `claude`, ainda fala hora, data, o nome, e pede permissão para `execute …`.
 
 Console, sem painel:
 
@@ -41,7 +43,9 @@ voz+ouvido), mas não pensa.
 
 | Var | Default | O quê |
 |---|---|---|
-| `CLAUDE_VOICE_CLAUDE_CLI` | `claude` | binário do CLI (cérebro via subscription) |
+| `OLLAMA_HOST` | `http://127.0.0.1:11434` | Ollama local, tentado antes do CLI |
+| `OLLAMA_MODEL` | primeiro instalado | modelo do Ollama |
+| `CLAUDE_VOICE_CLAUDE_CLI` | `claude` | binário do CLI, se o Ollama não responder |
 | `CLAUDE_VOICE_LLM_MODEL` | (default do CLI) | modelo do cérebro (`--model`) |
 | `CLAUDE_VOICE_VOICE` | `pf_dora` | voz kokoro |
 | `CLAUDE_VOICE_WHISPER_MODEL` | `small` | modelo faster-whisper |

@@ -12,17 +12,21 @@ import io
 import json
 import logging
 import os
+import secrets
 import threading
 import time
 import wave
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from .actions import DENY_SPOKEN, PERMIT_SPOKEN, extract_proposal, run_command, speak_result
 from .agent import greeting, make_tts
 from .hud import HudSession, make_reply_fn, take_turn
 from .hud_page import render_page
 from .personas import get_persona
+from .llm_ollama import probe_ollama
 from .settings import Settings
 from .stt_whisper import WhisperSTT, to_mono16k
 from .tts_kokoro import pcm16_bytes
@@ -45,15 +49,30 @@ def wav_bytes(pcm: bytes, sample_rate: int) -> bytes:
 class VoiceHud:
     """Um painel: sessão de wake, fala e (se houver) o cérebro."""
 
-    def __init__(self, session: HudSession, reply_fn, synth_fn, transcribe_fn, clock, now=None) -> None:
+    def __init__(
+        self,
+        session: HudSession,
+        reply_fn,
+        synth_fn,
+        transcribe_fn,
+        clock,
+        now=None,
+        workdir: Path | None = None,
+        probe_fn=None,
+    ) -> None:
         self.session = session
         self.reply_fn = reply_fn
         self.synth_fn = synth_fn
         self.transcribe_fn = transcribe_fn
         self.clock = clock
         self.now = now or (lambda: datetime.now(ZoneInfo("America/Sao_Paulo")))
+        self.workdir = workdir or Path.cwd()
+        self.probe_fn = probe_fn or (lambda: {"up": False, "model": None, "models": []})
         self._lock = threading.Lock()
         self._greet_n = 0
+        self._permits: dict[str, str] = {}
+        self._status_at = 0.0
+        self._status_cache: dict | None = None
 
     def handle(
         self,
@@ -77,7 +96,56 @@ class VoiceHud:
                 self.reply_fn,
                 enforce_wake=enforce_wake,
             )
-            return self._with_audio(result.status, result.heard, result.reply)
+            command = extract_proposal(result.reply) if result.status == "replied" else None
+            if not command:
+                return self._with_audio(result.status, result.heard, result.reply)
+            if self.session.history and self.session.history[-1][0] == "assistant":
+                self.session.history[-1] = ("assistant", PERMIT_SPOKEN)
+            permit_id = secrets.token_hex(4)
+            self._permits[permit_id] = command
+            payload = self._with_audio("permit", result.heard, PERMIT_SPOKEN)
+            payload["command"] = command
+            payload["permit_id"] = permit_id
+            return payload
+
+    def resolve(self, permit_id: str, allow: bool) -> dict:
+        """Executa ou recusa a ordem que o painel mostrou."""
+        with self._lock:
+            command = self._permits.pop(permit_id, None)
+            if command is None:
+                return self._with_audio("empty", "", "Não há ordem pendente, Senhor.")
+            if not allow:
+                self.session.history.append(("assistant", DENY_SPOKEN))
+                payload = self._with_audio("replied", "", DENY_SPOKEN)
+                payload["output"] = ""
+                payload["code"] = None
+                return payload
+            code, output = run_command(command, self.workdir)
+            reply = speak_result(code, output)
+            self.session.history.append(("assistant", reply))
+            payload = self._with_audio("replied", "", reply)
+            payload["output"] = output
+            payload["code"] = code
+            return payload
+
+    def status_payload(self) -> dict:
+        now = time.monotonic()
+        if self._status_cache is not None and now - self._status_at < 3:
+            return self._status_cache
+        info = self.probe_fn() or {}
+        try:
+            load = [round(n, 2) for n in os.getloadavg()]
+        except OSError:
+            load = []
+        payload = {
+            "up": bool(info.get("up")),
+            "model": info.get("model"),
+            "models": list(info.get("models") or []),
+            "load": load,
+        }
+        self._status_cache = payload
+        self._status_at = now
+        return payload
 
     def warm(self) -> None:
         """Carrega o modelo de voz sem gastar a primeira saudação do dia."""
@@ -143,6 +211,15 @@ def create_hud(settings: Settings | None = None) -> VoiceHud:
         gate=WakeGate(wake_words=persona.wake_words, window_s=settings.wake_window_s),
     )
     tts = make_tts(settings, persona)
+    host = settings.ollama_host
+    preferred = settings.ollama_model
+
+    def probe() -> dict:
+        info = probe_ollama(host) if host else {"up": False, "model": None, "models": []}
+        if info.get("up") and preferred:
+            info["model"] = preferred
+        return info
+
     stt = WhisperSTT(
         model=settings.whisper_model,
         device=settings.whisper_device,
@@ -155,6 +232,7 @@ def create_hud(settings: Settings | None = None) -> VoiceHud:
         synth_fn=_default_synth(tts),
         transcribe_fn=_default_transcribe(stt),
         clock=time.monotonic,
+        probe_fn=probe,
     )
 
 
@@ -182,7 +260,12 @@ def _handler(hud: VoiceHud, page: str):
             return data
 
         def do_GET(self) -> None:  # noqa: N802
-            if self.path.split("?", 1)[0] != "/":
+            path = self.path.split("?", 1)[0]
+            if path == "/api/status":
+                body = json.dumps(hud.status_payload()).encode("utf-8")
+                self._send(200, body, "application/json")
+                return
+            if path != "/":
                 self._send(404, b"{}", "application/json")
                 return
             self._send(200, page.encode("utf-8"), "text/html; charset=utf-8")
@@ -203,6 +286,8 @@ def _handler(hud: VoiceHud, page: str):
                         sample_rate=int(data.get("sample_rate") or 16000),
                         typed=pcm is None,
                     )
+                elif path == "/api/permit":
+                    payload = hud.resolve(str(data.get("id") or ""), bool(data.get("allow")))
                 else:
                     self._send(404, b"{}", "application/json")
                     return
