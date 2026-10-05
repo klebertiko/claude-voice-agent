@@ -874,7 +874,7 @@ def _topic_of(norm: str) -> str:
     if fresh_round:
         return _usable_topic(fresh_round.group(1) or "") or "brasil"
     told = re.fullmatch(
-        r"(?:me\s+)?atualiza\s+(?:sobre|a\s+respeito\s+(?:de|do|da))\s+(.+)",
+        r"(?:me\s+)?atualiza\s+(?:sobre|a\s+respeito\s+(?:de|do|da)|quanto\s+(?:aos|ao|as|a))\s+(.+)",
         norm,
     )
     if told:
@@ -1450,7 +1450,7 @@ def house_reply(
                 norm,
             )
             or re.match(
-                r"^(?:me\s+)?atualiza\s+(?:sobre|a\s+respeito\s+(?:de|do|da))\s+\S",
+                r"^(?:me\s+)?atualiza\s+(?:sobre|a\s+respeito\s+(?:de|do|da)|quanto\s+(?:aos|ao|as|a))\s+\S",
                 norm,
             )
             or re.match(
