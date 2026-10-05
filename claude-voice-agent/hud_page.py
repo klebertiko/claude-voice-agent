@@ -264,6 +264,10 @@ _PAGE = r"""<!DOCTYPE html>
     }
     #note:not([hidden]) #note-links .k,
     #note:not([hidden]) #note-links .act { flex: none; }
+    #note:not([hidden]) #note-links .act { overflow: hidden; text-overflow: ellipsis; }
+    #note:not([hidden]) #note-links.has-more {
+      mask-image: linear-gradient(90deg, #000 0, #000 var(--link-clip, 100%), transparent var(--link-clip, 100%));
+    }
     #note:not([hidden]) #note-links::-webkit-scrollbar { height: 0; display: none; }
     .strip { padding: 12px 16px; }
     .mark { width: 28px; height: 44px; }
@@ -1846,7 +1850,38 @@ function openNote(star) {
     });
     noteLinks.appendChild(btn);
   }
-  requestAnimationFrame(settleLog);
+  requestAnimationFrame(() => { settleLog(); seatLinks(); });
+}
+function seatLinks() {
+  if (!noteLinks || !noteEl || noteEl.hidden) return;
+  if (!window.matchMedia("(max-width: 640px)").matches) {
+    noteLinks.classList.remove("has-more");
+    noteLinks.style.removeProperty("--link-clip");
+    for (const btn of noteLinks.querySelectorAll(".act")) btn.style.removeProperty("maxWidth");
+    return;
+  }
+  const cap = noteLinks.querySelector(".k");
+  const style = getComputedStyle(noteLinks);
+  const gap = parseFloat(style.columnGap || style.gap) || 0;
+  const box = noteLinks.getBoundingClientRect();
+  const capW = cap ? cap.getBoundingClientRect().width : 0;
+  const limit = Math.max(44, Math.floor(box.width - capW - (cap ? gap : 0)));
+  for (const btn of noteLinks.querySelectorAll(".act")) btn.style.maxWidth = limit + "px";
+  const edge = noteLinks.getBoundingClientRect();
+  const more = noteLinks.scrollWidth - noteLinks.clientWidth - noteLinks.scrollLeft > 4;
+  let clip = edge.width;
+  if (more) {
+    let clipLeft = Infinity;
+    for (const el of noteLinks.children) {
+      const row = el.getBoundingClientRect();
+      if (row.left < edge.right - 1 && row.right > edge.right + 1 && row.left > edge.left + 8) {
+        clipLeft = Math.min(clipLeft, row.left);
+      }
+    }
+    if (clipLeft < Infinity) clip = clipLeft - edge.left;
+  }
+  noteLinks.style.setProperty("--link-clip", clip + "px");
+  noteLinks.classList.toggle("has-more", clip < edge.width - 1);
 }
 function focusStar(id) {
   const star = memory.find((item) => item.id === id);
@@ -2254,7 +2289,8 @@ function markMore() {
   tel.style.setProperty("--more-x", moreX + "px");
 }
 systemsEl.addEventListener("scroll", markMore, { passive: true });
-addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); markMore(); seatNote(); seatLog(); seatPermit(); });
+addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); markMore(); seatNote(); seatLog(); seatPermit(); seatLinks(); });
+noteLinks.addEventListener("scroll", seatLinks, { passive: true });
 resize();
 seatLog();
 markMore();
