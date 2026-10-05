@@ -457,9 +457,20 @@ def _topic_of(norm: str) -> str:
     match = re.search(r"noticias?\s+(?:sobre|de|do|da)\s+(.+)$", norm)
     if match:
         return _usable_topic(match.group(1))
+    fresh = re.match(r"^o que ha de novo(?:\s+(?:sobre|de|do|da)\s+(.+))?$", norm)
+    if fresh:
+        return _usable_topic(fresh.group(1) or "") or "brasil"
+    if re.fullmatch(
+        r"(?:(?:quais|me da|me fala|me conta)\s+(?:as|os)\s+)?(?:as\s+)?ultimas\s+noticias",
+        norm,
+    ):
+        return "brasil"
     bare = re.match(r"^noticias?\s+(?!sobre\s|de\s|do\s|da\s)(.+)$", norm)
     if bare:
-        return _usable_topic(bare.group(1))
+        topic = _usable_topic(bare.group(1))
+        if topic == "ultimas":
+            return "brasil"
+        return topic
     happening = re.match(r"^o que esta acontecendo\s+(.+)$", norm)
     if happening:
         return _usable_topic(happening.group(1))
@@ -715,6 +726,7 @@ def house_reply(
             or "novidade" in norm
             or norm == "o que esta acontecendo"
             or norm.startswith("o que esta acontecendo ")
+            or re.match(r"^o que ha de novo(?:\s+(?:sobre|de|do|da)\s+\S.*)?$", norm)
         ):
             topic = _topic_of(norm)
             if not topic:
