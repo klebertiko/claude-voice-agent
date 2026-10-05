@@ -13,7 +13,7 @@ centro são as notas, em 3D.
 
 ## Rodar
 
-Painel (a carta de Orion no centro; observações e conversa nas margens):
+Painel (céu 3D: notas, sistemas e a constelação de Orion; estado e conversa nas margens):
 
 ```bash
 uv run python -m claude_agent_voice.web

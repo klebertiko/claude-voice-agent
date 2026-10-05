@@ -1,6 +1,6 @@
-"""Painel do Orion: a carta da constelação, no azul da prancha.
+"""Painel do Orion: asterismo no centro, céu de lembretes ao redor.
 
-Sem vídeo e sem reator. Uma ordem no computador aparece inteira e espera permissão.
+Sem vídeo. Uma ordem no computador aparece inteira e espera permissão.
 """
 
 from __future__ import annotations
@@ -13,163 +13,142 @@ _PAGE = r"""<!DOCTYPE html>
 <title>__NAME__</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,400&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
 <style>
-  /* Carta XXIX. Escala 16 × 1.25. Duas famílias: Cormorant na prancha, Source Sans no miolo.
-   * As margens são rótulos de carta (16px), não faixas de painel.
-   * Um acento só: o marfim da permissão. O chão é o azul medido da prancha.
+  /* Painel. Escala 16 × 1.25. Source Sans no miolo, Newsreader só no nome.
+   * Um acento. Grelha de 8. A carta é o asterismo, com posições reais.
    */
   :root {
     color-scheme: dark;
-    --color-paper: #f3f0e6;
-    --color-plate: #0a427d;
-    --color-ink: #f7f5ef;
-    --color-ink-2: #d5dce8;
-    --color-accent: #f3e6c4;
-    --color-rule: rgba(247, 245, 239, 0.4);
-    --color-focus: #f7f5ef;
-    --color-ok: #d5eadc;
-    --color-bad: #f0c8be;
-    --font-display: "Cormorant Garamond", Palatino, "Palatino Linotype", Georgia, serif;
+    --color-bg: #070d16;
+    --color-ink: #e8eef6;
+    --color-ink-2: #a9b9cb;
+    --color-line: rgba(232, 238, 246, 0.14);
+    --color-accent: #d4c4a8;
+    --color-focus: #e8eef6;
+    --color-ok: #b7d4c4;
+    --color-bad: #e7b2a8;
+    --font-display: "Newsreader", Georgia, serif;
     --font-body: "Source Sans 3", "Segoe UI", sans-serif;
     --text-support: 0.875rem;
     --text-body: 1rem;
-    --text-lead: 1.25rem;
-    --text-display: 3.052rem;
-    --space-1: 0.5rem;
-    --space-2: 1rem;
-    --space-3: 1.5rem;
-    --space-4: 2rem;
-    --space-5: 3rem;
-    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-    --dur-short: 180ms;
+    --text-title: 2rem;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; min-height: 100%; background: var(--color-paper); color: var(--color-ink); }
+  html, body { margin: 0; min-height: 100%; background: var(--color-bg); color: var(--color-ink); }
   body {
     font-family: var(--font-body);
     font-size: var(--text-body);
     font-weight: 400;
     line-height: 1.5;
-    font-style: normal;
   }
   h1, h2, p { margin: 0; }
   #field { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
   .room {
     position: relative; z-index: 1;
-    margin: var(--space-2);
-    min-height: calc(100vh - 2rem);
+    min-height: 100vh;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(70vh, auto) auto auto auto auto;
+    grid-template-rows: auto minmax(28rem, auto) auto auto auto auto;
     background: transparent;
-    border: 1px solid var(--color-ink);
-    box-shadow: 0 0 0 4px var(--color-paper), 0 0 0 5px var(--color-ink);
     user-select: none;
   }
   #log, #text, #permit-cmd { user-select: text; }
   .strip {
-    display: flex; align-items: baseline; justify-content: space-between;
-    gap: var(--space-2); padding: var(--space-3) var(--space-2) var(--space-1);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 16px;
+    border-bottom: 1px solid var(--color-line);
   }
+  .brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+  .plate-num {
+    font-size: var(--text-support); font-weight: 600; letter-spacing: 0.14em; color: var(--color-ink-2);
+  }
+  .strip h1 {
+    font-family: var(--font-display); font-weight: 500; font-size: clamp(1.5rem, 4vw, var(--text-title));
+    line-height: 1; letter-spacing: -0.02em; text-transform: uppercase;
+  }
+  .epithet {
+    font-family: var(--font-display); font-style: italic; font-weight: 400;
+    font-size: var(--text-body); line-height: 1.2; color: var(--color-ink-2);
+  }
+  .meta { display: flex; align-items: baseline; gap: 16px; }
   #status {
-    font-family: var(--font-body); font-size: var(--text-support); font-weight: 600;
-    letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-ink-2);
+    font-size: var(--text-support); font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--color-ink-2);
   }
   body[data-state="listening"] #status,
   body[data-state="speaking"] #status,
   body[data-state="thinking"] #status { color: var(--color-accent); }
   body[data-state="ignored"] #status { color: var(--color-bad); }
-  #clock {
-    font-family: var(--font-display); font-weight: 600; font-size: var(--text-lead);
-    line-height: 1.2; font-variant-numeric: tabular-nums; letter-spacing: 0.04em;
-  }
-  .well { position: relative; min-height: 70vh; cursor: grab; touch-action: none; }
+  #clock { font-size: var(--text-body); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+  .well { position: relative; min-height: 28rem; cursor: grab; touch-action: none; }
   .well:active { cursor: grabbing; }
-  .hero { position: absolute; left: var(--space-2); bottom: var(--space-3); max-width: 16rem; pointer-events: none; }
-  .plate-num {
-    margin: 0 0 var(--space-1);
-    font-family: var(--font-display); font-weight: 600; font-size: var(--text-support);
-    letter-spacing: 0.16em;
-  }
-  .hero h1 {
-    margin: 0 0 var(--space-4);
-    font-family: var(--font-display); font-weight: 600; font-style: normal;
-    font-size: clamp(2.441rem, 8vw, var(--text-display));
-    line-height: 1; letter-spacing: 0.08em; text-transform: uppercase;
-  }
-  .epithet {
-    font-family: var(--font-display); font-style: italic; font-weight: 500;
-    font-size: var(--text-lead); line-height: 1.3;
-  }
   #sky-read {
-    position: absolute; left: var(--space-2); right: var(--space-2); bottom: 11rem;
-    max-width: 22rem; pointer-events: none;
-    font-family: var(--font-display); font-style: italic; font-weight: 500;
-    font-size: var(--text-body); line-height: 1.5;
+    position: absolute; top: 16px; left: 16px; right: 16px; margin: 0;
+    text-align: center; pointer-events: none;
+    font-size: var(--text-body); line-height: 1.5; color: var(--color-ink-2);
   }
   .telemetry, .talk {
-    min-width: 0; min-height: 0;
-    padding: var(--space-4) var(--space-2);
+    min-width: 0; min-height: 0; padding: 24px 16px;
+    border-top: 1px solid var(--color-line);
   }
   h2 {
-    margin: 0 0 var(--space-2);
-    font-family: var(--font-body); font-size: var(--text-body); font-weight: 600;
-    font-style: normal; line-height: 1.25; letter-spacing: 0.12em;
+    margin: 0 0 16px;
+    font-family: var(--font-body); font-size: var(--text-support); font-weight: 600;
+    line-height: 1.25; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-ink-2);
+  }
+  .systems { margin: 0; display: flex; flex-direction: column; }
+  .systems div {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 16px; min-width: 0; padding: 8px 0;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .systems div:last-child { border-bottom: 0; }
+  .systems dt {
+    font-size: var(--text-support); font-weight: 600; letter-spacing: 0.06em;
     text-transform: uppercase; color: var(--color-ink-2);
   }
-  .systems { margin: 0; display: flex; flex-direction: column; gap: var(--space-1); }
-  .systems div {
-    display: flex; flex-direction: row; justify-content: space-between; align-items: baseline;
-    gap: var(--space-2); min-width: 0;
-  }
-  .systems dt {
-    font-family: var(--font-body); font-size: var(--text-support); font-weight: 600;
-    letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-ink-2);
-  }
   .systems dd {
-    margin: 0; font-family: var(--font-display); font-style: italic; font-weight: 500;
-    font-size: var(--text-body); line-height: 1.3; text-align: right; color: var(--color-ink);
-    overflow-wrap: anywhere;
+    margin: 0; font-size: var(--text-body); line-height: 1.3; text-align: right;
+    font-variant-numeric: tabular-nums; color: var(--color-ink); overflow-wrap: anywhere;
   }
   .systems dd.is-down { color: var(--color-ink-2); }
   .talk { display: flex; flex-direction: column; }
   #log {
     flex: 1; min-height: 0; max-height: 24rem; overflow: auto;
-    display: flex; flex-direction: column; gap: var(--space-2); max-width: 65ch;
+    display: flex; flex-direction: column; gap: 16px; max-width: 65ch;
   }
-  #log p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; min-width: 0; font-size: var(--text-body); }
+  #log p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; font-size: var(--text-body); }
   #log .empty, #log .meta { color: var(--color-ink-2); }
   #log p[data-speaker]::before {
     content: attr(data-speaker);
-    display: block; margin: 0 0 var(--space-1);
-    font-family: var(--font-body); font-size: var(--text-support); font-weight: 600;
-    letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-ink-2);
+    display: block; margin: 0 0 8px;
+    font-size: var(--text-support); font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--color-ink-2);
   }
   #permit {
-    display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2);
-    padding: var(--space-2);
-    border-top: 1px solid var(--color-accent);
+    display: flex; align-items: center; flex-wrap: wrap; gap: 16px;
+    padding: 16px; border-top: 1px solid var(--color-accent);
   }
   #permit[hidden] { display: none; }
   #permit p {
-    font-family: var(--font-body); font-size: var(--text-body); font-weight: 600;
-    letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent);
+    font-size: var(--text-body); font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--color-accent);
   }
   #permit-cmd {
     flex: 1 1 12rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    font-family: var(--font-body); font-size: var(--text-body); color: var(--color-ink);
+    font-size: var(--text-body); color: var(--color-ink);
   }
   .floor {
-    display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2);
-    padding: var(--space-1) var(--space-2) var(--space-3);
+    display: flex; align-items: center; flex-wrap: wrap; gap: 16px;
+    padding: 8px 16px 16px; border-top: 1px solid var(--color-line);
   }
   #text {
     flex: 1 1 12rem; min-width: 0; min-height: 44px;
     background: transparent; color: var(--color-ink);
-    border: 0; border-bottom: 1px solid var(--color-rule); border-radius: 0;
+    border: 0; border-bottom: 1px solid var(--color-line); border-radius: 0;
     font-family: var(--font-body); font-size: var(--text-body); line-height: 1.5;
-    padding: 0.75rem 0; outline: none;
+    padding: 12px 0; outline: none;
   }
   #text::placeholder { color: var(--color-ink-2); }
   #text:hover { border-bottom-color: var(--color-ink-2); }
@@ -180,36 +159,40 @@ _PAGE = r"""<!DOCTYPE html>
   #text[data-state="success"] { border-bottom-color: var(--color-ok); }
   .act {
     font-family: var(--font-body); font-size: var(--text-body); font-weight: 400;
-    letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; white-space: nowrap;
-    cursor: pointer; min-height: 44px; min-width: 44px; padding: 0.75rem var(--space-2);
-    border: 0; border-radius: 0; background: transparent; color: var(--color-ink);
-    transition: color var(--dur-short) var(--ease-out);
+    letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none; white-space: nowrap;
+    cursor: pointer; min-height: 44px; padding: 8px 8px;
+    border: 0; border-radius: 0; background: transparent; color: var(--color-ink-2);
+    transition: color 180ms cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .act:hover { color: var(--color-accent); }
-  .act:active { color: var(--color-ink); }
+  .act:hover { color: var(--color-ink); }
+  .act:active { color: var(--color-accent); }
   .act[data-state="loading"] { color: var(--color-accent); }
   .act[data-state="error"] { color: var(--color-bad); }
   .act[data-state="success"] { color: var(--color-ok); }
   #send, #allow { color: var(--color-accent); font-weight: 600; }
-  #send:hover, #allow:hover { color: var(--color-ink); }
   #mic[data-hot="1"] { color: var(--color-bad); }
-  @media (min-width: 900px) {
+  @media (min-width: 960px) {
     .room {
-      margin: var(--space-3);
-      min-height: calc(100vh - 3rem);
-      grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr) minmax(18rem, 24rem);
+      grid-template-columns: 17.5rem minmax(0, 1fr) 22rem;
       grid-template-rows: auto minmax(0, 1fr) auto auto;
     }
     .strip, #permit, .floor { grid-column: 1 / -1; }
-    .strip { padding: var(--space-3) var(--space-4) var(--space-1); }
+    .strip, #permit, .floor, .telemetry, .talk { padding-left: 24px; padding-right: 24px; }
     .well { grid-column: 2; grid-row: 2; min-height: 0; }
-    .telemetry { grid-column: 1; grid-row: 2; overflow: auto; padding: var(--space-5) var(--space-4); }
-    .talk { grid-column: 3; grid-row: 2; overflow: hidden; padding: var(--space-5) var(--space-4) var(--space-4); }
+    .telemetry {
+      grid-column: 1; grid-row: 2; overflow: auto;
+      border-top: 0; border-right: 1px solid var(--color-line); padding-top: 24px; padding-bottom: 24px;
+    }
+    .talk {
+      grid-column: 3; grid-row: 2; overflow: hidden;
+      border-top: 0; border-left: 1px solid var(--color-line); padding-top: 24px; padding-bottom: 24px;
+    }
     #log { max-height: none; }
-    .hero { left: var(--space-4); bottom: var(--space-4); }
-    #sky-read { left: var(--space-4); }
-    #permit, .floor { padding-left: var(--space-4); padding-right: var(--space-4); }
-    .floor { padding-bottom: var(--space-4); }
+    .floor { padding-bottom: 24px; }
+  }
+  @media (max-width: 640px) {
+    .epithet { display: none; }
+    .meta { gap: 8px; }
   }
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
 </style>
@@ -218,19 +201,21 @@ _PAGE = r"""<!DOCTYPE html>
 <canvas id="field" aria-label="constelação"></canvas>
 <div class="room">
   <header class="strip">
-    <p id="status">pronto</p>
-    <p id="clock">00:00:00</p>
-  </header>
-  <div class="well">
-    <p id="sky-read">Arraste o céu.</p>
-    <div class="hero">
+    <div class="brand">
       <p class="plate-num">XXIX</p>
       <h1>__NAME__</h1>
-      <p class="epithet">(the Glorious One)</p>
+      <p class="epithet">the Glorious One</p>
     </div>
+    <div class="meta">
+      <p id="status">pronto</p>
+      <p id="clock">00:00:00</p>
+    </div>
+  </header>
+  <div class="well">
+    <p id="sky-read">Arraste para orbitar. A roda aproxima.</p>
   </div>
   <aside class="telemetry">
-    <h2>Observações</h2>
+    <h2>Estado</h2>
     <dl class="systems">
       <div><dt>codex</dt><dd class="is-down" id="brain-codex">ausente</dd></div>
       <div><dt>cursor</dt><dd class="is-down" id="brain-cursor">ausente</dd></div>
@@ -291,11 +276,9 @@ const labels = { idle: "pronto", listening: "ouvindo", thinking: "pensando", spe
 const css = getComputedStyle(document.documentElement);
 const tok = (name) => css.getPropertyValue(name).trim();
 const ink = {
-  paper: tok("--color-paper"), plate: tok("--color-plate"),
-  ink: tok("--color-ink"), ink2: tok("--color-ink-2"), accent: tok("--color-accent"),
-  display: tok("--font-display"), body: tok("--font-body"),
+  bg: tok("--color-bg"), ink: tok("--color-ink"), ink2: tok("--color-ink-2"),
+  accent: tok("--color-accent"), body: tok("--font-body"),
 };
-const room = document.querySelector(".room");
 const well = document.querySelector(".well");
 const skyRead = document.getElementById("sky-read");
 let permitId = "";
@@ -303,66 +286,138 @@ let memory = [];
 let memoryLinks = [];
 let namedOnScreen = [];
 let picked = "";
-let yawUser = 0;
-let pitchUser = 0;
+let hovered = "";
+let yawUser = 0.42;
+let pitchUser = -0.16;
+let yawTarget = 0.42;
+let pitchTarget = -0.16;
 let zoom = 1;
 let drag = null;
 let dragMoved = 0;
-const ambient = [];
-(function buildAmbient() {
-  let seed = 2166136261;
-  const rnd = () => {
-    seed = Math.imul(seed ^ 0x9e3779b9, 16777619) >>> 0;
-    return seed / 4294967295;
-  };
-  for (let i = 0; i < 150; i++) {
-    ambient.push({
-      x: (rnd() - 0.5) * 4.6,
-      y: (rnd() - 0.5) * 5.8,
-      z: (rnd() - 0.5) * 0.05,
-      s: rnd() < 0.05 ? 1.8 : 0.4 + rnd() * 0.5,
-      a: 0.28 + rnd() * 0.55,
-    });
-  }
-})();
+const orbitHint = "Arraste para orbitar. A roda aproxima.";
+const GROUPS = {
+  notas: { name: "Notas", x: -1.2, y: 0.05, z: 0.25, r: 1.15, rgb: "120, 86, 58" },
+  sistemas: { name: "Sistemas", x: 1.25, y: -1.15, z: -0.1, r: 1.15, rgb: "64, 96, 168" },
+  orion: { name: "Órion", x: 0.1, y: 1.45, z: -0.55, r: 1.05, rgb: "92, 64, 140" },
+};
 const MYTH = [
-  { name: "Meissa", greek: "λ", x: 54, y: 28, dx: 0, dy: -28, align: "center" },
-  { name: "Betelgeuse", greek: "α", x: 38, y: 54, dx: -46, dy: 2, align: "right" },
-  { name: "Bellatrix", greek: "γ", x: 66, y: 52, dx: 28, dy: -30, align: "left" },
-  { name: "Mintaka", greek: "δ", x: 38, y: 82, dx: -52, dy: 12, align: "right" },
-  { name: "Alnilam", greek: "ε", x: 50, y: 86, dx: 0, dy: -32, align: "center" },
-  { name: "Alnitak", greek: "ζ", x: 64, y: 90, dx: 64, dy: 4, align: "left" },
-  { name: "Rigel", greek: "β", x: 30, y: 122, dx: -28, dy: 20, align: "right" },
-  { name: "Saiph", greek: "κ", x: 76, y: 104, dx: 48, dy: 16, align: "left" },
-  { name: "", greek: "", x: 51, y: 100, dx: 0, dy: 0, align: "center" },
+  { id: "meissa", name: "Meissa", greek: "λ", x: 51.2, y: 14.7, mag: 1.8 },
+  { id: "betelgeuse", name: "Betelgeuse", greek: "α", x: 25.2, y: 22.9, mag: 3.6, warm: true },
+  { id: "bellatrix", name: "Bellatrix", greek: "γ", x: 64.2, y: 26.4, mag: 2.5 },
+  { id: "alnitak", name: "Alnitak", greek: "ζ", x: 43.9, y: 53.3, mag: 2.4 },
+  { id: "alnilam", name: "Alnilam", greek: "ε", x: 49.8, y: 50.9, mag: 2.5 },
+  { id: "mintaka", name: "Mintaka", greek: "δ", x: 55.2, y: 48.0, mag: 2.2 },
+  { id: "saiph", name: "Saiph", greek: "κ", x: 34.8, y: 78.4, mag: 2.3 },
+  { id: "rigel", name: "Rigel", greek: "β", x: 77.8, y: 73.7, mag: 4.0 },
+  { id: "sword", name: "Espada", greek: "", x: 50.9, y: 66.2, mag: 1.6 },
 ];
-const MYTH_LINKS = [[0, 1], [0, 2], [1, 2], [1, 3], [2, 5], [3, 4], [4, 5], [3, 6], [5, 7], [6, 7], [4, 8]];
-function hash01(text) {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return (h >>> 0) / 4294967295;
-}
-function placeNamed(star, index) {
-  const slots = [
-    { x: -1.78, y: 1.35 },
-    { x: 1.95, y: 1.25 },
-    { x: -1.78, y: -1.35 },
-    { x: 1.95, y: -1.05 },
-    { x: -1.7, y: 0.15 },
-    { x: 1.85, y: -0.15 },
-  ];
-  const slot = slots[index % slots.length];
+const MYTH_LINKS = [
+  ["meissa", "betelgeuse"], ["meissa", "bellatrix"], ["betelgeuse", "bellatrix"],
+  ["betelgeuse", "alnitak"], ["bellatrix", "mintaka"],
+  ["mintaka", "alnilam"], ["alnilam", "alnitak"],
+  ["alnitak", "saiph"], ["mintaka", "rigel"], ["alnilam", "sword"],
+];
+const SYSTEMS = [
+  { id: "sys-cerebro", label: "Cérebro", lx: 0, ly: 0, lz: 0 },
+  { id: "sys-codex", label: "Codex", lx: -0.58, ly: 0.42, lz: 0.16 },
+  { id: "sys-cursor", label: "Cursor", lx: 0.02, ly: 0.64, lz: -0.22 },
+  { id: "sys-claude", label: "Claude", lx: 0.6, ly: 0.3, lz: 0.14 },
+  { id: "sys-clima", label: "Clima", lx: -0.74, ly: -0.32, lz: 0.22 },
+  { id: "sys-noticias", label: "Notícias", lx: -0.18, ly: -0.66, lz: -0.16 },
+  { id: "sys-busca", label: "Busca", lx: 0.46, ly: -0.5, lz: 0.24 },
+  { id: "sys-lembretes", label: "Lembretes", lx: 0.78, ly: -0.08, lz: -0.3 },
+  { id: "sys-voz", label: "Voz", lx: 0.12, ly: 0.02, lz: 0.58 },
+];
+const SYSTEM_LINKS = [
+  ["sys-cerebro", "sys-codex"], ["sys-cerebro", "sys-cursor"], ["sys-cerebro", "sys-claude"],
+  ["sys-codex", "sys-cursor"], ["sys-cursor", "sys-claude"], ["sys-claude", "sys-codex"],
+  ["sys-cerebro", "sys-clima"], ["sys-cerebro", "sys-noticias"], ["sys-cerebro", "sys-busca"],
+  ["sys-cerebro", "sys-lembretes"], ["sys-cerebro", "sys-voz"],
+];
+const systemText = {
+  "sys-cerebro": "Cérebro, ausente.",
+  "sys-codex": "Codex, ausente.",
+  "sys-cursor": "Cursor, ausente.",
+  "sys-claude": "Claude, ausente.",
+  "sys-clima": "Clima de São Paulo, ao vivo.",
+  "sys-noticias": "Notícias por RSS.",
+  "sys-busca": "Busca na web.",
+  "sys-lembretes": "Notas deste céu.",
+  "sys-voz": "Voz george, ritmo 1.08.",
+};
+function notePos(index, total) {
+  const g = GROUPS.notas;
+  const n = Math.max(total, 1);
+  const y = ((index + 0.5) / n - 0.5) * 1.2;
+  const ring = 0.38 + (index % 3) * 0.14;
+  const theta = index * 2.399963 + 0.5;
   return {
-    x: slot.x + (hash01(star.id + "x") - 0.5) * 0.18,
-    y: slot.y + (hash01(star.id + "y") - 0.5) * 0.18,
-    z: (hash01(star.id + "z") - 0.5) * 0.12,
+    x: g.x + Math.cos(theta) * ring,
+    y: g.y + y,
+    z: g.z + Math.sin(theta) * ring,
   };
 }
-function figPoint(x, y) {
-  return { x: (x - 52) / 32, y: (70 - y) / 32, z: 0 };
+function mythPos(star) {
+  const g = GROUPS.orion;
+  return {
+    x: g.x + (star.x - 50) / 42,
+    y: g.y + (46 - star.y) / 42,
+    z: g.z + ((star.x - 50) * (star.y - 40)) / 9000,
+  };
+}
+function systemPos(star) {
+  const g = GROUPS.sistemas;
+  return { x: g.x + star.lx, y: g.y + star.ly, z: g.z + star.lz };
+}
+function buildWorld() {
+  const notes = memory.map((star, index) => ({
+    star: { id: star.id, label: star.label, text: star.text, kind: "nota" },
+    pos: notePos(index, memory.length),
+  }));
+  const systems = SYSTEMS.map((star) => ({
+    star: { id: star.id, label: star.label, text: systemText[star.id] || star.label, kind: "sistema" },
+    pos: systemPos(star),
+  }));
+  const myth = MYTH.map((star) => ({
+    star: {
+      id: star.id,
+      label: star.greek ? star.greek + "  " + star.name : star.name,
+      text: star.name + ", da constelação de Órion.",
+      kind: "mito",
+      warm: !!star.warm,
+      mag: star.mag,
+    },
+    pos: mythPos(star),
+  }));
+  const all = notes.concat(systems, myth);
+  const byId = {};
+  for (const node of all) byId[node.star.id] = node;
+  const links = [];
+  const add = (a, b) => {
+    const left = byId[a];
+    const right = byId[b];
+    if (left && right) links.push([left, right]);
+  };
+  for (const link of memoryLinks) add(link.a, link.b);
+  for (const link of SYSTEM_LINKS) add(link[0], link[1]);
+  for (const link of MYTH_LINKS) add(link[0], link[1]);
+  if (memory.length > 0 && memory.length <= 12) {
+    for (const star of memory) add("sys-lembretes", star.id);
+  }
+  return { all, links };
+}
+function dampAngle(current, target, k) {
+  let delta = target - current;
+  while (delta > Math.PI) delta -= Math.PI * 2;
+  while (delta < -Math.PI) delta += Math.PI * 2;
+  return current + delta * k;
+}
+function anglesToward(p) {
+  const yaw = Math.atan2(-p.x, -p.z);
+  const z1 = p.x * Math.sin(yaw) + p.z * Math.cos(yaw);
+  let pitch = Math.atan2(p.y, z1);
+  if (z1 < 0) pitch += pitch > 0 ? -Math.PI : Math.PI;
+  return { yaw, pitch: Math.max(-1.15, Math.min(1.15, pitch)) };
 }
 function rotate(p, yaw, pitch) {
   const cy = Math.cos(yaw), sy = Math.sin(yaw);
@@ -384,238 +439,61 @@ function resize() {
   canvas.style.height = h + "px";
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
-function curve(pts, map, width, alpha) {
-  if (pts.length < 2) return;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.lineWidth = width;
-  ctx.beginPath();
-  const first = map(pts[0][0], pts[0][1]);
-  ctx.moveTo(first.x, first.y);
-  if (pts.length === 2) {
-    const last = map(pts[1][0], pts[1][1]);
-    ctx.lineTo(last.x, last.y);
-  } else {
-    for (let i = 1; i < pts.length - 1; i++) {
-      const c = map(pts[i][0], pts[i][1]);
-      const n = map(pts[i + 1][0], pts[i + 1][1]);
-      ctx.quadraticCurveTo(c.x, c.y, (c.x + n.x) / 2, (c.y + n.y) / 2);
-    }
-    const last = map(pts[pts.length - 1][0], pts[pts.length - 1][1]);
-    ctx.lineTo(last.x, last.y);
-  }
-  ctx.stroke();
-  ctx.restore();
+function labelBox(x, y, align, width) {
+  const left = align === "right" ? x - width : align === "center" ? x - width / 2 : x;
+  return { l: left - 4, r: left + width + 4, t: y - 9, b: y + 9 };
 }
-function poly(pts, map, width, alpha) {
-  if (pts.length < 2) return;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.lineWidth = width;
-  ctx.beginPath();
-  pts.forEach((pt, i) => {
-    const p = map(pt[0], pt[1]);
-    if (i === 0) ctx.moveTo(p.x, p.y);
-    else ctx.lineTo(p.x, p.y);
-  });
-  ctx.stroke();
-  ctx.restore();
+function boxesHit(a, b) {
+  return !(a.r < b.l || a.l > b.r || a.b < b.t || a.t > b.b);
 }
-function q(a, c, b, map, width, alpha) {
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.lineWidth = width;
-  ctx.beginPath();
-  const start = map(a[0], a[1]);
-  const ctrl = map(c[0], c[1]);
-  const end = map(b[0], b[1]);
-  ctx.moveTo(start.x, start.y);
-  ctx.quadraticCurveTo(ctrl.x, ctrl.y, end.x, end.y);
-  ctx.stroke();
-  ctx.restore();
-}
-function ellipse(cx, cy, rx, ry, map, width, alpha) {
-  const pts = [];
-  for (let i = 0; i <= 28; i++) {
-    const a = (i / 28) * Math.PI * 2;
-    pts.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
-  }
-  poly(pts, map, width, alpha);
-}
-function engrave(map, minSide) {
-  const line = Math.max(1.25, minSide * 0.0024);
-  const hair = Math.max(0.9, minSide * 0.00125);
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  ctx.strokeStyle = ink.ink;
-  ctx.fillStyle = ink.ink;
-  poly([[22, 8], [34, 2], [48, 34], [40, 42], [26, 16], [22, 8]], map, line, 1);
-  poly([[28, 16], [36, 22]], map, hair, 0.7);
-  poly([[32, 24], [40, 30]], map, hair, 0.7);
-  poly([[36, 52], [30, 40], [36, 30]], map, line, 1);
-  poly([[44, 54], [38, 42], [42, 34]], map, line, 0.9);
-  ellipse(54, 36, 10, 12, map, line, 1);
-  q([44, 30], [54, 14], [66, 28], map, hair, 0.85);
-  poly([[49, 34], [58, 33]], map, hair, 0.95);
-  poly([[54, 35], [56, 42]], map, hair, 0.95);
-  poly([[49, 44], [58, 45]], map, hair, 0.95);
-  poly([[44, 36], [41, 40], [45, 44]], map, hair, 0.75);
-  poly([[48, 48], [46, 56]], map, line, 0.9);
-  poly([[60, 47], [62, 55]], map, line, 0.9);
-  poly([[40, 56], [34, 80]], map, line, 1);
-  poly([[66, 52], [64, 86]], map, line, 1);
-  q([42, 60], [54, 68], [64, 58], map, hair, 0.6);
-  poly([[66, 52], [78, 44], [84, 42]], map, line, 1);
-  ellipse(92, 40, 11, 12, map, line, 1);
-  for (let i = 0; i < 7; i++) {
-    const a = -2.6 + i * 0.55;
-    poly([
-      [92 + Math.cos(a) * 12, 40 + Math.sin(a) * 13],
-      [92 + Math.cos(a) * 18, 40 + Math.sin(a) * 19],
-    ], map, hair, 0.6);
-  }
-  poly([[88, 38], [90, 40]], map, hair, 0.9);
-  poly([[96, 38], [98, 40]], map, hair, 0.9);
-  q([90, 44], [94, 48], [98, 44], map, hair, 0.8);
-  poly([[82, 50], [76, 66], [84, 74]], map, line, 0.75);
-  poly([[32, 80], [68, 90]], map, line, 1);
-  poly([[34, 83], [66, 93]], map, hair, 0.55);
-  poly([[50, 86], [47, 106]], map, line, 0.9);
-  poly([[55, 88], [52, 108]], map, line, 0.9);
-  poly([[46, 90], [58, 96]], map, line, 0.85);
-  poly([[34, 82], [26, 118]], map, line, 1);
-  poly([[46, 84], [36, 120]], map, line, 1);
-  poly([[24, 118], [42, 126]], map, line, 1);
-  poly([[64, 88], [80, 102], [72, 116]], map, line, 1);
-  poly([[58, 90], [72, 104], [66, 114]], map, line, 0.9);
-  poly([[46, 130], [64, 128], [70, 134], [62, 140], [44, 138], [40, 132], [46, 130]], map, line, 1);
-  poly([[48, 130], [46, 120], [52, 126]], map, line, 0.9);
-  poly([[54, 130], [56, 120], [52, 126]], map, line, 0.9);
-  poly([[42, 136], [36, 142]], map, line, 0.85);
-  poly([[58, 140], [60, 146]], map, line, 0.85);
-  poly([[68, 134], [74, 130]], map, hair, 0.7);
-  ctx.globalAlpha = 1;
-}
-function drawPlate(now) {
+function drawPlate() {
   const w = canvas.width / DPR, h = canvas.height / DPR;
-  const plate = room.getBoundingClientRect();
   const rect = well.getBoundingClientRect();
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = ink.paper;
+  ctx.fillStyle = ink.bg;
   ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = ink.plate;
-  ctx.fillRect(plate.left, plate.top, plate.width, plate.height);
   if (rect.width < 40 || rect.height < 40) return;
   const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height * 0.4;
+  const cy = rect.top + rect.height * 0.5;
   const minSide = Math.min(rect.width, rect.height);
-  const scale = minSide * 0.36 * zoom;
-  const yaw = Math.max(-0.4, Math.min(0.4, yawUser));
-  const pitch = Math.max(-0.28, Math.min(0.28, pitchUser));
-  const map = (x, y) => project(rotate(figPoint(x, y), yaw, pitch), cx, cy, scale);
+  const scale = minSide * 0.32 * zoom;
+  const yaw = yawUser;
+  const pitch = pitchUser;
+  const world = buildWorld();
   ctx.save();
   ctx.beginPath();
   ctx.rect(rect.left, rect.top, rect.width, rect.height);
   ctx.clip();
-  for (const star of ambient) {
-    const p = project(rotate(star, yaw, pitch), cx, cy, scale);
-    ctx.globalAlpha = star.a;
-    ctx.fillStyle = ink.ink;
+  const clouds = Object.values(GROUPS).map((group) => ({
+    group,
+    p: project(rotate(group, yaw, pitch), cx, cy, scale),
+  })).sort((a, b) => b.p.z - a.p.z);
+  for (const cloud of clouds) {
+    const rad = Math.max(56, cloud.group.r * cloud.p.persp * scale);
+    const g = ctx.createRadialGradient(cloud.p.x, cloud.p.y, 0, cloud.p.x, cloud.p.y, rad);
+    g.addColorStop(0, "rgba(" + cloud.group.rgb + ",0.5)");
+    g.addColorStop(0.45, "rgba(" + cloud.group.rgb + ",0.16)");
+    g.addColorStop(1, "rgba(" + cloud.group.rgb + ",0)");
+    ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, Math.max(0.4, star.s * 0.7), 0, Math.PI * 2);
+    ctx.arc(cloud.p.x, cloud.p.y, rad, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.globalAlpha = 0.55;
-  ctx.strokeStyle = ink.ink;
+  const view = world.all.map((node) => {
+    const rot = rotate(node.pos, yaw, pitch);
+    return { star: node.star, pos: node.pos, p: project(rot, cx, cy, scale) };
+  }).sort((a, b) => b.p.z - a.p.z);
+  const byId = {};
+  for (const item of view) byId[item.star.id] = item;
   ctx.lineWidth = 1;
-  ctx.setLineDash([2, 6]);
-  curve([[6, 16], [28, 8], [50, 4], [72, 8], [94, 18]], map, 1, 0.55);
-  ctx.setLineDash([]);
-  ctx.globalAlpha = 0.8;
-  ctx.fillStyle = ink.ink;
-  ctx.font = "600 14px " + ink.display;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const ecl = map(50, 4);
-  ctx.fillText("ECLIPTIC", ecl.x, ecl.y - 14);
-  engrave(map, minSide);
-  const placedMyth = MYTH.map((star) => ({ star, p: map(star.x, star.y) }));
-  ctx.setLineDash([1.5, 5]);
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = ink.ink;
-  ctx.globalAlpha = 0.75;
-  for (const link of MYTH_LINKS) {
-    const a = placedMyth[link[0]].p;
-    const b = placedMyth[link[1]].p;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-  }
-  ctx.setLineDash([]);
-  const pulse = reduce ? 1 : 1 + (document.body.dataset.state === "speaking" ? level * 0.35 : 0);
-  for (const item of placedMyth) {
-    const bright = item.star.name === "Betelgeuse" || item.star.name === "Rigel";
-    const radius = (bright ? 3.2 : 2.1) * pulse;
-    ctx.globalAlpha = 0.95;
-    ctx.fillStyle = ink.ink;
-    ctx.beginPath();
-    ctx.arc(item.p.x, item.p.y, radius, 0, Math.PI * 2);
-    ctx.fill();
-    if (bright) {
-      ctx.globalAlpha = 0.7;
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = ink.ink;
-      ctx.beginPath();
-      ctx.arc(item.p.x, item.p.y, radius + 3.5, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  }
-  ctx.font = "italic 600 14px " + ink.display;
-  ctx.fillStyle = ink.ink;
-  ctx.textBaseline = "middle";
-  for (const item of placedMyth) {
-    if (!item.star.name) continue;
-    ctx.globalAlpha = 0.92;
-    ctx.textAlign = item.star.align;
-    ctx.fillText(item.star.name, item.p.x + item.star.dx, item.p.y + item.star.dy);
-    if (item.star.greek) {
-      ctx.globalAlpha = 0.75;
-      ctx.textAlign = "center";
-      const gx = item.star.align === "left" ? -12 : 12;
-      ctx.fillText(item.star.greek, item.p.x + gx, item.p.y);
-    }
-  }
-  ctx.font = "600 14px " + ink.display;
-  ctx.textBaseline = "middle";
-  ctx.globalAlpha = 0.62;
-  ctx.textAlign = "left";
-  ctx.fillText("GEMINI", rect.left + 16, rect.top + 56);
-  ctx.fillText("CANIS MAJOR", rect.left + 16, rect.bottom - 196);
-  ctx.textAlign = "right";
-  ctx.fillText("TAURUS", rect.right - 16, rect.top + 56);
-  const lepus = map(74, 136);
-  ctx.textAlign = "left";
-  ctx.fillText("LEPUS", lepus.x, lepus.y);
-  const sirius = map(16, 108);
-  ctx.globalAlpha = 0.95;
-  ctx.beginPath();
-  ctx.arc(sirius.x, sirius.y, 2.6, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 0.8;
-  ctx.fillText("Sirius", sirius.x + 10, sirius.y);
-  const placed = memory.map((star, index) => {
-    const p = project(rotate(placeNamed(star, index), yaw, pitch), cx, cy, scale);
-    return { star, p };
-  });
-  ctx.setLineDash([1.5, 5]);
-  ctx.lineWidth = 1;
-  for (const link of memoryLinks) {
-    const a = placed.find((item) => item.star.id === link.a);
-    const b = placed.find((item) => item.star.id === link.b);
+  for (const pair of world.links) {
+    const a = byId[pair[0].star.id];
+    const b = byId[pair[1].star.id];
     if (!a || !b) continue;
-    ctx.globalAlpha = 0.8;
-    ctx.strokeStyle = ink.accent;
+    const hot = picked && (a.star.id === picked || b.star.id === picked);
+    ctx.strokeStyle = hot ? ink.accent : ink.ink2;
+    ctx.globalAlpha = hot ? 0.95 : 0.55;
+    ctx.setLineDash(hot ? [] : [1.5, 4.5]);
     ctx.beginPath();
     ctx.moveTo(a.p.x, a.p.y);
     ctx.lineTo(b.p.x, b.p.y);
@@ -623,32 +501,104 @@ function drawPlate(now) {
   }
   ctx.setLineDash([]);
   namedOnScreen = [];
-  for (const item of placed) {
-    const inside = item.p.x >= rect.left && item.p.x <= rect.right && item.p.y >= rect.top && item.p.y <= rect.bottom;
-    namedOnScreen.push({ star: item.star, x: item.p.x, y: item.p.y, outside: inside });
-    if (!inside) continue;
+  for (const item of view) {
+    const inside = item.p.x >= rect.left + 4 && item.p.x <= rect.right - 4 && item.p.y >= rect.top + 20 && item.p.y <= rect.bottom - 4;
     const chosen = item.star.id === picked;
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = chosen ? ink.accent : ink.ink;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(item.p.x, item.p.y, 7, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillStyle = chosen ? ink.accent : ink.ink;
-    ctx.beginPath();
-    ctx.arc(item.p.x, item.p.y, 2.4, 0, Math.PI * 2);
-    ctx.fill();
+    const near = item.p.persp;
+    const pulse = chosen ? 1 + level * 0.65 : 1;
+    ctx.globalAlpha = Math.max(0.4, Math.min(1, 0.3 + near * 0.65));
+    if (item.star.kind === "sistema") {
+      ctx.strokeStyle = chosen ? ink.accent : ink.ink;
+      ctx.lineWidth = 1.25;
+      ctx.beginPath();
+      ctx.arc(item.p.x, item.p.y, Math.max(5, 8 * near) * pulse, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = chosen ? ink.accent : ink.ink;
+      ctx.beginPath();
+      ctx.arc(item.p.x, item.p.y, Math.max(1.6, 2.2 * near), 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      const mag = item.star.kind === "mito" ? (item.star.mag || 2) : 3.2;
+      ctx.fillStyle = (chosen || item.star.warm) ? ink.accent : ink.ink;
+      ctx.beginPath();
+      ctx.arc(item.p.x, item.p.y, Math.max(1.8, mag * 0.9 * near) * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      if (chosen) {
+        ctx.strokeStyle = ink.accent;
+        ctx.globalAlpha = 0.85;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(item.p.x, item.p.y, Math.max(8, 12 * near), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    namedOnScreen.push({
+      star: item.star, pos: item.pos, x: item.p.x, y: item.p.y,
+      outside: inside, align: "left", lx: item.p.x + 12, ly: item.p.y, labelW: 0,
+    });
   }
-  ctx.font = "italic 600 14px " + ink.display;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "bottom";
-  for (const item of namedOnScreen) {
-    if (!item.outside) continue;
-    if (memory.length > 8 && item.star.id !== picked) continue;
-    ctx.globalAlpha = 1;
+  const boxes = [];
+  ctx.font = "400 14px " + ink.body;
+  ctx.textBaseline = "middle";
+  const ranked = view.slice().sort((a, b) => {
+    const af = a.star.id === picked || a.star.id === hovered;
+    const bf = b.star.id === picked || b.star.id === hovered;
+    if (af !== bf) return af ? -1 : 1;
+    const rank = { nota: 0, sistema: 1, mito: 2 };
+    return (rank[a.star.kind] || 3) - (rank[b.star.kind] || 3) || (b.p.persp - a.p.persp);
+  });
+  for (const item of ranked) {
+    if (!item.star.label) continue;
+    const focus = item.star.id === picked || item.star.id === hovered;
+    if (item.star.kind === "mito" && !focus && zoom < 1.45) {
+      if (item.star.id !== "betelgeuse" && item.star.id !== "rigel" && item.star.id !== "meissa") continue;
+    }
+    if (item.p.persp < 0.42 && !focus) continue;
+    const onStage = item.p.x >= rect.left + 8 && item.p.x <= rect.right - 8 && item.p.y >= rect.top + 28 && item.p.y <= rect.bottom - 8;
+    if (!onStage && item.star.id !== picked) continue;
+    const width = ctx.measureText(item.star.label).width;
+    const options = [
+      { x: item.p.x + 12, y: item.p.y, align: "left" },
+      { x: item.p.x - 12, y: item.p.y, align: "right" },
+      { x: item.p.x, y: item.p.y - 16, align: "center" },
+    ];
+    let spot = null;
+    let box = null;
+    for (const opt of options) {
+      const trial = labelBox(opt.x, opt.y, opt.align, width);
+      if (trial.l < rect.left + 4 || trial.r > rect.right - 4) continue;
+      if (boxes.some((held) => boxesHit(trial, held))) continue;
+      spot = opt;
+      box = trial;
+      break;
+    }
+    if (!spot && item.star.id === picked) {
+      spot = options[0];
+      box = labelBox(spot.x, spot.y, spot.align, width);
+    }
+    if (!spot) continue;
+    boxes.push(box);
+    const row = namedOnScreen.find((entry) => entry.star.id === item.star.id);
+    if (row) { row.align = spot.align; row.lx = spot.x; row.ly = spot.y; row.labelW = width; }
+    ctx.globalAlpha = item.star.id === picked ? 1 : 0.92;
     ctx.fillStyle = item.star.id === picked ? ink.accent : ink.ink;
-    item.labelW = ctx.measureText(item.star.label).width;
-    ctx.fillText(item.star.label, item.x, item.y - 12);
+    ctx.textAlign = spot.align;
+    ctx.fillText(item.star.label, spot.x, spot.y);
+  }
+  ctx.font = "600 14px " + ink.body;
+  ctx.textAlign = "center";
+  for (const group of Object.values(GROUPS)) {
+    const above = { x: group.x, y: group.y + group.r * 0.78, z: group.z };
+    const p = project(rotate(above, yaw, pitch), cx, cy, scale);
+    if (p.persp < 0.4) continue;
+    if (p.x < rect.left + 28 || p.x > rect.right - 28 || p.y < rect.top + 24 || p.y > rect.bottom - 12) continue;
+    const width = ctx.measureText(group.name).width;
+    const box = labelBox(p.x, p.y, "center", width);
+    if (boxes.some((held) => boxesHit(box, held))) continue;
+    boxes.push(box);
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = ink.ink2;
+    ctx.fillText(group.name, p.x, p.y);
   }
   ctx.restore();
   ctx.globalAlpha = 1;
@@ -656,15 +606,15 @@ function drawPlate(now) {
 }
 function starAt(x, y) {
   let best = null;
-  let bestD = 36;
+  let bestD = 26;
   for (const item of namedOnScreen) {
     if (!item.outside) continue;
     const dot = Math.hypot(item.x - x, item.y - y);
     if (dot < bestD) { best = item; bestD = dot; }
-    const half = (item.labelW || 0) / 2 + 8;
-    if (half > 8 && Math.abs(x - item.x) <= half && y <= item.y - 4 && y >= item.y - 28) {
-      best = item;
-      bestD = 0;
+    const width = item.labelW || 0;
+    if (width > 8 && Math.abs(y - (item.ly || item.y)) <= 12) {
+      const left = item.align === "center" ? item.lx - width / 2 : item.align === "right" ? item.lx - width : item.lx;
+      if (x >= left - 4 && x <= left + width + 4) { best = item; bestD = 0; }
     }
   }
   return best;
@@ -678,9 +628,15 @@ function sampleLevel() {
   for (let i = 0; i < timeBuf.length; i++) { const v = (timeBuf[i] - 128) / 128; s += v * v; }
   level = Math.min(1, Math.sqrt(s / timeBuf.length) * 5);
 }
-function frame(now) {
+function frame() {
   sampleLevel();
-  drawPlate(now || 0);
+  if (!drag) {
+    const k = picked ? 0.08 : 1;
+    yawUser = dampAngle(yawUser, yawTarget, k);
+    pitchUser += (pitchTarget - pitchUser) * k;
+    pitchUser = Math.max(-1.15, Math.min(1.15, pitchUser));
+  }
+  drawPlate();
   if (!reduce) requestAnimationFrame(frame);
 }
 function tickClock() {
@@ -737,11 +693,21 @@ async function refreshBrain() {
       const notesEl = document.getElementById("notes");
       if (notesEl) notesEl.textContent = String(data.notes);
     }
+    const brainById = {};
     for (const brain of data.brains || []) {
+      brainById[brain.id] = brain;
       const el = document.getElementById("brain-" + brain.id);
       if (!el) continue;
       el.textContent = brain.up ? "pronto" : "ausente";
       el.classList.toggle("is-down", !brain.up);
+    }
+    const stateWord = (row) => (row && row.up ? "pronto" : "ausente");
+    systemText["sys-codex"] = "Codex, " + stateWord(brainById.codex) + ".";
+    systemText["sys-cursor"] = "Cursor, " + stateWord(brainById.cursor) + ".";
+    systemText["sys-claude"] = "Claude, " + stateWord(brainById.claude) + ".";
+    systemText["sys-cerebro"] = data.up ? "Cérebro, " + (data.model || "pronto") + "." : "Cérebro, ausente.";
+    if (picked && String(picked).indexOf("sys-") === 0) {
+      skyRead.textContent = systemText[picked] || skyRead.textContent;
     }
     refreshSky();
   } catch (err) {
@@ -759,15 +725,24 @@ async function refreshSky() {
 }
 function pointStar(ev, choose) {
   const hit = starAt(ev.clientX, ev.clientY);
+  hovered = hit ? hit.star.id : "";
   if (!hit) {
     if (choose) {
       picked = "";
-      skyRead.textContent = "Arraste o céu.";
+      skyRead.textContent = orbitHint;
+    } else if (picked) {
+      const held = namedOnScreen.find((item) => item.star.id === picked);
+      if (held) skyRead.textContent = held.star.kind === "sistema" ? (systemText[held.star.id] || held.star.text) : held.star.text;
     }
     return;
   }
-  if (choose) picked = hit.star.id;
-  skyRead.textContent = hit.star.text;
+  if (choose) {
+    picked = hit.star.id;
+    const aim = anglesToward(hit.pos);
+    yawTarget = aim.yaw;
+    pitchTarget = aim.pitch;
+  }
+  skyRead.textContent = hit.star.kind === "sistema" ? (systemText[hit.star.id] || hit.star.text) : hit.star.text;
 }
 well.addEventListener("pointerdown", (ev) => {
   drag = { x: ev.clientX, y: ev.clientY, yaw: yawUser, pitch: pitchUser };
@@ -779,21 +754,23 @@ well.addEventListener("pointermove", (ev) => {
   const dx = ev.clientX - drag.x;
   const dy = ev.clientY - drag.y;
   dragMoved = Math.max(dragMoved, Math.hypot(dx, dy));
-  yawUser = Math.max(-0.4, Math.min(0.4, drag.yaw + dx * 0.004));
-  pitchUser = Math.max(-0.28, Math.min(0.28, drag.pitch + dy * 0.003));
+  yawUser = drag.yaw + dx * 0.006;
+  pitchUser = Math.max(-1.15, Math.min(1.15, drag.pitch + dy * 0.004));
+  yawTarget = yawUser;
+  pitchTarget = pitchUser;
   if (reduce) drawPlate(0);
 });
-well.addEventListener("pointerup", (ev) => {
+well.addEventListener("pointerup", () => {
   if (drag && dragMoved < 12) pointStar({ clientX: drag.x, clientY: drag.y }, true);
   drag = null;
   if (reduce) drawPlate(0);
 });
 well.addEventListener("pointerleave", () => {
-  if (!drag && !picked) skyRead.textContent = "Arraste o céu.";
+  if (!drag && !picked) skyRead.textContent = orbitHint;
 });
 well.addEventListener("wheel", (ev) => {
   ev.preventDefault();
-  zoom = Math.max(0.82, Math.min(1.35, zoom * (ev.deltaY > 0 ? 0.94 : 1.06)));
+  zoom = Math.max(0.45, Math.min(3.2, zoom * (ev.deltaY > 0 ? 0.92 : 1.08)));
 }, { passive: false });
 let audioCtx, analyser;
 function ensureAnalyser() {
