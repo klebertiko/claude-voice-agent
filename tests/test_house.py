@@ -531,6 +531,22 @@ def test_reminder_roundtrip(tmp_path):
     saved = path.read_text(encoding="utf-8")
     assert '"text": "ligar amanhã"' in saved
     assert "quero anotar" not in saved
+    assert _reply("não esquece comprar pão", fetch, path) == "Anotado, Senhor."
+    saved = path.read_text(encoding="utf-8")
+    assert '"text": "comprar pão"' in saved
+    assert "esquece" not in saved
+    assert _reply("anota amanhã comprar pão", fetch, path) == "Anotado, Senhor."
+    saved = path.read_text(encoding="utf-8")
+    assert '"text": "comprar pão"' in saved
+    assert "amanhã comprar" not in saved
+    assert _reply("anota para amanhã comprar pão", fetch, path) == "Anotado, Senhor."
+    saved = path.read_text(encoding="utf-8")
+    assert '"text": "comprar pão"' in saved
+    assert "para amanhã" not in saved
+    assert _reply("não me deixa esquecer de ligar amanhã", fetch, path) == "Anotado, Senhor."
+    assert '"text": "ligar amanhã"' in path.read_text(encoding="utf-8")
+    assert _reply("anota amanhã", fetch, path) == "O que devo anotar, Senhor?"
+    assert _reply("não esquece", fetch, path) == "O que devo anotar, Senhor?"
     assert _reply("preciso anotar", fetch, path) == "O que devo anotar, Senhor?"
     assert _reply("pode anotar", fetch, path) == "O que devo anotar, Senhor?"
     assert _reply("quais são minhas notas", fetch, path).startswith("Lembretes, Senhor.")

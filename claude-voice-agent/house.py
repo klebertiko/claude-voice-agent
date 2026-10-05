@@ -154,12 +154,13 @@ def _note_text(note: str) -> str:
         dropped = False
         if plain in {
             "ai", "isso", "que", "por favor", "por gentileza", "para mim", "pra mim", "o seguinte",
-            "nas notas", "na nota", "uma nota",
+            "nas notas", "na nota", "uma nota", "amanha", "para amanha", "pra amanha",
         }:
             return ""
         for filler in (
             "ai ", "isso ", "que ", "por favor ", "por gentileza ",
-            "para mim ", "pra mim ", "o seguinte ", "amanha de ",
+            "para mim ", "pra mim ", "o seguinte ", "para amanha ", "pra amanha ",
+            "amanha de ", "amanha ",
             "nas notas ", "na nota ", "uma nota ",
         ):
             if plain.startswith(filler):
@@ -199,7 +200,9 @@ _REMEMBER_PREFIXES = (
     "nao me deixa esquecer de ",
     "nao me deixa esquecer ",
     "nao esquece de ",
+    "nao esquece ",
     "esquece de ",
+    "esquece ",
     "me lembre de ",
     "me lembra de ",
     "me lembre ",
@@ -941,7 +944,7 @@ def house_reply(
         if norm in {
             "anote", "anota", "lembrete", "lembra", "lembra de",
             "me lembre", "me lembra", "me lembre de", "me lembra de",
-            "esquece de", "nao esquece de", "nao me deixa esquecer de",
+            "esquece de", "esquece", "nao esquece de", "nao esquece", "nao me deixa esquecer de",
             "guarda nas notas", "guarda na nota",
             "guarda isso nas notas", "guarda isso na nota",
             "adiciona nas notas", "adiciona na nota",
