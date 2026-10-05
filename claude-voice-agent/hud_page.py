@@ -246,6 +246,9 @@ _PAGE = r"""<!DOCTYPE html>
   }
   @media (max-width: 640px) {
     .systems { flex-flow: row nowrap; overflow-x: auto; }
+    .systems.has-more {
+      mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    }
     .systems .band { display: contents; }
     .systems .fact[data-brain] { order: 9; }
     .systems .fact:has(#notes) { order: 1; }
