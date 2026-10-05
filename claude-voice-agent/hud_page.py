@@ -181,19 +181,20 @@ _PAGE = r"""<!DOCTYPE html>
   #send, #allow { color: var(--color-accent); font-weight: 600; }
   #mic[data-hot="1"] { color: var(--color-bad); }
   @media (min-width: 960px) {
-    .systems { justify-content: space-between; gap: 6px; }
+    .systems { justify-content: space-between; align-items: flex-end; gap: 32px; }
+    .systems .band { display: flex; align-items: flex-end; gap: 20px; }
   }
   @media (min-width: 960px) {
     body { overflow: hidden; }
     .room {
       height: 100vh; min-height: 0;
       grid-template-columns: 1fr;
-      grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+      grid-template-rows: auto minmax(0, 1fr) auto auto auto auto;
     }
     .strip, .telemetry, .well, .talk, #permit, .floor { grid-column: 1; }
     .strip { grid-row: 1; }
-    .telemetry { grid-row: 2; padding-top: 0; padding-bottom: 8px; }
-    .well { grid-row: 3; min-height: 0; }
+    .well { grid-row: 2; min-height: 0; }
+    .telemetry { grid-row: 3; padding-top: 4px; padding-bottom: 4px; }
     .talk { grid-row: 4; min-height: 0; overflow: hidden; padding-top: 8px; padding-bottom: 8px; }
     #permit { grid-row: 5; }
     .floor { grid-row: 6; }
@@ -204,11 +205,11 @@ _PAGE = r"""<!DOCTYPE html>
     body { overflow: hidden; }
     .room {
       height: 100vh; min-height: 0;
-      grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+      grid-template-rows: auto minmax(0, 1fr) auto auto auto auto;
     }
     .strip { grid-row: 1; }
-    .telemetry { grid-row: 2; padding-top: 0; padding-bottom: 8px; }
-    .well { grid-row: 3; min-height: 0; }
+    .well { grid-row: 2; min-height: 0; }
+    .telemetry { grid-row: 3; padding-top: 4px; padding-bottom: 4px; }
     .talk { grid-row: 4; min-height: 0; overflow: hidden; padding-top: 8px; padding-bottom: 8px; }
     #permit { grid-row: 5; }
     .floor { grid-row: 6; }
@@ -216,7 +217,7 @@ _PAGE = r"""<!DOCTYPE html>
   }
   @media (min-width: 641px) and (max-width: 959px) {
     .room:has(#note:not([hidden])) {
-      grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+      grid-template-rows: auto minmax(0, 1fr) auto auto auto auto;
     }
     .room:has(#note:not([hidden])) #log { max-height: 5.5rem; }
   }
