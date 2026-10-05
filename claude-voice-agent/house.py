@@ -915,8 +915,27 @@ def house_reply(
             r"^(?:o que|oq)\s+(?:e|eh|sao|significa)(?:\s+(.*))?$",
             norm,
         )
-        if about or defined:
-            asked = (about or defined).group(1) or ""
+        told = re.match(
+            r"^(?:me\s+)?(?:explica|explique|explicar)"
+            r"\s+(?:o|a|os|as|um|uma|do|da|de)\s+(.*)$",
+            norm,
+        )
+        of = re.match(
+            r"^(?:me\s+)?(?:fala|fale|falar|conta|conte)\s+(?:do|da|de)\s+(.*)$",
+            norm,
+        )
+        want = re.match(
+            r"^(?:eu\s+)?(?:quero|queria)\s+saber"
+            r"(?:\s+(?:sobre|do|da|de))?(?:\s+(.*))?$",
+            norm,
+        )
+        who = re.match(r"^quem\s+(?:e|eh|foi|era|sao)(?:\s+(.*))?$", norm)
+        if about or defined or told or of or want or who:
+            asked = ""
+            for match in (about, defined, told, of, want, who):
+                if match:
+                    asked = match.group(1) or ""
+                    break
             query = _search_query(asked)
             if query not in {"voce", "senhor", "sr"}:
                 return _search(query, fetch)
