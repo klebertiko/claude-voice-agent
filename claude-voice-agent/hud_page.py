@@ -811,7 +811,7 @@ function drawPlate() {
   }).sort((a, b) => b.z - a.z);
   const reachFor = (item) => {
     const base = rect.width >= 700 ? 1.25 : 1.08;
-    if (!item.disc.strong && rect.width < 700) return base * 1.22;
+    if (!item.disc.strong && rect.width < 700) return base * 1.48;
     return base;
   };
   ctx.save();
