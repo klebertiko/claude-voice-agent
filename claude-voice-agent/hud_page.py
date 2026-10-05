@@ -897,6 +897,21 @@ function drawPlate() {
       outside: inside, align: "left", lx: item.p.x + 12, ly: item.p.y, labelW: 0,
     });
   }
+  const plateX = Math.max(0, Math.floor(rect.left * DPR));
+  const plateY = Math.max(0, Math.floor(rect.top * DPR));
+  const plateW = Math.min(canvas.width - plateX, Math.floor(rect.width * DPR));
+  const plateH = Math.min(canvas.height - plateY, Math.floor(rect.height * DPR));
+  const plate = plateW > 0 && plateH > 0 ? ctx.getImageData(plateX, plateY, plateW, plateH).data : null;
+  const toneAt = (x, y, kind) => {
+    if (!plate) return 0;
+    const px = Math.floor(x * DPR) - plateX;
+    const py = Math.floor(y * DPR) - plateY;
+    if (px < 0 || py < 0 || px >= plateW || py >= plateH) return 0;
+    const i = (py * plateW + px) * 4;
+    const r = plate[i], g = plate[i + 1], b = plate[i + 2];
+    if (kind === "nota") return r > 40 && r > g + 18 && r > b + 8 && r < 190 && g < 140 ? 1 : 0;
+    return b > 40 && b > r + 18 && g > r + 4 && r < 150 && b < 210 ? 1 : 0;
+  };
   const boxes = [];
   const paints = [];
   ctx.textBaseline = "middle";
@@ -943,8 +958,17 @@ function drawPlate() {
       const mx = (trial.l + trial.r) / 2;
       const my = (trial.t + trial.b) / 2;
       const nest = home ? Math.hypot(mx - home.x, my - home.y) : 0;
-      const inside = home && nest > home.maxD ? 1 : 0;
-      consider.push({ opt, trial, wrapped, cross: crosses(trial), intrusion: intrusion(trial), inside });
+      const outside = home && nest > home.maxD ? 1 : 0;
+      let tone = 0;
+      let seen = 0;
+      for (let y = trial.t + 2; y <= trial.b - 2; y += 4) {
+        for (let x = trial.l + 2; x <= trial.r - 2; x += 6) {
+          seen++;
+          tone += toneAt(x, y, item.star.kind);
+        }
+      }
+      const share = seen ? tone / seen : 0;
+      consider.push({ opt, trial, wrapped, cross: crosses(trial), intrusion: intrusion(trial), outside, share });
     };
     for (const opt of options) pushOpt(opt, labelBox(opt.x, opt.y, opt.align, width), null);
     if (full.indexOf(" ") > 0) {
@@ -963,7 +987,7 @@ function drawPlate() {
         pushOpt(opt, trial, best);
       }
     }
-    consider.sort((a, b) => (a.intrusion - b.intrusion) || (a.cross - b.cross) || (a.inside - b.inside) || ((a.wrapped ? 1 : 0) - (b.wrapped ? 1 : 0)));
+    consider.sort((a, b) => (a.intrusion - b.intrusion) || (Math.abs(a.share - b.share) < 0.08 ? 0 : b.share - a.share) || (a.cross - b.cross) || (a.outside - b.outside) || ((a.wrapped ? 1 : 0) - (b.wrapped ? 1 : 0)));
     let chosen = consider[0] || null;
     if (!chosen && item.star.id === picked) {
       const opt = options[0];
