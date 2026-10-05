@@ -1352,6 +1352,13 @@ function linksOf(id) {
   }
   return memory.filter((star) => ids.has(star.id));
 }
+function closeNote() {
+  if (!noteEl || noteEl.hidden) return;
+  noteEl.hidden = true;
+  noteText.textContent = "";
+  noteLinks.replaceChildren();
+  requestAnimationFrame(settleLog);
+}
 function openNote(star) {
   if (!noteEl) return;
   noteEl.hidden = false;
@@ -1436,6 +1443,7 @@ function pointStar(ev, choose) {
   if (!hit) {
     if (choose) {
       picked = "";
+      closeNote();
       readSky(orbitHint);
     } else if (picked) {
       const held = namedOnScreen.find((item) => item.star.id === picked);
@@ -1449,7 +1457,7 @@ function pointStar(ev, choose) {
     yawTarget = aim.yaw;
     pitchTarget = aim.pitch;
     if (hit.star.kind === "nota") openNote(hit.star);
-    else runSystem(hit.star.id);
+    else { closeNote(); runSystem(hit.star.id); }
   }
   readSky(hit.star.kind === "sistema" ? (systemText[hit.star.id] || hit.star.text) : hit.star.text);
 }
@@ -1487,12 +1495,22 @@ function focusStarItem(item, open) {
   pitchTarget = aim.pitch;
   readSky(item.star.kind === "sistema" ? (systemText[item.star.id] || item.star.text) : item.star.text);
   if (open && item.star.kind === "nota") openNote(item.star);
+  else if (item.star.kind !== "nota") closeNote();
   if (open && item.star.kind === "sistema") runSystem(item.star.id);
   wake();
 }
 addEventListener("keydown", (ev) => {
   const el = document.activeElement;
   if (el && el !== document.body && el !== document.documentElement && el !== well) return;
+  if (ev.key === "Escape" && noteEl && !noteEl.hidden) {
+    ev.preventDefault();
+    picked = "";
+    hovered = "";
+    closeNote();
+    readSky("");
+    wake();
+    return;
+  }
   if (ev.key === "Enter" && picked) {
     const item = visibleStars().find((star) => star.star.id === picked);
     if (!item) return;
