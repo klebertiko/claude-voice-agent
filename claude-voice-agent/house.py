@@ -138,10 +138,10 @@ def _note_text(note: str) -> str:
     while raw:
         plain = _plain(raw)
         dropped = False
-        if plain in {"ai", "isso", "por favor", "por gentileza", "para mim", "pra mim", "o seguinte"}:
+        if plain in {"ai", "isso", "que", "por favor", "por gentileza", "para mim", "pra mim", "o seguinte"}:
             return ""
         for filler in (
-            "ai ", "isso ", "por favor ", "por gentileza ",
+            "ai ", "isso ", "que ", "por favor ", "por gentileza ",
             "para mim ", "pra mim ", "o seguinte ", "amanha de ",
         ):
             if plain.startswith(filler):
@@ -191,13 +191,25 @@ def _remember(note: str, path: Path, moment: datetime) -> str:
 
 
 def _clean_subject(subject: str) -> str:
-    """Tira o artigo. «o projeto» e «a voz» viram o nome da nota."""
+    """Tira o convite e o artigo. «alguma coisa sobre o projeto» vira «projeto»."""
     subject = (subject or "").strip()
-    for prefix in ("o ", "a ", "os ", "as ", "um ", "uma "):
-        if subject.startswith(prefix):
-            rest = subject[len(prefix) :].strip()
-            if rest:
-                return rest
+    changed = True
+    while subject and changed:
+        changed = False
+        for prefix in (
+            "alguma coisa sobre ", "alguma coisa de ", "alguma coisa do ", "alguma coisa da ",
+            "algo sobre ", "algo de ", "algo do ", "algo da ",
+            "alguma coisa ", "algo ",
+            "o ", "a ", "os ", "as ", "um ", "uma ",
+        ):
+            if subject.startswith(prefix):
+                rest = subject[len(prefix) :].strip()
+                if rest:
+                    subject = rest
+                    changed = True
+                    break
+    if subject in {"alguma coisa", "algo", "sobre", "de", "do", "da"}:
+        return ""
     return subject
 
 
@@ -212,6 +224,8 @@ def _note_subject(norm: str) -> str | None:
         "procurar nas minhas notas", "procure nas minhas notas", "procura nas minhas notas",
         "pesquisar nas minhas notas", "pesquise nas minhas notas", "pesquisa nas minhas notas",
         "nas notas", "tem nota", "tem nota sobre", "tem alguma nota",
+        "alguma nota", "uma nota",
+        "tem alguma coisa nas notas", "tem algo nas notas",
         "nas minhas notas", "nas minhas notas tem",
         "o que anotei sobre", "o que eu anotei sobre",
     }:
@@ -243,6 +257,21 @@ def _note_subject(norm: str) -> str | None:
     )
     if held:
         return _clean_subject(held.group(1) or "")
+    thing = re.match(
+        r"^tem\s+(?:alguma\s+coisa|algo)"
+        r"(?:\s+(?:sobre|de|do|da))?"
+        r"(?:\s+(.+?))?"
+        r"\s+nas\s+(?:minhas\s+)?notas$",
+        norm,
+    )
+    if thing:
+        return _clean_subject(thing.group(1) or "")
+    named = re.match(
+        r"^(?:alguma|uma)\s+nota(?:\s+(?:sobre|de|do|da))?(?:\s+(.*))?$",
+        norm,
+    )
+    if named:
+        return _clean_subject(named.group(1) or "")
     mine = re.match(r"^nas minhas notas(?:\s+tem)?(?:\s+(.*))?$", norm)
     if mine:
         return _clean_subject(mine.group(1) or "")
