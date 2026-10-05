@@ -981,7 +981,7 @@ def _topic_of(norm: str) -> str:
         return _usable_topic(match.group(1))
     fresh = re.match(
         r"^(?:me\s+(?:conta|fala|diz)\s+)?o que (?:ha|houve) (?:"
-        r"de novo(?:\s+(?:sobre|de|do|da)\s+(.+?))?(?:\s+(?:hoje|agora))?"
+        r"de novo(?:\s+(?:sobre|de|do|da|quanto\s+(?:aos|ao|as|a))\s+(.+?))?(?:\s+(?:hoje|agora))?"
         r"|(?:hoje|agora)"
         r")$",
         norm,
@@ -990,7 +990,7 @@ def _topic_of(norm: str) -> str:
         return _usable_topic(fresh.group(1) or "") or "brasil"
     rolling = re.match(
         r"^(?:me\s+(?:conta|fala|diz)\s+)?o que (?:esta|ta) rolando"
-        r"(?:\s+(?:sobre|de|do|da|em|no|na)\s+(.+?))?(?:\s+(?:hoje|agora))?$",
+        r"(?:\s+(?:sobre|de|do|da|em|no|na|quanto\s+(?:aos|ao|as|a))\s+(.+?))?(?:\s+(?:hoje|agora))?$",
         norm,
     )
     if rolling:
@@ -1589,7 +1589,7 @@ def house_reply(
             or norm.startswith(("o que esta acontecendo ", "o que aconteceu "))
             or re.match(
                 r"^(?:me\s+(?:conta|fala|diz)\s+)?o que (?:ha|houve) (?:"
-                r"de novo(?:\s+(?:sobre|de|do|da)\s+\S.*)?(?:\s+(?:hoje|agora))?"
+                r"de novo(?:\s+(?:sobre|de|do|da|quanto\s+(?:aos|ao|as|a))\s+\S.*)?(?:\s+(?:hoje|agora))?"
                 r"|(?:hoje|agora)"
                 r")$",
                 norm,
@@ -1600,7 +1600,7 @@ def house_reply(
             )
             or re.match(
                 r"^(?:me\s+(?:conta|fala|diz)\s+)?o que (?:esta|ta) rolando"
-                r"(?:\s+(?:sobre|de|do|da|em|no|na)\s+\S.*)?(?:\s+(?:hoje|agora))?$",
+                r"(?:\s+(?:sobre|de|do|da|em|no|na|quanto\s+(?:aos|ao|as|a))\s+\S.*)?(?:\s+(?:hoje|agora))?$",
                 norm,
             )
         ):
