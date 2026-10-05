@@ -21,7 +21,7 @@ _PAGE = r"""<!DOCTYPE html>
     --color-bg: #070d16;
     --color-ink: #e8eef6;
     --color-ink-2: #a9b9cb;
-    --color-line: rgba(232, 238, 246, 0.14);
+    --color-line: rgba(232, 238, 246, 0.55);
     --color-accent: #d4c4a8;
     --color-focus: #e8eef6;
     --color-ok: #b7d4c4;
@@ -176,7 +176,7 @@ _PAGE = r"""<!DOCTYPE html>
   #send, #allow { color: var(--color-accent); font-weight: 600; }
   #mic[data-hot="1"] { color: var(--color-bad); }
   @media (min-width: 1400px) {
-    .systems { gap: 16px; }
+    .systems { justify-content: space-between; gap: 16px; }
   }
   @media (min-width: 960px) {
     body { overflow: hidden; }
