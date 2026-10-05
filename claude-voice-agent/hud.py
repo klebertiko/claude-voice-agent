@@ -121,6 +121,10 @@ def spoken_fallback(cleaned: str, name: str, moment: datetime) -> str:
     if {"hora", "horas"} & set(norm.split()) and "amanha" not in norm and "ontem" not in norm:
         return _speak_clock(moment)
     if _asks_date(norm):
+        if "depois de amanha" in norm:
+            return _speak_date(moment + timedelta(days=2), "Depois de amanhã", "é")
+        if "anteontem" in norm:
+            return _speak_date(moment - timedelta(days=2), "Anteontem", "foi")
         if "amanha" in norm:
             return _speak_date(moment + timedelta(days=1), "Amanhã", "é")
         if "ontem" in norm:
