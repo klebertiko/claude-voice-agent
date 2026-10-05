@@ -292,6 +292,37 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
     assert "name=recife" in seen[-2]
 
 
+def test_humidity_names_the_city(tmp_path):
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "geocoding" in url:
+            assert "recife" in url.lower() or "curitiba" in url.lower()
+            name = "Recife" if "recife" in url.lower() else "Curitiba"
+            return (
+                '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
+            )
+        assert "relative_humidity_2m" in url
+        assert "temperature_2m" not in url
+        return '{"current":{"relative_humidity_2m":80}}'
+
+    path = tmp_path / "n.json"
+    assert _reply("umidade", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("tá úmido", fetch, path) == "De qual lugar, Senhor."
+    assert seen == []
+    assert _reply("umidade em recife", fetch, path) == (
+        "Em Recife, umidade de 80 por cento, Senhor."
+    )
+    assert _reply("qual a umidade do ar em curitiba", fetch, path) == (
+        "Em Curitiba, umidade de 80 por cento, Senhor."
+    )
+    assert _reply("tá úmido em recife", fetch, path) == (
+        "Em Recife, umidade de 80 por cento, Senhor."
+    )
+    assert "graus" not in _reply("umidade em recife", fetch, path)
+
+
 def test_unrelated_tempo_is_not_weather(tmp_path):
     def fetch(_url):
         raise AssertionError("não devia buscar o clima")
@@ -895,7 +926,9 @@ def test_the_next_line_answers_the_question(monkeypatch):
     from claude_agent_voice.personas import get_persona
     from claude_agent_voice.settings import Settings
 
-    def fake_weather(place, _fetch, day=""):
+    def fake_weather(place, _fetch, day="", field=""):
+        if field == "umidade":
+            return f"Em {place}, umidade de 80 por cento, Senhor."
         if day == "amanha":
             return f"Amanhã em {place}, máxima de 27 graus, nublado, Senhor."
         return f"Em {place}, 19 graus, nublado, Senhor."
@@ -933,6 +966,10 @@ def test_the_next_line_answers_the_question(monkeypatch):
     )
     assert reply("qual a previsão para amanhã", []) == "De qual lugar, Senhor."
     assert reply("Curitiba", []) == "Amanhã em Curitiba, máxima de 27 graus, nublado, Senhor."
+    assert reply("umidade", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Em Recife, umidade de 80 por cento, Senhor."
+    assert reply("qual o tempo", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Em Recife, 19 graus, nublado, Senhor."
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):

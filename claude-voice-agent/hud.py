@@ -210,7 +210,7 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
     host = settings.ollama_host
     preferred = settings.ollama_model
     chosen = choice if choice is not None else {"id": ""}
-    pending = {"kind": "", "number": "", "day": ""}
+    pending = {"kind": "", "number": "", "day": "", "field": ""}
     asked = {
         "De qual lugar, Senhor.": "weather",
         "Sobre o que, Senhor.": "news",
@@ -226,6 +226,7 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
             pending["kind"] = ""
             pending["number"] = ""
             pending["day"] = ""
+            pending["field"] = ""
 
         cmd = local_command(cleaned)
         if cmd:
@@ -239,6 +240,12 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
                 pending["day"] = "amanha"
             else:
                 pending["day"] = ""
+            if pending["kind"] == "weather" and (
+                _has_word(cleaned, "umidade") or _has_word(cleaned, "umido")
+            ):
+                pending["field"] = "umidade"
+            else:
+                pending["field"] = ""
             if housed == "O que devo escrever, Senhor?":
                 found = whatsapp_number(cleaned)
                 if found:
@@ -254,11 +261,13 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
                 return fact or local
             kind = pending["kind"]
             day = pending["day"]
+            field = pending["field"]
             pending["kind"] = ""
             if kind in {"zap-number", "zap-text"}:
                 spoken, number = continue_whatsapp(kind, cleaned, pending["number"])
                 pending["number"] = number
                 pending["day"] = ""
+                pending["field"] = ""
                 pending["kind"] = asked.get(spoken, "")
                 return spoken
             pending["number"] = ""
@@ -266,6 +275,10 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
                 day = "amanha"
             elif kind == "weather" and _has_word(cleaned, "hoje"):
                 day = ""
+            if kind == "weather" and (
+                _has_word(cleaned, "umidade") or _has_word(cleaned, "umido")
+            ):
+                field = "umidade"
             try:
                 spoken = continue_house(
                     kind,
@@ -273,14 +286,18 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
                     reminders_path=settings.reminders_path,
                     moment=moment,
                     day=day if kind == "weather" else "",
+                    field=field if kind == "weather" else "",
                 )
             except (OSError, ValueError, json.JSONDecodeError, TimeoutError):
                 pending["day"] = ""
+                pending["field"] = ""
                 return "Não alcancei isso agora, Senhor."
             if asked.get(spoken, "") == "weather" and kind == "weather":
                 pending["day"] = day
+                pending["field"] = field
             else:
                 pending["day"] = ""
+                pending["field"] = ""
             pending["kind"] = asked.get(spoken, "")
             return spoken
         fact = _panel_fact(cleaned, persona)

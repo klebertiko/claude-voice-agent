@@ -64,7 +64,7 @@ def _save(path: Path, items: list[dict]) -> None:
     path.write_text(json.dumps(items, ensure_ascii=False), encoding="utf-8")
 
 
-def _weather(place: str, fetch, *, day: str = "") -> str:
+def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
     name = place.strip(" .?")
     if not name:
         return "De qual lugar, Senhor."
@@ -78,6 +78,17 @@ def _weather(place: str, fetch, *, day: str = "") -> str:
     if not hit:
         return "Não achei essa cidade, Senhor."
     lat, lon, label = hit["latitude"], hit["longitude"], hit.get("name") or name
+    if field == "umidade":
+        url = (
+            "https://api.open-meteo.com/v1/forecast?current=relative_humidity_2m"
+            f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        humid = (data.get("current") or {}).get("relative_humidity_2m")
+        if humid is None:
+            return "Não alcancei o clima, Senhor."
+        pct = int(round(float(humid)))
+        return f"Em {label}, umidade de {pct} por cento, Senhor."
     if day == "amanha":
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max,weather_code"
@@ -763,6 +774,7 @@ def continue_house(
     reminders_path: Path | None = None,
     moment: datetime | None = None,
     day: str = "",
+    field: str = "",
 ) -> str:
     """A resposta curta depois de Orion pedir lugar, assunto, busca ou nota.
 
@@ -775,7 +787,7 @@ def continue_house(
             place = _spoken_place(said)
             if not place:
                 return "De qual lugar, Senhor."
-            return _weather(place, fetch, day=day)
+            return _weather(place, fetch, day=day, field=field)
         if kind == "news":
             return _news(said, fetch)
         if kind == "search":
@@ -787,6 +799,25 @@ def continue_house(
     except (OSError, ValueError, json.JSONDecodeError, ET.ParseError, KeyError, TimeoutError):
         return "Não alcancei isso agora, Senhor."
     return "Não entendi, Senhor."
+
+
+def _humidity_place(norm: str) -> str | None:
+    """None quando não é umidade. Vazio quando falta a cidade."""
+    match = re.fullmatch(
+        r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?umidade(?:\s+do\s+ar)?"
+        r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if match:
+        return _city_name(match.group(1) or "")
+    damp = re.fullmatch(
+        r"(?:(?:esta|ta)\s+)?(?:muito\s+)?umido"
+        r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if damp:
+        return _city_name(damp.group(1) or "")
+    return None
 
 
 def _wants_weather(norm: str) -> bool:
@@ -1050,6 +1081,11 @@ def house_reply(
             norm,
         ):
             return _list_notes(reminders_path)
+        humid_place = _humidity_place(norm)
+        if humid_place is not None:
+            if not humid_place:
+                return "De qual lugar, Senhor."
+            return _weather(humid_place, fetch, field="umidade")
         if _wants_weather(norm):
             place = _place_of(norm)
             if not place:
