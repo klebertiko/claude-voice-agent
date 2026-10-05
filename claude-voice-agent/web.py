@@ -24,6 +24,7 @@ from zoneinfo import ZoneInfo
 from .actions import DENY_SPOKEN, PERMIT_SPOKEN, extract_proposal, run_command, speak_result
 from .brains import probe_subscriptions
 from .agent import greeting, make_tts
+from .house import note_query_of
 from .hud import HudSession, make_reply_fn, take_turn
 from .hud_page import render_page
 from .personas import get_persona
@@ -105,7 +106,10 @@ class VoiceHud:
             )
             command = extract_proposal(result.reply) if result.status == "replied" else None
             if not command:
-                return self._with_audio(result.status, result.heard, result.reply)
+                payload = self._with_audio(result.status, result.heard, result.reply)
+                if result.status == "replied":
+                    payload["note_query"] = note_query_of(self._cleaned_line(), result.reply)
+                return payload
             if self.session.history and self.session.history[-1][0] == "assistant":
                 self.session.history[-1] = ("assistant", PERMIT_SPOKEN)
             permit_id = secrets.token_hex(4)
@@ -113,7 +117,15 @@ class VoiceHud:
             payload = self._with_audio("permit", result.heard, PERMIT_SPOKEN)
             payload["command"] = command
             payload["permit_id"] = permit_id
+            payload["note_query"] = ""
             return payload
+
+    def _cleaned_line(self) -> str:
+        """A frase já sem o vocativo, como a casa a ouviu."""
+        history = self.session.history
+        if len(history) >= 2 and history[-2][0] == "user":
+            return history[-2][1]
+        return ""
 
     def resolve(self, permit_id: str, allow: bool) -> dict:
         """Executa ou recusa a ordem que o painel mostrou."""

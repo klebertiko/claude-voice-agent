@@ -2011,10 +2011,6 @@ function focusStar(id) {
   openNote(star);
 }
 async function sendText(value) {
-  const folded = fold(value);
-  if (folded.startsWith("buscar nota ")) noteQuery = folded.slice("buscar nota ".length).trim();
-  else if (folded.startsWith("notas sobre ")) noteQuery = folded.slice("notas sobre ".length).trim();
-  else if (folded.startsWith("anote ") || folded.startsWith("anota ")) noteQuery = "";
   setState("thinking");
   try { await showTurn(await post("/api/turn", { text: value }), null); }
   catch (err) { setState("idle"); addLine("meta", "Não consegui falar agora."); }
@@ -2237,6 +2233,10 @@ async function post(url, body) {
   return res.json();
 }
 async function showTurn(data, sourceBtn) {
+  if (Object.prototype.hasOwnProperty.call(data, "note_query")) {
+    noteQuery = data.note_query || "";
+    wake();
+  }
   if (data.heard) addLine("user", data.heard);
   if (data.status === "ignored") {
     setState("ignored");
@@ -2287,10 +2287,6 @@ form.addEventListener("submit", async (ev) => {
   const value = text.value.trim();
   if (!value) return;
   text.value = "";
-  const folded = fold(value);
-  if (folded.startsWith("buscar nota ")) noteQuery = folded.slice("buscar nota ".length).trim();
-  else if (folded.startsWith("notas sobre ")) noteQuery = folded.slice("notas sobre ".length).trim();
-  else if (folded.startsWith("anote ") || folded.startsWith("anota ")) noteQuery = "";
   setState("thinking");
   try { await showTurn(await post("/api/turn", { text: value }), submitBtn); }
   catch (err) { setState("idle"); addLine("meta", "Não consegui falar agora."); mark(submitBtn, "error"); }

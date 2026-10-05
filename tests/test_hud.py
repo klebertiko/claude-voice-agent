@@ -137,6 +137,54 @@ def test_page_has_microphone_and_no_camera():
     assert 'id="brain-claude"' in page
 
 
+def test_turn_tells_the_sky_which_notes_match(tmp_path):
+    notes = tmp_path / "n.json"
+    notes.write_text(
+        json.dumps(
+            [
+                {"text": "entregar o projeto na sexta"},
+                {"text": "constelação de lembretes"},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    reply = make_reply_fn(
+        Settings.from_env(
+            env={
+                "CLAUDE_VOICE_CODEX_CLI": "missing-codex",
+                "CLAUDE_VOICE_CURSOR_CLI": "missing-cursor",
+                "CLAUDE_VOICE_CLAUDE_CLI": "missing-claude",
+                "OLLAMA_HOST": "",
+                "CLAUDE_VOICE_OLLAMA_HOST": "",
+                "CLAUDE_VOICE_REMINDERS": str(notes),
+            }
+        ),
+        get_persona("orion"),
+        lambda: WHEN,
+    )
+    hud = VoiceHud(
+        session=_session(),
+        reply_fn=reply,
+        synth_fn=lambda text: (b"\x00\x00", 24000),
+        transcribe_fn=lambda pcm, rate: "",
+        clock=lambda: 1.0,
+        reminders_path=notes,
+    )
+    found = hud.handle(text="Orion, buscar nota projeto", typed=True)
+    assert found["note_query"] == "projeto"
+    assert "entregar o projeto" in found["reply"]
+    clock = hud.handle(text="que horas são", typed=True)
+    assert "horas" in clock["reply"]
+    assert clock["note_query"] == ""
+    assert hud.handle(text="buscar nota", typed=True)["note_query"] == ""
+    follow = hud.handle(text="lembretes", typed=True)
+    assert follow["note_query"] == "lembretes"
+    assert "constelação" in follow["reply"]
+    listed = hud.handle(text="liste os arquivos", typed=True)
+    assert listed["status"] == "permit"
+    assert listed["note_query"] == ""
+
+
 def test_status_notes_count_follows_the_file(tmp_path):
     path = tmp_path / "n.json"
     path.write_text("[]", encoding="utf-8")

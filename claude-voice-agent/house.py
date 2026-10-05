@@ -142,6 +142,18 @@ def _remember(note: str, path: Path, moment: datetime) -> str:
     return "Anotado, Senhor."
 
 
+def note_query_of(heard: str, reply: str) -> str:
+    """Assunto que o céu destaca. Vazio quando a fala não buscou nas notas."""
+    if reply != "Não há nota com isso, Senhor." and not (reply or "").startswith("Nas notas, Senhor."):
+        return ""
+    norm = _plain(heard)
+    if norm.startswith("buscar nota "):
+        return norm.split(" ", 2)[-1].strip()
+    if norm.startswith("notas sobre "):
+        return norm[len("notas sobre ") :].strip()
+    return norm
+
+
 def _find_notes(query: str, path: Path) -> str:
     """Busca nas notas, como a busca do Obsidian. Não abre a web."""
     needle = _plain(query)

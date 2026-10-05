@@ -88,6 +88,16 @@ def test_reminder_roundtrip(tmp_path):
     assert "voz do orion" in listed
 
 
+def test_note_query_is_only_the_search():
+    from claude_agent_voice.house import note_query_of
+
+    assert note_query_of("buscar nota projeto", "Nas notas, Senhor. entregar.") == "projeto"
+    assert note_query_of("voz", "Nas notas, Senhor. revisar o projeto de voz.") == "voz"
+    assert note_query_of("buscar nota marte", "Não há nota com isso, Senhor.") == "marte"
+    assert note_query_of("buscar nota", "O que devo buscar nas notas, Senhor?") == ""
+    assert note_query_of("que horas são", "São 15 horas, Senhor.") == ""
+
+
 def test_note_search_stays_in_the_vault(tmp_path):
     path = tmp_path / "notes.json"
     path.write_text(
