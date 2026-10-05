@@ -190,37 +190,57 @@ def _remember(note: str, path: Path, moment: datetime) -> str:
     return "Anotado, Senhor."
 
 
+def _clean_subject(subject: str) -> str:
+    """Tira o artigo. «o projeto» e «a voz» viram o nome da nota."""
+    subject = (subject or "").strip()
+    for prefix in ("o ", "a ", "os ", "as ", "um ", "uma "):
+        if subject.startswith(prefix):
+            rest = subject[len(prefix) :].strip()
+            if rest:
+                return rest
+    return subject
+
+
 def _note_subject(norm: str) -> str | None:
     """Assunto da busca nas notas. None quando a fala não é essa busca."""
     if norm in {
         "buscar nota", "notas sobre", "notas de", "notas do", "notas da",
         "buscar nas notas", "busque nas notas", "busca nas notas",
         "procurar nas notas", "procure nas notas", "procura nas notas",
+        "pesquisar nas notas", "pesquise nas notas", "pesquisa nas notas",
         "buscar nas minhas notas", "busque nas minhas notas", "busca nas minhas notas",
         "procurar nas minhas notas", "procure nas minhas notas", "procura nas minhas notas",
+        "pesquisar nas minhas notas", "pesquise nas minhas notas", "pesquisa nas minhas notas",
         "nas notas", "tem nota", "tem nota sobre", "tem alguma nota",
     }:
         return ""
     if norm.startswith("buscar nota "):
-        return norm.split(" ", 2)[-1].strip()
+        return _clean_subject(norm.split(" ", 2)[-1])
     owned = re.match(r"^notas\s+(?:sobre|de|do|da)\s+(.+)$", norm)
     if owned:
-        return owned.group(1).strip()
+        return _clean_subject(owned.group(1))
+    verb = r"(?:buscar|busque|busca|procurar|procure|procura|pesquisar|pesquise|pesquisa)"
     found = re.match(
-        r"^(?:buscar|busque|busca|procurar|procure|procura)\s+nas\s+(?:minhas\s+)?notas(?:\s+(.*))?$",
+        rf"^{verb}\s+nas\s+(?:minhas\s+)?notas(?:\s+(.*))?$",
         norm,
     )
     if found:
-        return (found.group(1) or "").strip()
+        return _clean_subject(found.group(1) or "")
+    tail = re.match(
+        rf"^{verb}\s+(.+?)\s+nas\s+(?:minhas\s+)?notas$",
+        norm,
+    )
+    if tail:
+        return _clean_subject(tail.group(1))
     plain = re.match(r"^nas\s+notas(?:\s+(.*))?$", norm)
     if plain:
-        return (plain.group(1) or "").strip()
+        return _clean_subject(plain.group(1) or "")
     held = re.match(
         r"^tem\s+(?:alguma\s+)?nota(?:\s+(?:sobre|de|do|da))?(?:\s+(.*))?$",
         norm,
     )
     if held:
-        return (held.group(1) or "").strip()
+        return _clean_subject(held.group(1) or "")
     return None
 
 
@@ -290,15 +310,26 @@ def _place_of(norm: str) -> str:
     ):
         if norm.startswith(prefix):
             return norm[len(prefix) :].strip(" .")
-    match = re.search(r"\b(?:tempo|clima|previsao)\s+em\s+(.+)$", norm)
+    match = re.search(r"\b(?:tempo|clima|previsao)\s+(?:em|no|na|de)\s+(.+)$", norm)
     if match:
-        return match.group(1).strip(" .")
+        place = match.group(1).strip(" .")
+        if place and place not in {"hoje", "agora", "amanha", "aqui", "tempo"}:
+            return place
     heat = re.search(r"\btemperatura\s+em\s+(.+)$", norm)
     if heat:
         return heat.group(1).strip(" .")
     rain = re.match(r"^vai chover\s+em\s+(.+)$", norm)
     if rain:
         return rain.group(1).strip(" .")
+    wet = re.match(r"^(?:esta|ta)\s+chovendo\s+em\s+(.+)$", norm)
+    if wet:
+        return wet.group(1).strip(" .")
+    if "previsao" in norm:
+        later = re.search(r"\bpara\s+(.+)$", norm)
+        if later:
+            place = later.group(1).strip(" .")
+            if place and place not in {"hoje", "agora", "amanha", "aqui", "mim"}:
+                return place
     forecast = re.search(r"\bprevisao\s+para\s+(.+)$", norm)
     if forecast:
         return forecast.group(1).strip(" .")
@@ -383,6 +414,8 @@ def _wants_weather(norm: str) -> bool:
     if "qual a temperatura" in norm or "qual e a temperatura" in norm or norm.startswith("temperatura"):
         return True
     if re.match(r"^vai chover(?:\s+em\s+\S.*)?$", norm):
+        return True
+    if re.match(r"^(?:esta|ta)\s+chovendo(?:\s+em\s+\S.*)?$", norm):
         return True
     if norm.startswith("tempo ") and _bare_sky_place(norm):
         return True

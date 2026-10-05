@@ -78,6 +78,24 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
         "Em São Paulo, 22 graus, quase limpo, Senhor."
     )
     assert "curitiba" in seen[-2]
+    assert _reply("qual o clima de recife", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "recife" in seen[-2]
+    assert _reply("como está o tempo no rio", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "rio" in seen[-2]
+    assert _reply("previsão do tempo para curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "curitiba" in seen[-2]
+    assert _reply("previsão do tempo", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("está chovendo", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("está chovendo em curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "curitiba" in seen[-2]
 
 
 def test_unrelated_tempo_is_not_weather(tmp_path):
@@ -205,6 +223,8 @@ def test_note_query_is_only_the_search():
     assert note_query_of("procure nas minhas notas projeto", "Nas notas, Senhor. entregar.") == "projeto"
     assert note_query_of("notas do projeto", "Nas notas, Senhor. entregar.") == "projeto"
     assert note_query_of("tem nota sobre voz", "Nas notas, Senhor. revisar.") == "voz"
+    assert note_query_of("pesquise nas notas o projeto", "Nas notas, Senhor. entregar.") == "projeto"
+    assert note_query_of("buscar o projeto nas notas", "Nas notas, Senhor. entregar.") == "projeto"
     assert note_query_of("voz", "Nas notas, Senhor. revisar o projeto de voz.") == "voz"
     assert note_query_of("buscar nota marte", "Não há nota com isso, Senhor.") == "marte"
     assert note_query_of("buscar nota", "O que devo buscar nas notas, Senhor?") == ""
@@ -245,6 +265,18 @@ def test_note_search_stays_in_the_vault(tmp_path):
     )
     assert _reply("nas notas projeto", fetch, path) == (
         "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("pesquise nas notas o projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("buscar o projeto nas notas", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("procura projeto nas notas", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("busca nas minhas notas a voz", fetch, voice) == (
+        "Nas notas, Senhor. revisar o projeto de voz."
     )
     assert _reply("buscar nota marte", fetch, path) == "Não há nota com isso, Senhor."
 
