@@ -95,7 +95,7 @@ _PAGE = r"""<!DOCTYPE html>
   }
   .systems button.fact {
     flex-direction: column; align-items: flex-start; justify-content: flex-end;
-    gap: 2px; padding-bottom: 2px;
+    gap: 2px; min-width: 44px; padding-bottom: 2px;
   }
   .telemetry { position: relative; }
   .telemetry:has(.systems.has-more)::after {
