@@ -1040,6 +1040,53 @@ function paintDisc(center, tilt, rgb, yaw, pitch, cx, cy, scale, strong, reach) 
   );
   ctx.drawImage(nebulaSprite(rgb, strong), -1, -1, 2, 2);
   ctx.restore();
+  return { pc, pu, pv };
+}
+function paintLanes(marks, rect, boxes, stars) {
+  if (!marks.length) return;
+  ctx.save();
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.beginPath();
+  ctx.rect(rect.left, rect.top, rect.width, rect.height);
+  for (let i = 0; i < boxes.length; i++) {
+    const box = boxes[i];
+    ctx.rect(box.l - 4, box.t - 4, (box.r - box.l) + 8, (box.b - box.t) + 8);
+  }
+  for (let i = 0; i < stars.length; i++) {
+    ctx.moveTo(stars[i].p.x + 16, stars[i].p.y);
+    ctx.arc(stars[i].p.x, stars[i].p.y, 16, 0, Math.PI * 2);
+  }
+  ctx.clip("evenodd");
+  ctx.strokeStyle = ink.bg;
+  ctx.globalCompositeOperation = "source-over";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (let n = 0; n < marks.length; n++) {
+    const item = marks[n];
+    const pc = item.mark.pc;
+    const pu = item.mark.pu;
+    const pv = item.mark.pv;
+    ctx.save();
+    ctx.setTransform(
+      (pu.x - pc.x) * DPR, (pu.y - pc.y) * DPR,
+      (pv.x - pc.x) * DPR, (pv.y - pc.y) * DPR,
+      pc.x * DPR, pc.y * DPR
+    );
+    const lanes = item.phase < 1
+      ? [[-0.55, 0.22, -0.05, 0.34, 0.42, 0.08], [-0.35, -0.42, 0.12, -0.18, 0.5, -0.3]]
+      : [[0.5, 0.2, 0.02, 0.36, -0.48, 0.1], [0.32, -0.4, -0.08, -0.16, -0.46, -0.22]];
+    for (let k = 0; k < lanes.length; k++) {
+      const lane = lanes[k];
+      ctx.globalAlpha = k === 0 ? 0.42 : 0.24;
+      ctx.lineWidth = k === 0 ? 0.09 : 0.05;
+      ctx.beginPath();
+      ctx.moveTo(lane[0], lane[1]);
+      ctx.quadraticCurveTo(lane[2], lane[3], lane[4], lane[5]);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  ctx.restore();
 }
 function drawPlate() {
   const w = canvas.width / DPR, h = canvas.height / DPR;
@@ -1112,6 +1159,7 @@ function drawPlate() {
     const base = 1.08;
     return item.disc.strong ? base * 1.18 : base * 1.48;
   };
+  const discMarks = [];
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   for (const item of discs) {
@@ -1122,7 +1170,10 @@ function drawPlate() {
     paintDisc(far, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, false, reach * 0.7);
     const quietNotes = item.disc.strong && rect.width < WIDE && rect.height >= 448 && rect.height <= 516;
     ctx.globalAlpha = quietNotes ? 0.86 : 0.88;
-    paintDisc(center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, reach);
+    discMarks.push({
+      mark: paintDisc(center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, reach),
+      phase: item.disc.strong ? 0.4 : 2.2,
+    });
     const lean = item.disc.tilt;
     const zScale = center.zScale == null ? 1 : center.zScale;
     const narrow = rect.width < WIDE;
@@ -1635,6 +1686,7 @@ function drawPlate() {
       liftSeats = false;
     }
   }
+  paintLanes(discMarks, rect, boxes, view);
   ctx.lineCap = "round";
   for (const stroke of strokes) {
     const gaps = boxes.map((box) => ({ l: box.l - 4, r: box.r + 4, t: box.t - 4, b: box.b + 4 }));
