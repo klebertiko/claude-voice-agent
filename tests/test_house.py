@@ -32,9 +32,12 @@ def test_weather_names_the_city(tmp_path):
 
 
 def test_weather_hears_the_city_inside_the_question(tmp_path):
+    seen = []
+
     def fetch(url):
+        seen.append(url)
         if "geocoding" in url:
-            assert "paulo" in url.lower()
+            assert "paulo" in url.lower() or "curitiba" in url.lower()
             return '{"results":[{"latitude":-23.5,"longitude":-46.6,"name":"São Paulo"}]}'
         return '{"current":{"temperature_2m":22,"weather_code":1}}'
 
@@ -47,6 +50,17 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
     )
     assert _reply("qual é o clima", fetch, path) == "De qual lugar, Senhor."
     assert _reply("clima agora", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("tempo são paulo", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert _reply("previsão curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert any("curitiba" in url for url in seen)
+    assert _reply("qual a previsão para curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert _reply("tempo para pensar", fetch, path) is None
 
 
 def test_unrelated_tempo_is_not_weather(tmp_path):
@@ -85,12 +99,27 @@ def test_news_asks_then_reads_the_topic(tmp_path):
 
 
 def test_search_speaks_the_abstract(tmp_path):
-    def fetch(_url):
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
         return '{"AbstractText":"O café é uma bebida. O resto fica de fora."}'
 
-    assert _reply("pesquise café", fetch, tmp_path / "n.json") == (
+    path = tmp_path / "n.json"
+    assert _reply("pesquise café", fetch, path) == (
         "O café é uma bebida, Senhor."
     )
+    for said in (
+        "pode pesquisar café",
+        "pesquisa café",
+        "me pesquisa o café",
+        "quero pesquisar café",
+        "pesquise sobre café",
+        "busque sobre o café",
+    ):
+        assert _reply(said, fetch, path) == "O café é uma bebida, Senhor."
+    assert all("cafe" in url and "sobre" not in url for url in seen)
+    assert _reply("pode pesquisar", fetch, path) == "O que devo procurar, Senhor?"
 
 
 def test_search_without_abstract_asks_permission(tmp_path):
@@ -110,7 +139,12 @@ def test_reminder_roundtrip(tmp_path):
     assert _reply("anote entregar o projeto na sexta", fetch, path) == "Anotado, Senhor."
     assert _reply("anote comprar café", fetch, path) == "Anotado, Senhor."
     assert _reply("me lembre de voz do orion", fetch, path) == "Anotado, Senhor."
+    assert _reply("me lembre comprar pão", fetch, path) == "Anotado, Senhor."
+    saved = path.read_text(encoding="utf-8")
+    assert '"text": "comprar pão"' in saved
+    assert "de comprar" not in saved
     listed = _reply("meus lembretes", fetch, path)
+    assert "comprar pão" in listed
     assert listed.index("entregar o projeto na sexta") < listed.index("comprar café")
     assert "comprar café" in listed
     assert "voz do orion" in listed

@@ -184,6 +184,24 @@ def _list_notes(path: Path) -> str:
     return "Lembretes, Senhor. " + ". ".join(spoken) + "."
 
 
+def _bare_sky_place(norm: str) -> str:
+    """Cidade depois de tempo, clima ou previsão, sem a preposição."""
+    match = re.match(
+        r"^(?:tempo|clima|previsao)\s+(?!em\s|no\s|na\s|de\s|do\s|da\s|para\s)(.+)$",
+        norm,
+    )
+    if not match:
+        return ""
+    place = match.group(1).strip(" .?")
+    if not place or place in {"agora", "hoje", "amanha", "aqui", "o tempo"}:
+        return ""
+    if re.search(r"\b(?:para|que|com|quando|porque|fazer|faz)\b", place):
+        return ""
+    if len(place.split()) > 4:
+        return ""
+    return place
+
+
 def _place_of(norm: str) -> str:
     for prefix in (
         "tempo em ", "clima em ", "previsao em ", "previsao para ",
@@ -194,12 +212,10 @@ def _place_of(norm: str) -> str:
     match = re.search(r"\b(?:tempo|clima|previsao)\s+em\s+(.+)$", norm)
     if match:
         return match.group(1).strip(" .")
-    bare = re.match(r"^clima\s+(?!em\s|no\s|na\s|de\s)(.+)$", norm)
-    if bare:
-        place = bare.group(1).strip(" .")
-        if place and place not in {"agora", "hoje", "amanha", "aqui"}:
-            return place
-    return ""
+    forecast = re.search(r"\bprevisao\s+para\s+(.+)$", norm)
+    if forecast:
+        return forecast.group(1).strip(" .")
+    return _bare_sky_place(norm)
 
 
 def _topic_of(norm: str) -> str:
@@ -267,6 +283,10 @@ def _wants_weather(norm: str) -> bool:
         return False
     if norm.startswith(("tempo em ", "clima em ", "clima ", "previsao ")):
         return True
+    if norm.startswith("tempo ") and _bare_sky_place(norm):
+        return True
+    if re.search(r"\b(?:tempo|clima|previsao)\s+em\s+\S", norm):
+        return True
     if norm in {
         "clima", "tempo", "previsao", "o tempo", "o clima", "tempo agora",
         "qual o tempo", "qual e o tempo",
@@ -281,6 +301,32 @@ def _wants_weather(norm: str) -> bool:
         or "como esta o clima" in norm
         or "como ta o tempo" in norm
     )
+
+
+_SEARCH_COMMAND = re.compile(
+    r"^(?:(?:por favor|pode|posso|quero|queria|vamos)\s+)*"
+    r"(?:me\s+)?"
+    r"(?:pesquisar|pesquise|pesquisa|buscar|busque|busca|procurar|procure|procura)"
+    r"(?:\s+(.*))?$"
+)
+_QUERY_FILLERS = (
+    "sobre ", "pelo ", "pela ", "para ", "por ",
+    "o ", "a ", "os ", "as ", "um ", "uma ",
+    "de ", "do ", "da ", "no ", "na ", "me ",
+)
+
+
+def _search_query(rest: str) -> str:
+    """Tira o convite da busca. «sobre o café» vira «café»."""
+    query = (rest or "").strip(" ?.")
+    while query:
+        for prefix in _QUERY_FILLERS:
+            if query.startswith(prefix):
+                query = query[len(prefix) :].strip()
+                break
+        else:
+            break
+    return query
 
 
 def whatsapp_number(text: str) -> str:
@@ -349,11 +395,17 @@ def house_reply(
             clock_h = moment.hour
             sky = _weather("São Paulo", fetch)
             return f"São {clock_h} horas, Senhor. {sky}"
-        if norm in {"anote", "anota", "lembrete"}:
+        if norm in {
+            "anote", "anota", "lembrete",
+            "me lembre", "me lembra", "me lembre de", "me lembra de",
+        }:
             return "O que devo anotar, Senhor?"
-        if norm.startswith(("lembrete ", "me lembre de ", "me lembra de ", "anote ", "anota ")):
+        if re.match(
+            r"^(?:lembrete|me lembre(?: de)?|me lembra(?: de)?|anote|anota)\s+\S",
+            norm,
+        ):
             match = re.search(
-                r"(?:me lembre de|me lembra de|lembrete|anote|anota)\s+(.+)$",
+                r"(?:me lembre(?: de)?|me lembra(?: de)?|lembrete|anote|anota)\s+(.+)$",
                 text.strip(),
                 flags=re.IGNORECASE,
             )
@@ -370,16 +422,14 @@ def house_reply(
             if not topic:
                 return "Sobre o que, Senhor."
             return _news(topic, fetch)
-        if norm in {"busque", "pesquise", "procure", "busca", "pesquisa"}:
-            return "O que devo procurar, Senhor?"
         if norm in {"buscar nota", "notas sobre"}:
             return "O que devo buscar nas notas, Senhor?"
         if norm.startswith("buscar nota ") or norm.startswith("notas sobre "):
             query = norm.split(" ", 2)[-1] if norm.startswith("buscar nota ") else norm[len("notas sobre ") :]
             return _find_notes(query, reminders_path)
-        for prefix in ("pesquise ", "busque ", "procure "):
-            if norm.startswith(prefix):
-                return _search(norm[len(prefix) :], fetch)
+        found = _SEARCH_COMMAND.match(norm)
+        if found:
+            return _search(_search_query(found.group(1) or ""), fetch)
     except (OSError, ValueError, json.JSONDecodeError, ET.ParseError, KeyError, TimeoutError):
         return "Não alcancei isso agora, Senhor."
     return None
