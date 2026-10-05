@@ -218,6 +218,9 @@ _PAGE = r"""<!DOCTYPE html>
     .systems { flex-flow: row nowrap; overflow-x: auto; }
     .systems button.fact { flex: none; }
   }
+  @media (max-height: 780px) and (min-width: 641px) {
+    #log, .room:has(#note:not([hidden])) #log { max-height: 3.5rem; }
+  }
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
 </style>
 </head>
