@@ -284,6 +284,28 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         if meters is None or float(meters) < 0:
             return "Não alcancei o clima, Senhor."
         return f"Em {label}, visibilidade de {_speak_visibility(meters)}, Senhor."
+    if field == "orvalho":
+        if day == "amanha":
+            key = "dew_point_2m_mean"
+            url = (
+                "https://api.open-meteo.com/v1/forecast?daily="
+                + key
+                + f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+            )
+            data = json.loads(fetch(url))
+            values = (data.get("daily") or {}).get(key) or []
+            if len(values) <= 1 or values[1] is None:
+                return "Não alcancei o clima, Senhor."
+            return f"Amanhã em {label}, ponto de orvalho de {_speak_graus(values[1])}, Senhor."
+        url = (
+            "https://api.open-meteo.com/v1/forecast?current=dew_point_2m"
+            f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        dew = (data.get("current") or {}).get("dew_point_2m")
+        if dew is None:
+            return "Não alcancei o clima, Senhor."
+        return f"Em {label}, ponto de orvalho de {_speak_graus(dew)}, Senhor."
     if day == "amanha":
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max,weather_code"
@@ -370,6 +392,14 @@ def _wants_dollar(norm: str) -> bool:
         r"(?:o\s+)?dolar\s+(?:hoje|agora)",
         norm,
     ))
+
+
+def _speak_graus(value: float) -> str:
+    """Graus falados. Abaixo de zero entra o menos, para a voz não ler o sinal."""
+    graus = int(round(float(value)))
+    if graus < 0:
+        return f"menos {abs(graus)} graus"
+    return f"{graus} graus"
 
 
 def _speak_visibility(meters: float) -> str:
@@ -1367,6 +1397,21 @@ def _wind_place(norm: str) -> str | None:
     return None
 
 
+def _dew_place(norm: str) -> str | None:
+    """None quando não é ponto de orvalho. Vazio quando falta a cidade."""
+    match = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
+        r"(?:qual\s+(?:e\s+)?)?(?:o\s+)?ponto\s+de\s+orvalho"
+        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if not match:
+        return None
+    return _city_name(match.group(1) or "")
+
+
 def _visibility_place(norm: str) -> str | None:
     """None quando não é visibilidade. Vazio quando falta a cidade."""
     match = re.fullmatch(
@@ -1745,6 +1790,12 @@ def house_reply(
                 return "De qual lugar, Senhor."
             day = "amanha" if re.search(r"\bamanha\b", norm) else ""
             return _weather(seen_place, fetch, day=day, field="visibilidade")
+        dew_place = _dew_place(norm)
+        if dew_place is not None:
+            if not dew_place:
+                return "De qual lugar, Senhor."
+            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            return _weather(dew_place, fetch, day=day, field="orvalho")
         how_place = _how_city(norm)
         if how_place is not None:
             day = "amanha" if re.search(r"\bamanha\b", norm) else ""

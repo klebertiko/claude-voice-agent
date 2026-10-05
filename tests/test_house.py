@@ -1726,6 +1726,98 @@ def test_visibility_names_the_city(tmp_path):
     )
 
 
+def test_dew_names_the_city(tmp_path):
+    quote = {"graus": 20.9, "tomorrow": 21.8}
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "geocoding" in url:
+            assert "recife" in url.lower() or "curitiba" in url.lower()
+            name = "Recife" if "recife" in url.lower() else "Curitiba"
+            return '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
+        if "dew_point_2m_mean" in url:
+            assert "forecast_days=2" in url
+            assert "temperature_2m" not in url
+            tomorrow = "null" if quote["tomorrow"] is None else quote["tomorrow"]
+            return '{"daily":{"dew_point_2m_mean":[20.4,%s]}}' % tomorrow
+        assert "current=dew_point_2m" in url
+        assert "temperature_2m" not in url
+        return '{"current":{"dew_point_2m":%s}}' % quote["graus"]
+
+    path = tmp_path / "n.json"
+    assert _reply("ponto de orvalho", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me fala o ponto de orvalho", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("ponto de orvalho amanhã", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("orvalho", fetch, path) is None
+    assert _reply("ponto de orvalho do projeto", fetch, path) is None
+    assert seen == []
+    assert _reply("ponto de orvalho em recife", fetch, path) == (
+        "Em Recife, ponto de orvalho de 21 graus, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "current=dew_point_2m" in seen[-1]
+    quote["graus"] = 12.9
+    assert _reply("me fala o ponto de orvalho em curitiba", fetch, path) == (
+        "Em Curitiba, ponto de orvalho de 13 graus, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    quote["graus"] = 0
+    assert _reply("qual o ponto de orvalho agora em recife", fetch, path) == (
+        "Em Recife, ponto de orvalho de 0 graus, Senhor."
+    )
+    quote["graus"] = -3.2
+    assert _reply("ponto de orvalho hoje em recife", fetch, path) == (
+        "Em Recife, ponto de orvalho de menos 3 graus, Senhor."
+    )
+    assert _reply("ponto de orvalho amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, ponto de orvalho de 22 graus, Senhor."
+    )
+    assert "dew_point_2m_mean" in seen[-1]
+    assert "forecast_days=2" in seen[-1]
+    quote["tomorrow"] = None
+    assert _reply("ponto de orvalho para amanhã em curitiba", fetch, path) == (
+        "Não alcancei o clima, Senhor."
+    )
+
+
+def test_dew_follow_up_keeps_the_field(tmp_path, monkeypatch):
+    from claude_agent_voice.hud import make_reply_fn
+    from claude_agent_voice.personas import get_persona
+    from claude_agent_voice.settings import Settings
+
+    seen = []
+
+    def fake_weather(place, _fetch, day="", field=""):
+        seen.append((place, field, day))
+        when = "Amanhã em" if day == "amanha" else "Em"
+        return f"{when} {place}, ponto de orvalho de 21 graus, Senhor."
+
+    monkeypatch.setattr("claude_agent_voice.house._weather", fake_weather)
+    reply = make_reply_fn(
+        Settings.from_env(
+            env={
+                "CLAUDE_VOICE_CODEX_CLI": "missing-codex",
+                "CLAUDE_VOICE_CURSOR_CLI": "missing-cursor",
+                "CLAUDE_VOICE_CLAUDE_CLI": "missing-claude",
+                "OLLAMA_HOST": "",
+                "CLAUDE_VOICE_OLLAMA_HOST": "",
+                "CLAUDE_VOICE_REMINDERS": str(tmp_path / "n.json"),
+            }
+        ),
+        get_persona("orion"),
+        lambda: WHEN,
+    )
+    assert reply("ponto de orvalho", []) == "De qual lugar, Senhor."
+    assert reply("recife", []) == "Em recife, ponto de orvalho de 21 graus, Senhor."
+    assert seen == [("recife", "orvalho", "")]
+    assert reply("ponto de orvalho amanhã", []) == "De qual lugar, Senhor."
+    assert reply("curitiba", []) == (
+        "Amanhã em curitiba, ponto de orvalho de 21 graus, Senhor."
+    )
+    assert seen[-1] == ("curitiba", "orvalho", "amanha")
+
+
 def test_visibility_follow_up_keeps_the_field(tmp_path, monkeypatch):
     from claude_agent_voice.hud import make_reply_fn
     from claude_agent_voice.personas import get_persona
