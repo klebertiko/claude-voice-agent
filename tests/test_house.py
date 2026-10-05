@@ -397,6 +397,16 @@ def test_whatsapp_is_a_link_with_permission(tmp_path):
     assert spaced.startswith("ACAO: xdg-open 'https://wa.me/11999998888?text=cheguei'")
     assert _reply("mande um whatsapp", fetch, path) == "Diga o número, Senhor."
     assert _reply("manda um zap", fetch, path) == "Diga o número, Senhor."
+    assert _reply("mande whatsapp para 5511999998888", fetch, path) == (
+        "O que devo escrever, Senhor?"
+    )
+    oi = _reply("manda um oi no zap para 11988887777", fetch, path)
+    assert oi.startswith("ACAO: xdg-open 'https://wa.me/11988887777?text=oi'")
+    casa = _reply("manda vou para casa no zap para 11988887777", fetch, path)
+    assert "text=vou%20para%20casa" in casa
+    assert "11988887777" in casa
+    depois = _reply("manda zap para 11988887777 oi", fetch, path)
+    assert depois.startswith("ACAO: xdg-open 'https://wa.me/11988887777?text=oi'")
 
 
 def test_the_next_lines_build_the_whatsapp(tmp_path):

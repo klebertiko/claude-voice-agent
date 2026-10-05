@@ -559,14 +559,76 @@ def whatsapp_number(text: str) -> str:
     return ""
 
 
+_ZAP_LEAD = {
+    "mande", "manda", "mandar", "envie", "envia", "enviar",
+    "escreve", "escreva", "escrever", "fala", "fale", "falar",
+    "diz", "diga", "dizer", "por", "favor", "me", "um", "uma",
+}
+_ZAP_TRAIL = {"para", "pro", "pra", "no", "na", "de", "do", "da", "o", "a"}
+_ZAP_DROP = {"whatsapp", "zap", "mensagem"}
+_ZAP_PHRASES = (
+    ("no", "whatsapp"), ("na", "whatsapp"), ("pelo", "whatsapp"), ("pela", "whatsapp"),
+    ("no", "zap"), ("na", "zap"), ("pelo", "zap"), ("pela", "zap"),
+    ("a", "mensagem"), ("o", "mensagem"), ("uma", "mensagem"), ("um", "mensagem"),
+)
+
+
+def _drop_phrase(pairs: list[tuple[str, str]], phrase: tuple[str, ...]) -> list[tuple[str, str]]:
+    size = len(phrase)
+    kept = []
+    index = 0
+    while index < len(pairs):
+        if [word for word, _ in pairs[index : index + size]] == list(phrase):
+            index += size
+            continue
+        kept.append(pairs[index])
+        index += 1
+    return kept
+
+
+def _whatsapp_message(text: str) -> str:
+    """O texto do Zap. «dizendo cheguei» e «um oi no zap» ficam a mensagem."""
+    said = re.search(r"dizendo\s+(.+)$", text or "", flags=re.IGNORECASE)
+    if said:
+        return said.group(1).strip(" .")
+    orig = (text or "").strip().split()
+    plain_words = _plain(text).split()
+    if not orig or len(orig) != len(plain_words):
+        return ""
+    plain = " ".join(plain_words)
+    match = re.search(r"\d(?:[\d\s().-]{8,20})\d", plain)
+    if not match:
+        return ""
+    occupied = set()
+    cursor = 0
+    for index, word in enumerate(plain_words):
+        word_end = cursor + len(word)
+        if word_end > match.start() and cursor < match.end():
+            occupied.add(index)
+        cursor = word_end + 1
+    def side(indexes: list[int]) -> list[str]:
+        pairs = [(plain_words[i], orig[i]) for i in indexes]
+        for phrase in _ZAP_PHRASES:
+            pairs = _drop_phrase(pairs, phrase)
+        pairs = [(word, raw) for word, raw in pairs if word not in _ZAP_DROP]
+        while pairs and pairs[0][0] in _ZAP_LEAD:
+            pairs.pop(0)
+        while pairs and pairs[-1][0] in _ZAP_TRAIL:
+            pairs.pop()
+        return [raw for _, raw in pairs]
+
+    before = side([i for i in range(len(orig)) if i not in occupied and i < min(occupied)])
+    after = side([i for i in range(len(orig)) if i not in occupied and i > max(occupied)])
+    return " ".join(before + after).strip(" .")
+
+
 def continue_whatsapp(stage: str, text: str, number: str) -> tuple[str, str]:
     """A frase seguinte depois de Orion pedir o número ou o texto."""
     if stage == "zap-number":
         found = whatsapp_number(text)
         if not found:
             return "Diga o número, Senhor.", ""
-        said_match = re.search(r"dizendo\s+(.+)$", text, flags=re.IGNORECASE)
-        said = said_match.group(1).strip(" .") if said_match else ""
+        said = _whatsapp_message(text)
         if said:
             link = "https://wa.me/" + found + "?text=" + urllib.parse.quote(said)
             return f"ACAO: xdg-open '{link}'", ""
@@ -582,8 +644,7 @@ def _whatsapp(text: str) -> str:
     number = whatsapp_number(text)
     if not number:
         return "Diga o número, Senhor."
-    said_match = re.search(r"dizendo\s+(.+)$", text, flags=re.IGNORECASE)
-    said = said_match.group(1).strip(" .") if said_match else ""
+    said = _whatsapp_message(text)
     if not said:
         return "O que devo escrever, Senhor?"
     link = "https://wa.me/" + number + "?text=" + urllib.parse.quote(said)
