@@ -822,7 +822,7 @@ def _usable_topic(topic: str) -> str:
     topic = topic.strip(" .")
     if topic in {"sobre", "de", "do", "da", "em", "no", "na"}:
         return ""
-    if topic == "agora":
+    if topic in {"agora", "ultima hora", "urgente", "urgentes"}:
         return "brasil"
     return topic
 
