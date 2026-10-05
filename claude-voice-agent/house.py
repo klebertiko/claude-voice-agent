@@ -194,6 +194,11 @@ def _place_of(norm: str) -> str:
     match = re.search(r"\b(?:tempo|clima|previsao)\s+em\s+(.+)$", norm)
     if match:
         return match.group(1).strip(" .")
+    bare = re.match(r"^clima\s+(?!em\s|no\s|na\s|de\s)(.+)$", norm)
+    if bare:
+        place = bare.group(1).strip(" .")
+        if place and place not in {"agora", "hoje", "amanha", "aqui"}:
+            return place
     return ""
 
 
@@ -260,6 +265,8 @@ def _wants_weather(norm: str) -> bool:
     }:
         return True
     if "que tempo" in norm or "previsao" in norm or "qual o tempo" in norm:
+        return True
+    if "qual o clima" in norm or "qual e o clima" in norm or "como ta o clima" in norm:
         return True
     return (
         "como esta o tempo" in norm

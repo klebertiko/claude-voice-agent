@@ -31,6 +31,24 @@ def test_weather_names_the_city(tmp_path):
     )
 
 
+def test_weather_hears_the_city_inside_the_question(tmp_path):
+    def fetch(url):
+        if "geocoding" in url:
+            assert "paulo" in url.lower()
+            return '{"results":[{"latitude":-23.5,"longitude":-46.6,"name":"São Paulo"}]}'
+        return '{"current":{"temperature_2m":22,"weather_code":1}}'
+
+    path = tmp_path / "n.json"
+    assert _reply("qual o clima em São Paulo", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert _reply("clima São Paulo", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert _reply("qual é o clima", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("clima agora", fetch, path) == "De qual lugar, Senhor."
+
+
 def test_unrelated_tempo_is_not_weather(tmp_path):
     def fetch(_url):
         raise AssertionError("não devia buscar o clima")
