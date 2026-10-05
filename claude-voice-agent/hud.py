@@ -56,6 +56,11 @@ def brazil_now() -> datetime:
 
 def _weather_field(text: str) -> str:
     """Qual leitura o pedido quer. Vazio é a temperatura de sempre."""
+    norm = _plain(text)
+    if "nascer do sol" in norm or "sol nasce" in norm or "nasce o sol" in norm:
+        return "nascer"
+    if "por do sol" in norm or "sol se poe" in norm or "se poe o sol" in norm:
+        return "por"
     if _has_word(text, "umidade") or _has_word(text, "umido"):
         return "umidade"
     if _has_word(text, "sensacao") and _has_word(text, "termica"):

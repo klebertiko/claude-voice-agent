@@ -399,6 +399,48 @@ def test_wind_names_the_city(tmp_path):
     )
 
 
+def test_sun_names_the_city(tmp_path):
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "geocoding" in url:
+            assert "recife" in url.lower() or "curitiba" in url.lower()
+            name = "Recife" if "recife" in url.lower() else "Curitiba"
+            return (
+                '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
+            )
+        if "daily=sunrise" in url:
+            return '{"daily":{"sunrise":["2026-10-05T05:12","2026-10-06T05:13"]}}'
+        if "daily=sunset" in url:
+            return '{"daily":{"sunset":["2026-10-05T17:40","2026-10-06T17:41"]}}'
+        raise AssertionError(url)
+
+    path = tmp_path / "n.json"
+    assert _reply("nascer do sol", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("pôr do sol", fetch, path) == "De qual lugar, Senhor."
+    assert seen == []
+    assert _reply("nascer do sol em recife", fetch, path) == (
+        "Em Recife, o sol nasce às 5 horas e 12 minutos, Senhor."
+    )
+    assert "daily=sunrise" in seen[-1]
+    assert "temperature_2m" not in seen[-1]
+    assert _reply("que horas o sol nasce em recife", fetch, path) == (
+        "Em Recife, o sol nasce às 5 horas e 12 minutos, Senhor."
+    )
+    assert _reply("nascer do sol amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, o sol nasce às 5 horas e 13 minutos, Senhor."
+    )
+    assert "forecast_days=2" in seen[-1]
+    assert _reply("pôr do sol em curitiba", fetch, path) == (
+        "Em Curitiba, o sol se põe às 17 horas e 40 minutos, Senhor."
+    )
+    assert "daily=sunset" in seen[-1]
+    assert _reply("que horas o sol se põe em curitiba", fetch, path) == (
+        "Em Curitiba, o sol se põe às 17 horas e 40 minutos, Senhor."
+    )
+
+
 def test_unrelated_tempo_is_not_weather(tmp_path):
     def fetch(_url):
         raise AssertionError("não devia buscar o clima")
@@ -1021,6 +1063,12 @@ def test_the_next_line_answers_the_question(monkeypatch):
             return f"Em {place}, sensação de 14 graus, Senhor."
         if field == "vento":
             return f"Em {place}, vento de 18 quilômetros por hora, Senhor."
+        if field == "nascer":
+            when = "Amanhã em" if day == "amanha" else "Em"
+            return f"{when} {place}, o sol nasce às 5 horas e 12 minutos, Senhor."
+        if field == "por":
+            when = "Amanhã em" if day == "amanha" else "Em"
+            return f"{when} {place}, o sol se põe às 17 horas e 40 minutos, Senhor."
         if day == "amanha":
             return f"Amanhã em {place}, máxima de 27 graus, nublado, Senhor."
         return f"Em {place}, 19 graus, nublado, Senhor."
@@ -1066,6 +1114,12 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert reply("Curitiba", []) == "Em Curitiba, sensação de 14 graus, Senhor."
     assert reply("vento", []) == "De qual lugar, Senhor."
     assert reply("Recife", []) == "Em Recife, vento de 18 quilômetros por hora, Senhor."
+    assert reply("nascer do sol", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Em Recife, o sol nasce às 5 horas e 12 minutos, Senhor."
+    assert reply("pôr do sol amanhã", []) == "De qual lugar, Senhor."
+    assert reply("Curitiba", []) == (
+        "Amanhã em Curitiba, o sol se põe às 17 horas e 40 minutos, Senhor."
+    )
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):

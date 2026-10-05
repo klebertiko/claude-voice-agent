@@ -111,6 +111,23 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
             return "Não alcancei o clima, Senhor."
         km = int(round(float(speed)))
         return f"Em {label}, vento de {km} quilômetros por hora, Senhor."
+    if field in {"nascer", "por"}:
+        key = "sunrise" if field == "nascer" else "sunset"
+        days = 2 if day == "amanha" else 1
+        url = (
+            "https://api.open-meteo.com/v1/forecast?daily="
+            + key
+            + f"&forecast_days={days}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        times = (data.get("daily") or {}).get(key) or []
+        index = 1 if day == "amanha" else 0
+        clock = _sun_clock(str(times[index])) if len(times) > index else ""
+        if not clock:
+            return "Não alcancei o clima, Senhor."
+        verb = "nasce" if field == "nascer" else "se põe"
+        when = "Amanhã em" if day == "amanha" else "Em"
+        return f"{when} {label}, o sol {verb} às {clock}, Senhor."
     if day == "amanha":
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max,weather_code"
@@ -137,6 +154,18 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
     sky = _WX.get(int(current.get("weather_code") or 0), "instável")
     graus = int(round(float(temp)))
     return f"Em {label}, {graus} graus, {sky}, Senhor."
+
+
+def _sun_clock(stamp: str) -> str:
+    """«2026-10-05T05:12» vira «5 horas e 12 minutos»."""
+    found = re.search(r"T(\d{2}):(\d{2})", stamp or "")
+    if not found:
+        return ""
+    hour = int(found.group(1))
+    minute = int(found.group(2))
+    if minute == 0:
+        return f"{hour} horas"
+    return f"{hour} horas e {minute} minutos"
 
 
 def _news(topic: str, fetch) -> str:
@@ -867,6 +896,30 @@ def _feels_place(norm: str) -> str | None:
     return _city_name(match.group(1) or "")
 
 
+_SUN_TAIL = r"(?:\s+(?:amanha|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?"
+
+
+def _sun_place(norm: str) -> tuple[str, str] | None:
+    """(nascer ou por, cidade). None quando a fala não é o sol."""
+    rise = re.fullmatch(
+        r"(?:amanha\s+)?(?:(?:que horas|quando)\s+)?(?:o\s+)?"
+        r"(?:nascer\s+do\s+sol|sol\s+nasce|nasce\s+o\s+sol)"
+        + _SUN_TAIL,
+        norm,
+    )
+    if rise:
+        return "nascer", _city_name(rise.group(1) or "")
+    sets = re.fullmatch(
+        r"(?:amanha\s+)?(?:(?:que horas|quando)\s+)?(?:o\s+)?"
+        r"(?:por\s+do\s+sol|sol\s+se\s+poe|se\s+poe\s+o\s+sol)"
+        + _SUN_TAIL,
+        norm,
+    )
+    if sets:
+        return "por", _city_name(sets.group(1) or "")
+    return None
+
+
 def _wind_place(norm: str) -> str | None:
     """None quando não é vento. Vazio quando falta a cidade."""
     match = re.fullmatch(
@@ -1147,6 +1200,13 @@ def house_reply(
             norm,
         ):
             return _list_notes(reminders_path)
+        sun = _sun_place(norm)
+        if sun is not None:
+            kind, place = sun
+            if not place:
+                return "De qual lugar, Senhor."
+            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            return _weather(place, fetch, day=day, field=kind)
         wind_place = _wind_place(norm)
         if wind_place is not None:
             if not wind_place:
