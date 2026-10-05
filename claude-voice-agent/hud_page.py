@@ -1499,6 +1499,35 @@ function drawPlate() {
     }
   }
   ctx.setLineDash([]);
+  const contrastOf = (box, lumFill) => {
+    let score = 99;
+    if (!plate) return score;
+    for (let y = box.t + 2; y <= box.b - 2; y += 2) {
+      for (let x = box.l + 2; x <= box.r - 2; x += 2) {
+        const px = Math.floor(x * DPR) - plateX;
+        const py = Math.floor(y * DPR) - plateY;
+        if (px < 0 || py < 0 || px >= plateW || py >= plateH) continue;
+        const i = (py * plateW + px) * 4;
+        const lum = toneLum(plate[i], plate[i + 1], plate[i + 2]);
+        const hi = Math.max(lumFill, lum);
+        const lo = Math.min(lumFill, lum);
+        score = Math.min(score, (hi + 0.05) / (lo + 0.05));
+      }
+    }
+    return score;
+  };
+  const inkLum = toneLum(232, 238, 246);
+  const whiteLum = toneLum(255, 255, 255);
+  for (const paint of paints) {
+    if (paint.fill !== ink.ink) continue;
+    const dense = contrastOf(paint.box, inkLum);
+    if (dense >= 4.5) continue;
+    const lifted = contrastOf(paint.box, whiteLum);
+    if (lifted < 4.5) continue;
+    paint.fill = "#ffffff";
+    paint.alpha = 1;
+    paint.halo = false;
+  }
   for (const paint of paints) {
     ctx.font = paint.font;
     ctx.globalAlpha = paint.alpha;
