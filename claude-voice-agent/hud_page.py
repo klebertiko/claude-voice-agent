@@ -77,6 +77,7 @@ _PAGE = r"""<!DOCTYPE html>
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   #sky-read[hidden] { display: none; }
+  body:has(#note:not([hidden])) #sky-read { display: none; }
   .telemetry, .talk {
     min-width: 0; min-height: 0; padding: 8px 24px 32px;
     background: var(--color-bg);
