@@ -265,8 +265,15 @@ def _wants_weather(norm: str) -> bool:
 
 
 def whatsapp_number(text: str) -> str:
-    found = re.search(r"(\d{10,13})", _plain(text))
-    return found.group(1) if found else ""
+    """Telefone de 10 a 13 dígitos, com espaço, traço ou parêntese."""
+    raw = _plain(text)
+    match = re.search(r"\d(?:[\d\s().-]{8,20})\d", raw)
+    if not match:
+        return ""
+    digits = re.sub(r"\D", "", match.group(0))
+    if 10 <= len(digits) <= 13:
+        return digits
+    return ""
 
 
 def continue_whatsapp(stage: str, text: str, number: str) -> tuple[str, str]:
@@ -289,15 +296,14 @@ def continue_whatsapp(stage: str, text: str, number: str) -> tuple[str, str]:
 
 
 def _whatsapp(text: str) -> str:
-    plain = _plain(text)
-    number = re.search(r"(\d{10,13})", plain)
+    number = whatsapp_number(text)
     if not number:
         return "Diga o número, Senhor."
     said_match = re.search(r"dizendo\s+(.+)$", text, flags=re.IGNORECASE)
     said = said_match.group(1).strip(" .") if said_match else ""
     if not said:
         return "O que devo escrever, Senhor?"
-    link = "https://wa.me/" + number.group(1) + "?text=" + urllib.parse.quote(said)
+    link = "https://wa.me/" + number + "?text=" + urllib.parse.quote(said)
     return f"ACAO: xdg-open '{link}'"
 
 

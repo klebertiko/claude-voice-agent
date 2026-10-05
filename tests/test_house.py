@@ -124,6 +124,16 @@ def test_camera_and_image_are_refused(tmp_path):
     )
 
 
+def test_whatsapp_number_keeps_spaces_and_dashes():
+    from claude_agent_voice.house import whatsapp_number
+
+    assert whatsapp_number("11 99999-8888") == "11999998888"
+    assert whatsapp_number("(11) 99999-8888") == "11999998888"
+    assert whatsapp_number("+55 11 99999-8888") == "5511999998888"
+    assert whatsapp_number("5511999998888") == "5511999998888"
+    assert whatsapp_number("cheguei") == ""
+
+
 def test_whatsapp_is_a_link_with_permission(tmp_path):
     def fetch(_url):
         raise AssertionError("whatsapp não usa rede")
@@ -131,6 +141,8 @@ def test_whatsapp_is_a_link_with_permission(tmp_path):
     path = tmp_path / "n.json"
     reply = _reply("mande whatsapp para 5511999998888 dizendo cheguei", fetch, path)
     assert reply.startswith("ACAO: xdg-open 'https://wa.me/5511999998888?text=cheguei'")
+    spaced = _reply("mande whatsapp para (11) 99999-8888 dizendo cheguei", fetch, path)
+    assert spaced.startswith("ACAO: xdg-open 'https://wa.me/11999998888?text=cheguei'")
     assert _reply("mande um whatsapp", fetch, path) == "Diga o número, Senhor."
 
 
@@ -153,6 +165,9 @@ def test_the_next_lines_build_the_whatsapp(tmp_path):
         get_persona("orion"),
         lambda: WHEN,
     )
+    assert reply("mande um whatsapp", []) == "Diga o número, Senhor."
+    assert reply("11 99999-8888", []) == "O que devo escrever, Senhor?"
+    assert "11999998888" in reply("na porta", [])
     assert reply("mande um whatsapp", []) == "Diga o número, Senhor."
     assert reply("5511999998888", []) == "O que devo escrever, Senhor?"
     assert reply("cheguei", []).startswith(
