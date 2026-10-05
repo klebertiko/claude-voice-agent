@@ -648,12 +648,21 @@ function resize() {
   canvas.style.height = h + "px";
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
-function paintLabel(text, x, y) {
-  ctx.lineJoin = "round";
-  ctx.miterLimit = 2;
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = ink.bg;
-  ctx.strokeText(text, x, y);
+function toneLum(r, g, b) {
+  const f = (v) => {
+    v /= 255;
+    return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+function paintLabel(text, x, y, halo) {
+  if (halo) {
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = ink.bg;
+    ctx.strokeText(text, x, y);
+  }
   ctx.fillText(text, x, y);
 }
 function labelBox(x, y, align, width) {
@@ -1091,10 +1100,29 @@ function drawPlate() {
       row.ly = spot.y;
       row.labelW = lines ? Math.max(ctx.measureText(lines[0]).width, ctx.measureText(lines[1]).width) : width;
     }
+    const fill = item.star.id === picked ? ink.accent : ink.ink;
+    const fillLum = fill === ink.accent ? toneLum(212, 196, 168) : toneLum(232, 238, 246);
+    let halo = !plate;
+    if (plate) {
+      let worst = 99;
+      for (let y = box.t + 1; y <= box.b - 1; y += 3) {
+        for (let x = box.l + 1; x <= box.r - 1; x += 4) {
+          const px = Math.floor(x * DPR) - plateX;
+          const py = Math.floor(y * DPR) - plateY;
+          if (px < 0 || py < 0 || px >= plateW || py >= plateH) continue;
+          const i = (py * plateW + px) * 4;
+          const lum = toneLum(plate[i], plate[i + 1], plate[i + 2]);
+          const hi = Math.max(fillLum, lum);
+          const lo = Math.min(fillLum, lum);
+          worst = Math.min(worst, (hi + 0.05) / (lo + 0.05));
+        }
+      }
+      halo = worst < 4.5;
+    }
     paints.push({
-      lines, full, spot,
+      lines, full, spot, halo,
       alpha: item.star.id === picked ? 1 : quiet ? 0.66 : 0.92,
-      fill: item.star.id === picked ? ink.accent : ink.ink,
+      fill,
       font: "400 14px " + ink.body,
     });
   };
@@ -1141,10 +1169,10 @@ function drawPlate() {
     ctx.fillStyle = paint.fill;
     ctx.textAlign = paint.spot.align;
     if (paint.lines) {
-      paintLabel(paint.lines[0], paint.spot.x, paint.spot.y - 8);
-      paintLabel(paint.lines[1], paint.spot.x, paint.spot.y + 8);
+      paintLabel(paint.lines[0], paint.spot.x, paint.spot.y - 8, paint.halo);
+      paintLabel(paint.lines[1], paint.spot.x, paint.spot.y + 8, paint.halo);
     } else {
-      paintLabel(paint.full, paint.spot.x, paint.spot.y);
+      paintLabel(paint.full, paint.spot.x, paint.spot.y, paint.halo);
     }
   }
   ctx.restore();
