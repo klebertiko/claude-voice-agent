@@ -837,6 +837,13 @@ def _usable_topic(topic: str) -> str:
         return ""
     if topic in {"agora", "ultima hora", "urgente", "urgentes"}:
         return "brasil"
+    peeled = re.fullmatch(
+        r"(?:agora|ultima hora|urgentes|urgente)"
+        r"\s+(?:sobre|de|do|da|em|no|na)\s+(.+)",
+        topic,
+    )
+    if peeled:
+        return _usable_topic(peeled.group(1))
     return topic
 
 
