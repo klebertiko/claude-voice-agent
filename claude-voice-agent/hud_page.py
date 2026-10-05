@@ -286,9 +286,9 @@ let namedOnScreen = [];
 let picked = "";
 let hovered = "";
 let yawUser = 0;
-let pitchUser = 0;
+let pitchUser = -0.3;
 let yawTarget = 0;
-let pitchTarget = 0;
+let pitchTarget = -0.3;
 let zoom = 1;
 let drag = null;
 let dragMoved = 0;
@@ -582,14 +582,26 @@ function labelSpots(x, y, cx0, cy0) {
   }
   return spots;
 }
-function paintNebula(cloud) {
-  const rad = Math.max(cloud.span || 96, cloud.maxD * 1.2);
-  const sprite = nebulaSprite(cloud.rgb);
+function paintDisc(center, tilt, rgb, yaw, pitch, cx, cy, scale) {
+  const R = center.radius * 1.08;
+  const lean = tilt;
+  const origin = { x: center.x, y: center.y, z: center.z || 0 };
+  const rimU = { x: origin.x + R, y: origin.y, z: origin.z };
+  const rimV = {
+    x: origin.x,
+    y: origin.y + R * Math.cos(lean),
+    z: origin.z + R * Math.sin(lean) * DEPTH,
+  };
+  const pc = project(rotate(origin, yaw, pitch), cx, cy, scale);
+  const pu = project(rotate(rimU, yaw, pitch), cx, cy, scale);
+  const pv = project(rotate(rimV, yaw, pitch), cx, cy, scale);
   ctx.save();
-  ctx.translate(cloud.x, cloud.y);
-  ctx.rotate(cloud.angle || 0);
-  ctx.scale(1, 0.88);
-  ctx.drawImage(sprite, -rad, -rad, rad * 2, rad * 2);
+  ctx.setTransform(
+    (pu.x - pc.x) * DPR, (pu.y - pc.y) * DPR,
+    (pv.x - pc.x) * DPR, (pv.y - pc.y) * DPR,
+    pc.x * DPR, pc.y * DPR
+  );
+  ctx.drawImage(nebulaSprite(rgb), -1, -1, 2, 2);
   ctx.restore();
 }
 function drawPlate() {
@@ -621,22 +633,21 @@ function drawPlate() {
     let sx = 0, sy = 0, sz = 0;
     for (const item of pts) { sx += item.p.x; sy += item.p.y; sz += item.p.z; }
     sx /= pts.length; sy /= pts.length; sz /= pts.length;
-    let maxD = 0, sxx = 0, syy = 0, sxy = 0;
-    for (const item of pts) {
-      const dx = item.p.x - sx;
-      const dy = item.p.y - sy;
-      maxD = Math.max(maxD, Math.hypot(dx, dy));
-      sxx += dx * dx;
-      syy += dy * dy;
-      sxy += dx * dy;
-    }
-    const angle = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+    let maxD = 0;
+    for (const item of pts) maxD = Math.max(maxD, Math.hypot(item.p.x - sx, item.p.y - sy));
     const meta = key === "nota" ? fit.notas : fit.sistemas;
-    const span = meta.radius * (FOCAL / CAMERA) * scale;
-    centroids[key] = { x: sx, y: sy, z: sz, maxD, angle, name: meta.name, rgb: meta.rgb, span };
+    centroids[key] = { x: sx, y: sy, z: sz, maxD, name: meta.name, rgb: meta.rgb };
   }
-  const clouds = Object.values(centroids).sort((a, b) => b.z - a.z);
-  for (const cloud of clouds) paintNebula(cloud);
+  const discs = [
+    { center: fit.notas, tilt: 0.95, rgb: GROUPS.notas.rgb },
+    { center: fit.sistemas, tilt: 0.9, rgb: GROUPS.sistemas.rgb },
+  ].map((disc) => {
+    const rot = rotate(disc.center, yaw, pitch);
+    return { disc, z: rot.z };
+  }).sort((a, b) => b.z - a.z);
+  for (const item of discs) {
+    paintDisc(item.disc.center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale);
+  }
   const byId = {};
   for (const item of view) byId[item.star.id] = item;
   const focusId = picked || hovered;
