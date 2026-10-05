@@ -1175,6 +1175,51 @@ def test_news_asks_then_reads_the_topic(tmp_path):
     assert len(seen) == before
 
 
+def test_dollar_names_the_quote(tmp_path):
+    quote = {"bid": "5.42"}
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "USD-BRL" in url:
+            return '{"USDBRL":{"bid":"%s"}}' % quote["bid"]
+        if "news.google" in url:
+            return (
+                '<?xml version="1.0"?><rss><channel>'
+                "<item><title>Dólar recua</title></item></channel></rss>"
+            )
+        return '{"AbstractText":"O dólar é a moeda dos Estados Unidos."}'
+
+    path = tmp_path / "n.json"
+    said = "O dólar está em 5 reais e 42 centavos, Senhor."
+    assert _reply("qual a cotação do dólar", fetch, path) == said
+    assert _reply("quanto está o dólar", fetch, path) == said
+    assert _reply("dólar hoje", fetch, path) == said
+    assert _reply("me fala a cotação do dólar", fetch, path) == said
+    assert _reply("quanto tá o dólar agora", fetch, path) == said
+    assert all("USD-BRL" in url for url in seen)
+    quote["bid"] = "5.00"
+    assert _reply("o dólar", fetch, path) == "O dólar está em 5 reais, Senhor."
+    quote["bid"] = "5.01"
+    assert _reply("qual o dólar", fetch, path) == (
+        "O dólar está em 5 reais e 1 centavo, Senhor."
+    )
+    before = len(seen)
+    assert _reply("cotação do euro", fetch, path) is None
+    assert _reply("qual a cotação", fetch, path) is None
+    assert len(seen) == before
+    assert _reply("me explica o dólar", fetch, path) == (
+        "O dólar é a moeda dos Estados Unidos, Senhor."
+    )
+    assert seen[-1].endswith("q=dolar")
+    assert "USD-BRL" not in seen[-1]
+    assert _reply("notícias sobre o dólar", fetch, path) == (
+        "Nas notícias, Senhor. Dólar recua."
+    )
+    assert "news.google" in seen[-1]
+    assert seen[-1].endswith("q=o%20dolar")
+
+
 def test_search_speaks_the_abstract(tmp_path):
     seen = []
 

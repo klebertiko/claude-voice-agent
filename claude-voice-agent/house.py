@@ -300,6 +300,49 @@ def _news(topic: str, fetch) -> str:
     return "Nas notícias, Senhor. " + ". ".join(titles) + "."
 
 
+def _wants_dollar(norm: str) -> bool:
+    """Cotação do dólar. «me explica o dólar» fica de fora."""
+    if re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
+        r"(?:qual\s+(?:e\s+)?)?(?:a\s+|o\s+)?"
+        r"(?:cotacao\s+(?:do\s+)?)?dolar"
+        r"(?:\s+(?:hoje|agora))?",
+        norm,
+    ):
+        return True
+    if re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
+        r"quanto\s+(?:esta|ta|vale|custa)\s+o\s+dolar"
+        r"(?:\s+(?:hoje|agora))?",
+        norm,
+    ):
+        return True
+    return bool(re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
+        r"(?:o\s+)?dolar\s+(?:hoje|agora)",
+        norm,
+    ))
+
+
+def _speak_reais(amount: float) -> str:
+    cents_total = int(round(float(amount) * 100))
+    reais, centavos = divmod(cents_total, 100)
+    real = "real" if reais == 1 else "reais"
+    if centavos == 0:
+        return f"{reais} {real}"
+    centavo = "centavo" if centavos == 1 else "centavos"
+    return f"{reais} {real} e {centavos} {centavo}"
+
+
+def _dollar(fetch) -> str:
+    raw = fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL")
+    data = json.loads(raw)
+    bid = ((data.get("USDBRL") or {}).get("bid"))
+    if bid is None:
+        return "Não alcancei o dólar, Senhor."
+    return f"O dólar está em {_speak_reais(float(bid))}, Senhor."
+
+
 def _search(query: str, fetch) -> str:
     query = query.strip(" ?.")
     if not query:
@@ -1613,6 +1656,8 @@ def house_reply(
             if not subject:
                 return "O que devo buscar nas notas, Senhor?"
             return _find_notes(subject, reminders_path)
+        if _wants_dollar(norm):
+            return _dollar(fetch)
         about = re.match(
             r"^(?:me\s+)?(?:fala|fale|falar|conta|conte|explica|explique)"
             r"\s+sobre(?:\s+(.*))?$",
