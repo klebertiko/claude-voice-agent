@@ -610,7 +610,7 @@ function labelBox(x, y, align, width) {
   return { l: left - 4, r: left + width + 4, t: y - 9, b: y + 9 };
 }
 function boxesHit(a, b) {
-  return !(a.r < b.l || a.l > b.r || a.b < b.t || a.t > b.b);
+  return !(a.r <= b.l || a.l >= b.r || a.b <= b.t || a.t >= b.b);
 }
 function segmentPieces(x1, y1, x2, y2, boxes) {
   let parts = [[0, 1]];
@@ -705,6 +705,20 @@ function labelSpots(x, y, cx0, cy0) {
       align,
     });
   }
+  spots.push(
+    { x: x + 26, y: y - 18, align: "center" },
+    { x: x - 26, y: y - 18, align: "center" },
+    { x: x + 44, y: y - 18, align: "center" },
+    { x: x - 44, y: y - 18, align: "center" },
+    { x: x + 26, y: y - 34, align: "center" },
+    { x: x - 26, y: y - 34, align: "center" },
+    { x: x + 44, y: y - 34, align: "center" },
+    { x: x - 44, y: y - 34, align: "center" },
+    { x: x + 30, y, align: "right" },
+    { x: x - 30, y, align: "left" },
+    { x: x + 46, y, align: "right" },
+    { x: x - 46, y, align: "left" }
+  );
   return spots;
 }
 function paintDisc(center, tilt, rgb, yaw, pitch, cx, cy, scale, strong, reach) {
@@ -795,10 +809,15 @@ function drawPlate() {
     const rot = rotate(disc.center, yaw, pitch);
     return { disc, z: rot.z };
   }).sort((a, b) => b.z - a.z);
-  const reach = rect.width >= 700 ? 1.25 : 1.08;
+  const reachFor = (item) => {
+    const base = rect.width >= 700 ? 1.25 : 1.08;
+    if (!item.disc.strong && rect.width < 700) return base * 1.22;
+    return base;
+  };
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   for (const item of discs) {
+    const reach = reachFor(item);
     const center = item.disc.center;
     const far = Object.assign({}, center, { z: (center.z || 0) + center.radius * 0.42 });
     ctx.globalAlpha = 0.5;
@@ -916,26 +935,20 @@ function drawPlate() {
   const paints = [];
   ctx.textBaseline = "middle";
   ctx.font = "400 14px " + ink.body;
-  const ranked = view.slice().sort((a, b) => {
-    const af = a.star.id === picked || a.star.id === hovered;
-    const bf = b.star.id === picked || b.star.id === hovered;
-    if (af !== bf) return af ? -1 : 1;
-    const rank = { nota: 0, sistema: 1 };
-    return (rank[a.star.kind] || 3) - (rank[b.star.kind] || 3) || (b.p.persp - a.p.persp);
-  });
-  for (const item of ranked) {
-    if (!item.star.label) continue;
-    if (item.star.kind === "nota" && noteQuery && !noteHit(item.star) && item.star.id !== picked) continue;
+  const eligible = (item) => {
+    if (!item.star.label) return false;
+    if (item.star.kind === "nota" && noteQuery && !noteHit(item.star) && item.star.id !== picked) return false;
     const focus = item.star.id === picked || item.star.id === hovered;
-    const quiet = focusId && !neigh.has(item.star.id) && !focus;
-    if (item.p.persp < 0.42 && !focus) continue;
+    if (item.p.persp < 0.42 && !focus) return false;
     const onStage = item.p.x >= rect.left + 8 && item.p.x <= rect.right - 8 && item.p.y >= rect.top + 12 && item.p.y <= rect.bottom - 36;
-    if (!onStage && item.star.id !== picked) continue;
+    return onStage || item.star.id === picked;
+  };
+  const candidatesFor = (item, held) => {
     const full = item.star.label;
     const width = ctx.measureText(full).width;
     const home = centroids[item.star.kind];
     const options = labelSpots(item.p.x, item.p.y, home && home.x, home && home.y);
-    const fits = (trial) => trial.l >= rect.left + 4 && trial.r <= rect.right - 4 && trial.t >= rect.top + 4 && trial.b <= rect.bottom - 28 && !boxes.some((held) => boxesHit(trial, held));
+    const fits = (trial) => trial.l >= rect.left + 4 && trial.r <= rect.right - 4 && trial.t >= rect.top + 4 && trial.b <= rect.bottom - 28 && !held.some((box) => boxesHit(trial, box));
     const crosses = (trial) => segments.some((seg) => boxHitsSegment(trial, seg));
     const intrusion = (trial) => {
       let worst = 0;
@@ -987,8 +1000,36 @@ function drawPlate() {
         pushOpt(opt, trial, best);
       }
     }
-    consider.sort((a, b) => (a.intrusion - b.intrusion) || (Math.abs(a.share - b.share) < 0.08 ? 0 : b.share - a.share) || (a.cross - b.cross) || (a.outside - b.outside) || ((a.wrapped ? 1 : 0) - (b.wrapped ? 1 : 0)));
-    let chosen = consider[0] || null;
+    const pool = consider.filter((spot) => spot.intrusion < 32);
+    pool.sort((a, b) => (a.intrusion - b.intrusion) || (Math.abs(a.share - b.share) < 0.08 ? 0 : b.share - a.share) || (a.cross - b.cross) || (a.outside - b.outside) || ((a.wrapped ? 1 : 0) - (b.wrapped ? 1 : 0)));
+    return { pool, options, width, full };
+  };
+  const queue = view.filter(eligible);
+  const distOf = (item) => {
+    const home = centroids[item.star.kind];
+    return home ? Math.hypot(item.p.x - home.x, item.p.y - home.y) : 0;
+  };
+  const byFocus = (a, b) => {
+    const af = a.star.id === picked || a.star.id === hovered;
+    const bf = b.star.id === picked || b.star.id === hovered;
+    if (af !== bf) return af ? -1 : 1;
+    return 0;
+  };
+  queue.sort((a, b) => {
+    const focus = byFocus(a, b);
+    if (focus) return focus;
+    const rank = { nota: 0, sistema: 1 };
+    const kind = (rank[a.star.kind] || 3) - (rank[b.star.kind] || 3);
+    if (kind) return kind;
+    const nearerFirst = a.star.kind === "sistema";
+    return (nearerFirst ? distOf(a) - distOf(b) : distOf(b) - distOf(a)) || (b.p.persp - a.p.persp);
+  });
+  for (const item of queue) {
+    const focus = item.star.id === picked || item.star.id === hovered;
+    const quiet = focusId && !neigh.has(item.star.id) && !focus;
+    const seated = candidatesFor(item, boxes);
+    const { options, width, full } = seated;
+    let chosen = seated.pool[0] || null;
     if (!chosen && item.star.id === picked) {
       const opt = options[0];
       chosen = { opt, trial: labelBox(opt.x, opt.y, opt.align, width), wrapped: null };
