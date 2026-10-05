@@ -142,6 +142,17 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         level = int(round(float(values[index])))
         when = "Amanhã em" if day == "amanha" else "Em"
         return f"{when} {label}, índice UV de {level}, Senhor."
+    if field == "pressao":
+        url = (
+            "https://api.open-meteo.com/v1/forecast?current=surface_pressure"
+            f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        hpa = (data.get("current") or {}).get("surface_pressure")
+        if hpa is None:
+            return "Não alcancei o clima, Senhor."
+        mb = int(round(float(hpa)))
+        return f"Em {label}, pressão de {mb} milibares, Senhor."
     if day == "amanha":
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max,weather_code"
@@ -934,6 +945,18 @@ def _sun_place(norm: str) -> tuple[str, str] | None:
     return None
 
 
+def _pressure_place(norm: str) -> str | None:
+    """None quando não é pressão. Vazio quando falta a cidade."""
+    match = re.fullmatch(
+        r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?pressao(?:\s+atmosferica)?"
+        r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if not match:
+        return None
+    return _city_name(match.group(1) or "")
+
+
 def _uv_place(norm: str) -> str | None:
     """None quando não é o índice UV. Vazio quando falta a cidade."""
     match = re.fullmatch(
@@ -1226,6 +1249,11 @@ def house_reply(
             norm,
         ):
             return _list_notes(reminders_path)
+        pressure_place = _pressure_place(norm)
+        if pressure_place is not None:
+            if not pressure_place:
+                return "De qual lugar, Senhor."
+            return _weather(pressure_place, fetch, field="pressao")
         uv_place = _uv_place(norm)
         if uv_place is not None:
             if not uv_place:

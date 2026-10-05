@@ -473,6 +473,33 @@ def test_uv_names_the_city(tmp_path):
     assert "forecast_days=2" in seen[-1]
 
 
+def test_pressure_names_the_city(tmp_path):
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "geocoding" in url:
+            assert "recife" in url.lower() or "curitiba" in url.lower()
+            name = "Recife" if "recife" in url.lower() else "Curitiba"
+            return (
+                '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
+            )
+        assert "surface_pressure" in url
+        assert "temperature_2m" not in url
+        return '{"current":{"surface_pressure":1013.4}}'
+
+    path = tmp_path / "n.json"
+    assert _reply("pressão", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("pressão atmosférica", fetch, path) == "De qual lugar, Senhor."
+    assert seen == []
+    assert _reply("pressão em recife", fetch, path) == (
+        "Em Recife, pressão de 1013 milibares, Senhor."
+    )
+    assert _reply("qual a pressão atmosférica em curitiba", fetch, path) == (
+        "Em Curitiba, pressão de 1013 milibares, Senhor."
+    )
+
+
 def test_unrelated_tempo_is_not_weather(tmp_path):
     def fetch(_url):
         raise AssertionError("não devia buscar o clima")
@@ -1104,6 +1131,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
         if field == "uv":
             when = "Amanhã em" if day == "amanha" else "Em"
             return f"{when} {place}, índice UV de 11, Senhor."
+        if field == "pressao":
+            return f"Em {place}, pressão de 1013 milibares, Senhor."
         if day == "amanha":
             return f"Amanhã em {place}, máxima de 27 graus, nublado, Senhor."
         return f"Em {place}, 19 graus, nublado, Senhor."
@@ -1157,6 +1186,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
     )
     assert reply("índice uv", []) == "De qual lugar, Senhor."
     assert reply("Recife", []) == "Em Recife, índice UV de 11, Senhor."
+    assert reply("pressão atmosférica", []) == "De qual lugar, Senhor."
+    assert reply("Curitiba", []) == "Em Curitiba, pressão de 1013 milibares, Senhor."
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):
