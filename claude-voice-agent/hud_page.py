@@ -324,6 +324,7 @@ _PAGE = r"""<!DOCTYPE html>
     .systems .band { display: contents; }
     .systems .fact[data-brain] { order: 9; }
     .systems .fact[data-brain][aria-pressed="true"] { order: 0; }
+    .systems:not(:has(.fact[aria-pressed="true"])) .fact[data-brain="ollama"] { order: 0; }
     .systems .fact:has(#notes) { order: 1; }
     .systems .fact:has(#date) { order: 2; }
     .systems .fact[data-voice] { order: 3; }
