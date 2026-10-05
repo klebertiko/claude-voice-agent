@@ -697,9 +697,17 @@ function drawPlate() {
     return { disc, z: rot.z };
   }).sort((a, b) => b.z - a.z);
   const reach = rect.width >= 700 ? 1.25 : 1.08;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
   for (const item of discs) {
-    paintDisc(item.disc.center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, reach);
+    const center = item.disc.center;
+    const far = Object.assign({}, center, { z: (center.z || 0) + center.radius * 0.42 });
+    ctx.globalAlpha = 0.5;
+    paintDisc(far, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, false, reach * 0.7);
+    ctx.globalAlpha = 0.88;
+    paintDisc(center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, reach);
   }
+  ctx.restore();
   const byId = {};
   for (const item of view) byId[item.star.id] = item;
   const focusId = picked || hovered;
@@ -756,10 +764,14 @@ function drawPlate() {
     const dim = item.star.kind === "nota" && noteQuery && !noteHit(item.star);
     const aside = focusId && !neigh.has(item.star.id);
     const rgb = chosen ? "212, 196, 168" : item.star.kind === "nota" ? GROUPS.notas.rgb : GROUPS.sistemas.rgb;
-    ctx.globalAlpha = (dim ? 0.16 : aside ? 0.2 : 1) * Math.max(0.42, Math.min(1, depthScale));
+    const presence = (dim ? 0.16 : aside ? 0.2 : 1) * Math.max(0.42, Math.min(1, depthScale));
     const size = (item.star.kind === "sistema" ? 46 : 38) * depthScale * pulse;
-    const sprite = glowSprite(rgb);
-    ctx.drawImage(sprite, item.p.x - size / 2, item.p.y - size / 2, size, size);
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = presence;
+    ctx.drawImage(glowSprite(rgb), item.p.x - size / 2, item.p.y - size / 2, size, size);
+    ctx.restore();
+    ctx.globalAlpha = presence;
     ctx.fillStyle = chosen ? ink.accent : ink.ink;
     ctx.beginPath();
     ctx.arc(item.p.x, item.p.y, (item.star.kind === "sistema" ? 3.2 : 2.7) * depthScale * pulse, 0, Math.PI * 2);
