@@ -100,7 +100,7 @@ _PAGE = r"""<!DOCTYPE html>
   .telemetry { position: relative; }
   .telemetry:has(.systems.has-more)::after {
     content: "";
-    position: absolute; right: 6px; top: 50%;
+    position: absolute; right: var(--more-x, 6px); top: 50%;
     width: 6px; height: 6px; margin-top: -3px;
     border-right: 1.5px solid var(--color-ink-2);
     border-bottom: 1.5px solid var(--color-ink-2);
@@ -1860,6 +1860,14 @@ function markMore() {
     }
   }
   systemsEl.style.setProperty("--clip", clip + "px");
+  const tel = systemsEl.closest(".telemetry");
+  if (!tel) return;
+  let moreX = 6;
+  if (clip < rect.width - 1) {
+    const telRect = tel.getBoundingClientRect();
+    moreX = Math.max(6, Math.round(telRect.right - (rect.left + clip) - 14));
+  }
+  tel.style.setProperty("--more-x", moreX + "px");
 }
 systemsEl.addEventListener("scroll", markMore, { passive: true });
 addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); markMore(); });
