@@ -558,6 +558,19 @@ function readSky(text) {
   skyRead.textContent = line;
   skyRead.hidden = line === "" || line === orbitHint;
 }
+const draftAsk = {
+  "anote ": "O que devo anotar, Senhor?",
+  "buscar nota ": "O que devo buscar nas notas, Senhor?",
+};
+function readSkyFit(line) {
+  readSky(line);
+  if (!line) return;
+  const shown = getComputedStyle(skyRead).display !== "none";
+  ctx.font = getComputedStyle(skyRead).font;
+  const wide = ctx.measureText(line).width > 480;
+  const cut = shown && skyRead.scrollWidth > skyRead.clientWidth + 1;
+  if (wide || cut) readSky("");
+}
 const GROUPS = {
   notas: { name: "Notas", rgb: "214, 78, 112", link: "255, 220, 226" },
   sistemas: { name: "Sistemas", rgb: "64, 112, 196", link: "186, 214, 242" },
@@ -2214,13 +2227,19 @@ async function showTurn(data, sourceBtn) {
   if (data.status === "permit") {
     sessEl.textContent = "ordem pendente";
     showPermit(data.permit_id, data.command);
-    if (data.reply) addLine("agent", data.reply);
+    if (data.reply) {
+      addLine("agent", data.reply);
+      if (noteEl.hidden) readSkyFit(data.reply);
+    }
     if (data.audio_b64) await playWav(data.audio_b64);
     else setState("idle");
     return;
   }
   if (data.status === "replied") sessEl.textContent = "acordado";
-  if (data.reply) addLine("agent", data.reply);
+  if (data.reply) {
+    addLine("agent", data.reply);
+    if (noteEl.hidden) readSkyFit(data.reply);
+  }
   if (data.output) addLine("meta", data.output);
   if (data.audio_b64) await playWav(data.audio_b64);
   else setState("idle");
@@ -2265,10 +2284,16 @@ voiceBtn.addEventListener("click", async () => {
 });
 for (const btn of document.querySelectorAll(".fact")) {
   btn.addEventListener("click", () => {
-    if (btn.dataset.brain) { chooseBrain(btn.dataset.brain); return; }
-    if (btn.dataset.voice) { voiceBtn.click(); return; }
-    if (btn.dataset.draft) { text.value = btn.dataset.draft; text.focus(); return; }
-    if (btn.dataset.ask) sendText(btn.dataset.ask);
+    if (btn.dataset.brain) { closeNote(); readSky(""); chooseBrain(btn.dataset.brain); return; }
+    if (btn.dataset.voice) { closeNote(); readSky(systemText["sys-voz"]); voiceBtn.click(); return; }
+    if (btn.dataset.draft) {
+      closeNote();
+      text.value = btn.dataset.draft;
+      text.focus();
+      readSky(draftAsk[btn.dataset.draft] || "");
+      return;
+    }
+    if (btn.dataset.ask) { closeNote(); readSky(""); sendText(btn.dataset.ask); }
   });
 }
 allowBtn.addEventListener("click", () => decide(true));
