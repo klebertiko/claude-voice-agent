@@ -190,6 +190,12 @@ _PAGE = r"""<!DOCTYPE html>
     .floor { grid-row: 6; }
     #log { max-height: none; overflow: auto; }
   }
+  @media (min-width: 641px) and (max-width: 959px) {
+    .room:has(#note:not([hidden])) {
+      grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+    }
+    .room:has(#note:not([hidden])) #log { max-height: 5.5rem; }
+  }
   @media (max-width: 640px) {
     .room {
       grid-template-rows: auto minmax(0, 1fr) auto minmax(2.75rem, 4rem) auto auto;
