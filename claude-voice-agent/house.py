@@ -733,6 +733,18 @@ def _search_query(rest: str) -> str:
     return query
 
 
+def _wants_message(norm: str) -> bool:
+    """Mensagem com verbo de enviar. O número, se faltar, é pedido depois."""
+    if not re.search(r"\bmensagem\b", norm):
+        return False
+    return bool(
+        re.search(
+            r"\b(?:manda|mande|mandar|envia|envie|enviar|escreve|escreva|escrever)\b",
+            norm,
+        )
+    )
+
+
 def whatsapp_number(text: str) -> str:
     """Telefone de 10 a 13 dígitos, com espaço, traço ou parêntese."""
     raw = _plain(text)
@@ -854,7 +866,7 @@ def house_reply(
             return "Não uso câmera, Senhor."
         if "gere uma imagem" in norm or "crie uma imagem" in norm or "gere a imagem" in norm:
             return "Ainda não gero imagem aqui, Senhor."
-        if "whatsapp" in norm or re.search(r"\bzap\b", norm):
+        if "whatsapp" in norm or re.search(r"\bzap\b", norm) or _wants_message(norm):
             return _whatsapp(text)
         if norm in {"resumo do dia", "briefing", "como esta o dia", "como vai o dia"}:
             clock_h = moment.hour
