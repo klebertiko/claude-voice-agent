@@ -58,6 +58,10 @@ def test_spoken_clock_and_date():
     assert spoken_fallback("valeu", "Orion", WHEN) == "Disponha, Senhor."
     assert spoken_fallback("obrigada", "Orion", WHEN) == "Disponha, Senhor."
     assert spoken_fallback("bom dia para o projeto", "Orion", WHEN).startswith("Entendido")
+    assert spoken_fallback("tudo bem", "Orion", WHEN) == "Estou pronto, Senhor."
+    assert spoken_fallback("como está você", "Orion", WHEN) == "Estou pronto, Senhor."
+    assert spoken_fallback("até logo", "Orion", WHEN) == "Até logo, Senhor."
+    assert spoken_fallback("como está", "Orion", WHEN).startswith("Entendido")
 
 
 def test_turn_without_wake_is_ignored():

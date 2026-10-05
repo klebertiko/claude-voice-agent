@@ -120,6 +120,20 @@ def spoken_fallback(cleaned: str, name: str, moment: datetime) -> str:
         return "Boa noite, Senhor."
     if norm in {"obrigado", "obrigada", "valeu", "muito obrigado", "muito obrigada"}:
         return "Disponha, Senhor."
+    if norm in {
+        "como esta voce",
+        "como vai voce",
+        "como voce esta",
+        "como voce vai",
+        "tudo bem",
+        "tudo bom",
+        "tudo certo",
+        "esta tudo bem",
+        "tudo bem com voce",
+    }:
+        return "Estou pronto, Senhor."
+    if norm in {"ate logo", "ate mais", "ate breve", "tchau"}:
+        return "Até logo, Senhor."
     return (
         "Entendido, Senhor. Ainda não consigo fazer isso "
         "sem o cérebro ligado."
