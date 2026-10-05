@@ -252,6 +252,30 @@ def _wants_weather(norm: str) -> bool:
     )
 
 
+def whatsapp_number(text: str) -> str:
+    found = re.search(r"(\d{10,13})", _plain(text))
+    return found.group(1) if found else ""
+
+
+def continue_whatsapp(stage: str, text: str, number: str) -> tuple[str, str]:
+    """A frase seguinte depois de Orion pedir o número ou o texto."""
+    if stage == "zap-number":
+        found = whatsapp_number(text)
+        if not found:
+            return "Diga o número, Senhor.", ""
+        said_match = re.search(r"dizendo\s+(.+)$", text, flags=re.IGNORECASE)
+        said = said_match.group(1).strip(" .") if said_match else ""
+        if said:
+            link = "https://wa.me/" + found + "?text=" + urllib.parse.quote(said)
+            return f"ACAO: xdg-open '{link}'", ""
+        return "O que devo escrever, Senhor?", found
+    said = (text or "").strip(" .")
+    if not said or not number:
+        return "O que devo escrever, Senhor?", number
+    link = "https://wa.me/" + number + "?text=" + urllib.parse.quote(said)
+    return f"ACAO: xdg-open '{link}'", ""
+
+
 def _whatsapp(text: str) -> str:
     plain = _plain(text)
     number = re.search(r"(\d{10,13})", plain)

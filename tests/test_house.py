@@ -124,6 +124,37 @@ def test_whatsapp_is_a_link_with_permission(tmp_path):
     assert _reply("mande um whatsapp", fetch, path) == "Diga o número, Senhor."
 
 
+def test_the_next_lines_build_the_whatsapp(tmp_path):
+    from claude_agent_voice.hud import make_reply_fn
+    from claude_agent_voice.personas import get_persona
+    from claude_agent_voice.settings import Settings
+
+    reply = make_reply_fn(
+        Settings.from_env(
+            env={
+                "CLAUDE_VOICE_CODEX_CLI": "missing-codex",
+                "CLAUDE_VOICE_CURSOR_CLI": "missing-cursor",
+                "CLAUDE_VOICE_CLAUDE_CLI": "missing-claude",
+                "OLLAMA_HOST": "",
+                "CLAUDE_VOICE_OLLAMA_HOST": "",
+                "CLAUDE_VOICE_REMINDERS": str(tmp_path / "n.json"),
+            }
+        ),
+        get_persona("orion"),
+        lambda: WHEN,
+    )
+    assert reply("mande um whatsapp", []) == "Diga o número, Senhor."
+    assert reply("5511999998888", []) == "O que devo escrever, Senhor?"
+    assert reply("cheguei", []).startswith(
+        "ACAO: xdg-open 'https://wa.me/5511999998888?text=cheguei'"
+    )
+    assert reply("mande whatsapp para 5511888777666", []) == "O que devo escrever, Senhor?"
+    assert "5511888777666" in reply("estou na porta", [])
+    assert reply("mande um whatsapp", []) == "Diga o número, Senhor."
+    assert "horas" in reply("que horas são", [])
+    assert not reply("5511999998888", []).startswith("ACAO:")
+
+
 def test_the_next_line_answers_the_question(monkeypatch):
     from claude_agent_voice.hud import make_reply_fn
     from claude_agent_voice.personas import get_persona

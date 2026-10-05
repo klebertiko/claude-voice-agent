@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 
 from .actions import local_command
 from .brains import subscription_reply
-from .house import continue_house, house_reply
+from .house import continue_house, continue_whatsapp, house_reply, whatsapp_number
 from .llm_ollama import ask_ollama, probe_ollama
 from .noise import is_noise_transcript
 from .personas import Persona, spoken_voice
@@ -190,33 +190,49 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
     host = settings.ollama_host
     preferred = settings.ollama_model
     chosen = choice if choice is not None else {"id": ""}
-    pending = {"kind": ""}
+    pending = {"kind": "", "number": ""}
     asked = {
         "De qual lugar, Senhor.": "weather",
         "Sobre o que, Senhor.": "news",
         "O que devo procurar, Senhor?": "search",
         "O que devo anotar, Senhor?": "note",
         "O que devo buscar nas notas, Senhor?": "notes",
+        "Diga o número, Senhor.": "zap-number",
+        "O que devo escrever, Senhor?": "zap-text",
     }
 
     def reply(cleaned: str, history: list[tuple[str, str]]) -> str:
         cmd = local_command(cleaned)
         if cmd:
             pending["kind"] = ""
+            pending["number"] = ""
             return f"ACAO: {cmd}"
         moment = moment_fn()
         housed = house_reply(cleaned, moment, reminders_path=settings.reminders_path)
         if housed:
             pending["kind"] = asked.get(housed, "")
+            if housed == "O que devo escrever, Senhor?":
+                found = whatsapp_number(cleaned)
+                if found:
+                    pending["number"] = found
+            else:
+                pending["number"] = ""
             return housed
         if pending["kind"]:
             fact = _panel_fact(cleaned, persona)
             local = spoken_fallback(cleaned, persona.name, moment)
             if fact or not local.startswith("Entendido, Senhor. Ainda não"):
                 pending["kind"] = ""
+                pending["number"] = ""
                 return fact or local
             kind = pending["kind"]
             pending["kind"] = ""
+            if kind in {"zap-number", "zap-text"}:
+                spoken, number = continue_whatsapp(kind, cleaned, pending["number"])
+                pending["number"] = number
+                pending["kind"] = asked.get(spoken, "")
+                return spoken
+            pending["number"] = ""
             try:
                 spoken = continue_house(
                     kind,
