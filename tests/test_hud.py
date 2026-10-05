@@ -40,6 +40,9 @@ def test_spoken_clock_and_date():
         "São 1 hora, Senhor."
     )
     assert "sexta-feira, 2 de outubro" in spoken_fallback("que dia é hoje", "Orion", WHEN)
+    assert "sexta-feira, 2 de outubro" in spoken_fallback("qual é a data", "Orion", WHEN)
+    assert "sexta-feira, 2 de outubro" in spoken_fallback("me diz a data", "Orion", WHEN)
+    assert "sexta-feira, 2 de outubro" in spoken_fallback("data de hoje", "Orion", WHEN)
     assert spoken_fallback("", "Orion", WHEN).startswith("Pois não")
 
 
@@ -52,6 +55,7 @@ def test_turn_without_wake_is_ignored():
 def test_spoken_name_when_asked():
     assert spoken_fallback("Qual seu nome?", "Orion", WHEN) == "O nome é Orion, Senhor."
     assert spoken_fallback("Quem é você?", "Orion", WHEN) == "O nome é Orion, Senhor."
+    assert spoken_fallback("o que é você", "Orion", WHEN) == "O nome é Orion, Senhor."
 
 
 def test_typed_name_is_answered_and_opens_the_window():

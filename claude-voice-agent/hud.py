@@ -65,11 +65,18 @@ def spoken_fallback(cleaned: str, name: str, moment: datetime) -> str:
     norm = _plain(cleaned)
     if not norm:
         return "Pois não, Senhor."
-    if "seu nome" in norm or "se chama" in norm or "quem e voce" in norm:
+    if "seu nome" in norm or "se chama" in norm or "quem e voce" in norm or "o que e voce" in norm:
         return f"O nome é {name}, Senhor."
     if {"hora", "horas"} & set(norm.split()):
         return _speak_clock(moment)
-    if "que dia" in norm or "qual a data" in norm or norm in {"data", "que data"}:
+    if (
+        "que dia" in norm
+        or "qual a data" in norm
+        or "qual e a data" in norm
+        or "qual e o dia" in norm
+        or norm in {"data", "que data", "data de hoje", "a data"}
+        or norm.startswith(("me diz a data", "me fala a data"))
+    ):
         return _speak_date(moment)
     return (
         "Entendido, Senhor. Ainda não consigo fazer isso "

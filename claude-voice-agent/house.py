@@ -787,6 +787,20 @@ def house_reply(
             if not subject:
                 return "O que devo buscar nas notas, Senhor?"
             return _find_notes(subject, reminders_path)
+        about = re.match(
+            r"^(?:me\s+)?(?:fala|fale|falar|conta|conte|explica|explique)"
+            r"\s+sobre(?:\s+(.*))?$",
+            norm,
+        )
+        defined = re.match(
+            r"^(?:o que|oq)\s+(?:e|eh|sao|significa)(?:\s+(.*))?$",
+            norm,
+        )
+        if about or defined:
+            asked = (about or defined).group(1) or ""
+            query = _search_query(asked)
+            if query not in {"voce", "senhor", "sr"}:
+                return _search(query, fetch)
         found = _SEARCH_COMMAND.match(norm)
         if found:
             return _search(_search_query(found.group(1) or ""), fetch)

@@ -267,11 +267,17 @@ def test_search_speaks_the_abstract(tmp_path):
         "pesquisa no google café",
         "google café",
         "pesquisa café no google",
+        "me fala sobre o café",
+        "o que é café",
+        "explica sobre café",
     ):
         assert _reply(said, fetch, path) == "O café é uma bebida, Senhor."
     assert all(url.endswith("q=cafe") for url in seen)
     assert _reply("pode pesquisar", fetch, path) == "O que devo procurar, Senhor?"
     assert _reply("google", fetch, path) == "O que devo procurar, Senhor?"
+    assert _reply("o que é", fetch, path) == "O que devo procurar, Senhor?"
+    assert _reply("me fala sobre", fetch, path) == "O que devo procurar, Senhor?"
+    assert _reply("o que é você", fetch, path) is None
 
 
 def test_search_without_abstract_asks_permission(tmp_path):
