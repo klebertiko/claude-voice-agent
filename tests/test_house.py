@@ -81,9 +81,11 @@ def test_reminder_roundtrip(tmp_path):
     def fetch(_url):
         raise AssertionError("lembrete não usa rede")
 
+    assert _reply("anote entregar o projeto na sexta", fetch, path) == "Anotado, Senhor."
     assert _reply("anote comprar café", fetch, path) == "Anotado, Senhor."
     assert _reply("me lembre de voz do orion", fetch, path) == "Anotado, Senhor."
     listed = _reply("meus lembretes", fetch, path)
+    assert listed.index("entregar o projeto na sexta") < listed.index("comprar café")
     assert "comprar café" in listed
     assert "voz do orion" in listed
 

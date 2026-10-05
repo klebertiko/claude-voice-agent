@@ -172,12 +172,16 @@ def _find_notes(query: str, path: Path) -> str:
 
 
 def _list_notes(path: Path) -> str:
-    items = _load(path)
-    if not items:
+    spoken = []
+    for item in _load(path):
+        if not isinstance(item, dict):
+            continue
+        text = " ".join(str(item.get("text") or "").split())
+        if text:
+            spoken.append(text)
+    if not spoken:
         return "Nada anotado, Senhor."
-    last = items[-2:]
-    spoken = ". ".join(item["text"] for item in last)
-    return f"Lembretes, Senhor. {spoken}."
+    return "Lembretes, Senhor. " + ". ".join(spoken) + "."
 
 
 def _place_of(norm: str) -> str:
