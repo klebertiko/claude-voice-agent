@@ -606,8 +606,9 @@ def _wants_first_note(norm: str) -> bool:
 def _wants_note_count(norm: str) -> bool:
     return re.fullmatch(
         r"(?:me\s+(?:diz|fala|conta)\s+)?"
-        r"(?:quantas|quantos)\s+(?:notas|lembretes|recados)(?:\s+(?:eu\s+)?tenho)?"
-        r"|tem\s+quant(?:as|os)\s+(?:notas|lembretes|recados)(?:\s+(?:eu\s+)?tenho)?",
+        r"(?:quantas|quantos)\s+(?:notas|lembretes|recados)(?:\s+(?:eu\s+)?tenho(?:\s+eu)?)?"
+        r"|tem\s+quant(?:as|os)\s+(?:notas|lembretes|recados)(?:\s+(?:eu\s+)?tenho)?"
+        r"|eu\s+tenho\s+quant(?:as|os)\s+(?:notas|lembretes|recados)",
         norm,
     ) is not None
 
