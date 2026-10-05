@@ -321,17 +321,20 @@ const systemText = {
   "sys-lembretes": "Notas deste céu.",
   "sys-voz": "Voz daniel, ritmo 1.2.",
 };
+const CAMERA = 4.15;
+const FOCAL = 2.55;
+const DEPTH = 2.35;
 function sceneScale(rect) {
   return Math.max(1, Math.min(rect.width, rect.height) * 0.92);
 }
 function fitScene(rect) {
   const scale = sceneScale(rect);
-  const persp = 2.55 / 4.15;
+  const persp = FOCAL / CAMERA;
   const k = persp * scale;
   const at = (sx, sy) => ({ x: sx / k, y: -sy / k, z: 0 });
   const wide = rect.width >= 700;
   if (wide) {
-    const radiusPx = Math.max(96, Math.min(rect.height * 0.4, rect.width * 0.24, (rect.height - 72) / 2));
+    const radiusPx = Math.max(84, Math.min(rect.height * 0.34, rect.width * 0.2, (rect.height - 72) / 2));
     const reach = Math.max(radiusPx * 0.85, rect.width / 2 - radiusPx - 56);
     const offset = Math.min(rect.width * 0.28, reach);
     return {
@@ -339,7 +342,7 @@ function fitScene(rect) {
       sistemas: Object.assign(at(offset, 0), { radius: radiusPx / k, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
     };
   }
-  const radiusPx = Math.max(72, Math.min(rect.width * 0.36, rect.height * 0.2, (rect.width - 48) / 2));
+  const radiusPx = Math.max(64, Math.min(rect.width * 0.3, rect.height * 0.17, (rect.width - 48) / 2));
   const reach = Math.max(radiusPx * 0.9, rect.height / 2 - radiusPx - 48);
   const offset = Math.min(rect.height * 0.24, reach);
   return {
@@ -347,27 +350,29 @@ function fitScene(rect) {
     sistemas: Object.assign(at(0, offset), { radius: radiusPx / k, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
   };
 }
-function ringPos(index, total, center, radius) {
+function ringPos(index, total, center, radius, tilt) {
   const n = Math.max(total, 1);
   if (n === 1 || radius <= 0) return { x: center.x, y: center.y, z: center.z || 0 };
   const theta = -Math.PI / 2 + (index / n) * Math.PI * 2;
+  const lean = tilt == null ? 0.9 : tilt;
   return {
     x: center.x + Math.cos(theta) * radius,
-    y: center.y + Math.sin(theta) * radius,
-    z: (center.z || 0) + ((index % 2) * 2 - 1) * radius * 0.08,
+    y: center.y + Math.sin(theta) * radius * Math.cos(lean),
+    z: (center.z || 0) + Math.sin(theta) * radius * Math.sin(lean),
   };
 }
 function notePos(index, total, center) {
   const n = Math.max(total, 1);
   const ring = n === 1 ? 0 : center.radius * 0.72;
-  return ringPos(index, n, center, ring);
+  return ringPos(index, n, center, ring, 0.95);
 }
 function systemPos(star, center) {
   if (star.id === "sys-cerebro") return { x: center.x, y: center.y, z: center.z || 0 };
   const ringIds = INNER_RING.indexOf(star.id) >= 0 ? INNER_RING : OUTER_RING;
   const index = Math.max(0, ringIds.indexOf(star.id));
   const ring = (ringIds === INNER_RING ? 0.48 : 0.95) * center.radius;
-  return ringPos(index, ringIds.length, center, ring);
+  const tilt = ringIds === INNER_RING ? 1.05 : 0.8;
+  return ringPos(index, ringIds.length, center, ring, tilt);
 }
 let restKey = "";
 let rest = {};
@@ -432,7 +437,7 @@ function place(local, center) {
   return {
     x: center.x + local.x * center.radius,
     y: center.y + local.y * center.radius,
-    z: (center.z || 0) + local.z * center.radius,
+    z: (center.z || 0) + local.z * center.radius * DEPTH,
   };
 }
 function buildWorld(fit) {
@@ -483,8 +488,8 @@ function rotate(p, yaw, pitch) {
   return { x: x1, y: p.y * cp - z1 * sp, z: p.y * sp + z1 * cp };
 }
 function project(p, cx, cy, scale) {
-  const z = p.z + 4.15 / zoom;
-  const persp = 2.55 / Math.max(0.35, z);
+  const z = p.z + CAMERA / zoom;
+  const persp = FOCAL / Math.max(0.35, z);
   return { x: cx + p.x * persp * scale, y: cy - p.y * persp * scale, persp, z: p.z };
 }
 const glowCache = {};
@@ -637,8 +642,9 @@ function drawPlate() {
     if (len < pad * 2 + 8) continue;
     const ux = dx / len;
     const uy = dy / len;
+    const depth = Math.max(0.45, Math.min(1, ((a.p.persp + b.p.persp) / 2) / 0.62));
     ctx.strokeStyle = hot ? ink.accent : ink.ink;
-    ctx.globalAlpha = hot ? 1 : aside ? 0.14 : 0.9;
+    ctx.globalAlpha = (hot ? 1 : aside ? 0.14 : 0.9) * depth;
     ctx.lineWidth = hot ? 1.6 : 1.25;
     ctx.setLineDash(hot ? [5, 6] : [8, 10]);
     ctx.beginPath();
