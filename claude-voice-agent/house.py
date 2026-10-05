@@ -259,6 +259,31 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         else:
             band = "péssima"
         return f"Em {label}, qualidade do ar {band}, índice {value}, Senhor."
+    if field == "visibilidade":
+        if day == "amanha":
+            key = "visibility_mean"
+            url = (
+                "https://api.open-meteo.com/v1/forecast?daily="
+                + key
+                + f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+            )
+            data = json.loads(fetch(url))
+            values = (data.get("daily") or {}).get(key) or []
+            if len(values) <= 1 or values[1] is None or float(values[1]) < 0:
+                return "Não alcancei o clima, Senhor."
+            return (
+                f"Amanhã em {label}, visibilidade de "
+                f"{_speak_visibility(values[1])}, Senhor."
+            )
+        url = (
+            "https://api.open-meteo.com/v1/forecast?current=visibility"
+            f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        meters = (data.get("current") or {}).get("visibility")
+        if meters is None or float(meters) < 0:
+            return "Não alcancei o clima, Senhor."
+        return f"Em {label}, visibilidade de {_speak_visibility(meters)}, Senhor."
     if day == "amanha":
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max,weather_code"
@@ -345,6 +370,17 @@ def _wants_dollar(norm: str) -> bool:
         r"(?:o\s+)?dolar\s+(?:hoje|agora)",
         norm,
     ))
+
+
+def _speak_visibility(meters: float) -> str:
+    """Abaixo de um quilômetro a fala fica em metros. O valor já é positivo."""
+    value = int(float(meters) + 0.5)
+    if value < 1000:
+        unit = "metro" if value == 1 else "metros"
+        return f"{value} {unit}"
+    km = int(value / 1000 + 0.5)
+    unit = "quilômetro" if km == 1 else "quilômetros"
+    return f"{km} {unit}"
 
 
 def _speak_reais(amount: float) -> str:
@@ -1331,6 +1367,21 @@ def _wind_place(norm: str) -> str | None:
     return None
 
 
+def _visibility_place(norm: str) -> str | None:
+    """None quando não é visibilidade. Vazio quando falta a cidade."""
+    match = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
+        r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?visibilidade"
+        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if not match:
+        return None
+    return _city_name(match.group(1) or "")
+
+
 def _air_place(norm: str) -> str | None:
     """None quando não é a qualidade do ar. Vazio quando falta a cidade."""
     match = re.fullmatch(
@@ -1688,6 +1739,12 @@ def house_reply(
             if not air_place:
                 return "De qual lugar, Senhor."
             return _weather(air_place, fetch, field="ar")
+        seen_place = _visibility_place(norm)
+        if seen_place is not None:
+            if not seen_place:
+                return "De qual lugar, Senhor."
+            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            return _weather(seen_place, fetch, day=day, field="visibilidade")
         how_place = _how_city(norm)
         if how_place is not None:
             day = "amanha" if re.search(r"\bamanha\b", norm) else ""

@@ -1664,6 +1664,105 @@ def test_air_names_the_city(tmp_path):
     assert len(seen) == before
 
 
+def test_visibility_names_the_city(tmp_path):
+    quote = {"meters": 18040, "tomorrow": 11361.67}
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "geocoding" in url:
+            assert "recife" in url.lower() or "curitiba" in url.lower()
+            name = "Recife" if "recife" in url.lower() else "Curitiba"
+            return '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
+        if "visibility_mean" in url:
+            assert "forecast_days=2" in url
+            assert "temperature_2m" not in url
+            tomorrow = "null" if quote["tomorrow"] is None else quote["tomorrow"]
+            return '{"daily":{"visibility_mean":[18326.67,%s]}}' % tomorrow
+        assert "current=visibility" in url
+        assert "temperature_2m" not in url
+        return '{"current":{"visibility":%s}}' % quote["meters"]
+
+    path = tmp_path / "n.json"
+    assert _reply("visibilidade", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me fala a visibilidade", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("visibilidade amanhã", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("visibilidade do projeto", fetch, path) is None
+    assert seen == []
+    assert _reply("visibilidade em recife", fetch, path) == (
+        "Em Recife, visibilidade de 18 quilômetros, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "current=visibility" in seen[-1]
+    quote["meters"] = 9440
+    assert _reply("me fala a visibilidade em curitiba", fetch, path) == (
+        "Em Curitiba, visibilidade de 9 quilômetros, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    quote["meters"] = 0
+    assert _reply("qual a visibilidade agora em recife", fetch, path) == (
+        "Em Recife, visibilidade de 0 metros, Senhor."
+    )
+    quote["meters"] = 1
+    assert _reply("visibilidade hoje em recife", fetch, path) == (
+        "Em Recife, visibilidade de 1 metro, Senhor."
+    )
+    quote["meters"] = 1000
+    assert _reply("me diz a visibilidade em recife", fetch, path) == (
+        "Em Recife, visibilidade de 1 quilômetro, Senhor."
+    )
+    quote["meters"] = 1500
+    assert _reply("visibilidade de recife", fetch, path) == (
+        "Em Recife, visibilidade de 2 quilômetros, Senhor."
+    )
+    assert _reply("visibilidade amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, visibilidade de 11 quilômetros, Senhor."
+    )
+    assert "visibility_mean" in seen[-1]
+    assert "forecast_days=2" in seen[-1]
+    quote["tomorrow"] = None
+    assert _reply("visibilidade para amanhã em curitiba", fetch, path) == (
+        "Não alcancei o clima, Senhor."
+    )
+
+
+def test_visibility_follow_up_keeps_the_field(tmp_path, monkeypatch):
+    from claude_agent_voice.hud import make_reply_fn
+    from claude_agent_voice.personas import get_persona
+    from claude_agent_voice.settings import Settings
+
+    seen = []
+
+    def fake_weather(place, _fetch, day="", field=""):
+        seen.append((place, field, day))
+        when = "Amanhã em" if day == "amanha" else "Em"
+        return f"{when} {place}, visibilidade de 18 quilômetros, Senhor."
+
+    monkeypatch.setattr("claude_agent_voice.house._weather", fake_weather)
+    reply = make_reply_fn(
+        Settings.from_env(
+            env={
+                "CLAUDE_VOICE_CODEX_CLI": "missing-codex",
+                "CLAUDE_VOICE_CURSOR_CLI": "missing-cursor",
+                "CLAUDE_VOICE_CLAUDE_CLI": "missing-claude",
+                "OLLAMA_HOST": "",
+                "CLAUDE_VOICE_OLLAMA_HOST": "",
+                "CLAUDE_VOICE_REMINDERS": str(tmp_path / "n.json"),
+            }
+        ),
+        get_persona("orion"),
+        lambda: WHEN,
+    )
+    assert reply("visibilidade", []) == "De qual lugar, Senhor."
+    assert reply("recife", []) == "Em recife, visibilidade de 18 quilômetros, Senhor."
+    assert seen == [("recife", "visibilidade", "")]
+    assert reply("visibilidade amanhã", []) == "De qual lugar, Senhor."
+    assert reply("curitiba", []) == (
+        "Amanhã em curitiba, visibilidade de 18 quilômetros, Senhor."
+    )
+    assert seen[-1] == ("curitiba", "visibilidade", "amanha")
+
+
 def test_air_follow_up_keeps_the_field(tmp_path, monkeypatch):
     from claude_agent_voice.hud import make_reply_fn
     from claude_agent_voice.personas import get_persona

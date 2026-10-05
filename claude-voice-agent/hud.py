@@ -71,6 +71,8 @@ def _weather_field(text: str) -> str:
         return "uv"
     if _has_word(text, "pressao"):
         return "pressao"
+    if _has_word(text, "visibilidade"):
+        return "visibilidade"
     if _has_word(text, "umidade") or _has_word(text, "umido"):
         return "umidade"
     if _has_word(text, "sensacao") and _has_word(text, "termica"):
