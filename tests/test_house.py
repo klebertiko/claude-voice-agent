@@ -552,10 +552,12 @@ def test_the_next_line_answers_the_question(monkeypatch):
     from claude_agent_voice.personas import get_persona
     from claude_agent_voice.settings import Settings
 
-    monkeypatch.setattr(
-        "claude_agent_voice.house._weather",
-        lambda place, fetch: f"Em {place}, 19 graus, nublado, Senhor.",
-    )
+    def fake_weather(place, _fetch, day=""):
+        if day == "amanha":
+            return f"Amanhã em {place}, máxima de 27 graus, nublado, Senhor."
+        return f"Em {place}, 19 graus, nublado, Senhor."
+
+    monkeypatch.setattr("claude_agent_voice.house._weather", fake_weather)
     reply = make_reply_fn(
         Settings.from_env(
             env={
@@ -573,6 +575,19 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert "15 horas" in reply("que horas são", [])
     assert reply("qual o tempo", []) == "De qual lugar, Senhor."
     assert reply("Campinas", []) == "Em Campinas, 19 graus, nublado, Senhor."
+    assert reply("tempo para amanhã", []) == "De qual lugar, Senhor."
+    assert reply("aí", []) == "De qual lugar, Senhor."
+    assert reply("Curitiba", []) == "Amanhã em Curitiba, máxima de 27 graus, nublado, Senhor."
+    assert reply("vai chover amanhã", []) == "De qual lugar, Senhor."
+    assert "15 horas" in reply("que horas são", [])
+    assert reply("qual o tempo", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Em Recife, 19 graus, nublado, Senhor."
+    assert reply("tempo para amanhã", []) == "De qual lugar, Senhor."
+    assert reply("Curitiba hoje", []) == "Em Curitiba, 19 graus, nublado, Senhor."
+    assert reply("qual o tempo", []) == "De qual lugar, Senhor."
+    assert reply("amanhã em Curitiba", []) == (
+        "Amanhã em Curitiba, máxima de 27 graus, nublado, Senhor."
+    )
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):

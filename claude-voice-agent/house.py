@@ -402,6 +402,25 @@ def _city_name(place: str) -> str:
     return place
 
 
+def _spoken_place(text: str) -> str:
+    """A cidade da resposta curta, sem o dia, com o acento que a pessoa falou."""
+    words = (text or "").strip(" .?").split()
+    plain = [_plain(word) for word in words]
+    while plain and plain[0] in {"hoje", "agora", "la", "muito", "amanha", "depois"}:
+        plain.pop(0)
+        words.pop(0)
+        if plain and plain[0] in {"em", "no", "na", "de", "do", "da"}:
+            plain.pop(0)
+            words.pop(0)
+    while plain and plain[-1] in {"hoje", "agora", "amanha"}:
+        plain.pop()
+        words.pop()
+    place = " ".join(words).strip(" .?")
+    if not place or _plain(place) in _VAGUE_PLACE:
+        return ""
+    return place
+
+
 def _heat_place(norm: str) -> str | None:
     """Cidade numa frase de calor, frio, sol ou nuvem. None se não for essa frase."""
     match = re.match(
@@ -559,13 +578,20 @@ def continue_house(
     fetch=None,
     reminders_path: Path | None = None,
     moment: datetime | None = None,
+    day: str = "",
 ) -> str:
-    """A resposta curta depois de Orion pedir lugar, assunto, busca ou nota."""
+    """A resposta curta depois de Orion pedir lugar, assunto, busca ou nota.
+
+    ``day="amanha"`` vale quando a pergunta do lugar veio de uma frase de amanhã.
+    """
     fetch = fetch or _http_get
     said = _answer_text(text)
     try:
         if kind == "weather":
-            return _weather(said, fetch)
+            place = _spoken_place(said)
+            if not place:
+                return "De qual lugar, Senhor."
+            return _weather(place, fetch, day=day)
         if kind == "news":
             return _news(said, fetch)
         if kind == "search":
