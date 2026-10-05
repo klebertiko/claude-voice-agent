@@ -207,6 +207,12 @@ _REMEMBER_PREFIXES = (
     "lembrete ",
     "lembra de ",
     "lembra ",
+    "quero anotar ",
+    "queria anotar ",
+    "preciso anotar ",
+    "pode anotar ",
+    "por favor anotar ",
+    "favor anotar ",
     "anote ",
     "anota ",
 )
@@ -218,6 +224,8 @@ def _remember_body(text: str) -> str:
     words = (text or "").strip().split()
     for prefix in _REMEMBER_PREFIXES:
         if norm.startswith(prefix):
+            if prefix == "lembrete " and re.match(r"^(?:do|da|sobre)\b", norm[len(prefix) :]):
+                return ""
             return " ".join(words[len(prefix.split()) :])
     return ""
 
@@ -330,7 +338,7 @@ def _note_subject(norm: str) -> str | None:
     if placed:
         return _clean_subject(placed.group(1))
     where = re.match(
-        r"^onde\s+(?:esta|ficou)(?:\s+(?:a|o))?\s+(?:nota|lembrete|recado)"
+        r"^onde(?:\s+eu)?\s+(?:esta|ficou|deixei)(?:\s+(?:a|o))?\s+(?:nota|lembrete|recado)"
         r"(?:\s+(?:do|da|de|sobre))?(?:\s+(.*))?$",
         norm,
     )
@@ -349,6 +357,22 @@ def _note_subject(norm: str) -> str | None:
     )
     if recado:
         return _clean_subject(recado.group(1) or "")
+    owned_note = re.match(
+        r"^lembrete(?:\s+(?:do|da|sobre))(?:\s+(.*))?$",
+        norm,
+    )
+    if owned_note:
+        return _clean_subject(owned_note.group(1) or "")
+    lookup = re.match(
+        r"^(?:buscar|busque|busca|procurar|procure|procura|pesquisar|pesquise|pesquisa)"
+        r"\s+(?:(?:o|a|os|as|um|uma)\s+)?"
+        r"(?:lembrete|nota|recado)s?"
+        r"(?:\s+(?:do|da|de|sobre))?"
+        r"(?:\s+(.*))?$",
+        norm,
+    )
+    if lookup:
+        return _clean_subject(lookup.group(1) or "")
     return None
 
 
@@ -884,6 +908,8 @@ def house_reply(
             "bota nas notas", "bota na nota",
             "poe nas notas", "poe na nota",
             "cria uma nota", "cria um lembrete", "novo lembrete",
+            "quero anotar", "queria anotar", "preciso anotar",
+            "pode anotar", "por favor anotar", "favor anotar",
             "nao me deixa esquecer",
             "salva nas notas", "salva na nota", "salva uma nota", "salva a nota",
             "coloca nas notas", "coloca na nota",

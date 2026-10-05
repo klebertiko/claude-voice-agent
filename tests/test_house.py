@@ -447,6 +447,15 @@ def test_reminder_roundtrip(tmp_path):
     assert _reply("adiciona sal", fetch, path) is None
     assert _reply("cria uma imagem", fetch, path) is None
     assert _reply("bota o livro na mesa", fetch, path) is None
+    assert _reply("lembrete comprar pão", fetch, path) == "Anotado, Senhor."
+    saved = path.read_text(encoding="utf-8")
+    assert '"text": "comprar pão"' in saved
+    assert _reply("quero anotar ligar amanhã", fetch, path) == "Anotado, Senhor."
+    saved = path.read_text(encoding="utf-8")
+    assert '"text": "ligar amanhã"' in saved
+    assert "quero anotar" not in saved
+    assert _reply("preciso anotar", fetch, path) == "O que devo anotar, Senhor?"
+    assert _reply("pode anotar", fetch, path) == "O que devo anotar, Senhor?"
     assert _reply("quais são minhas notas", fetch, path).startswith("Lembretes, Senhor.")
     assert _reply("lista as notas", fetch, path).startswith("Lembretes, Senhor.")
     assert "pagar a luz" in _reply("quais são os lembretes", fetch, path)
@@ -562,6 +571,20 @@ def test_note_search_stays_in_the_vault(tmp_path):
         "Nas notas, Senhor. revisar o projeto de voz."
     )
     assert _reply("onde está a nota", fetch, path) == "O que devo buscar nas notas, Senhor?"
+    assert _reply("lembrete do projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert "do projeto" not in path.read_text(encoding="utf-8")
+    assert _reply("procura lembrete do projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("onde eu deixei a nota do projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("procura o recado da voz", fetch, voice) == (
+        "Nas notas, Senhor. revisar o projeto de voz."
+    )
+    assert _reply("procura lembrete", fetch, path) == "O que devo buscar nas notas, Senhor?"
     assert _reply("tem recado sobre projeto", fetch, path) == (
         "Nas notas, Senhor. entregar o projeto na sexta."
     )
