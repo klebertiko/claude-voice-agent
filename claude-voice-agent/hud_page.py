@@ -606,6 +606,41 @@ function labelBox(x, y, align, width) {
 function boxesHit(a, b) {
   return !(a.r < b.l || a.l > b.r || a.b < b.t || a.t > b.b);
 }
+function segmentPieces(x1, y1, x2, y2, boxes) {
+  let parts = [[0, 1]];
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const span = (a, b, delta, origin) => {
+    if (Math.abs(delta) < 1e-6) return origin >= a && origin <= b ? [-Infinity, Infinity] : null;
+    let t0 = (a - origin) / delta;
+    let t1 = (b - origin) / delta;
+    if (t0 > t1) { const swap = t0; t0 = t1; t1 = swap; }
+    return [t0, t1];
+  };
+  for (const box of boxes) {
+    const next = [];
+    for (const part of parts) {
+      const xs = span(box.l, box.r, dx, x1);
+      const ys = span(box.t, box.b, dy, y1);
+      if (!xs || !ys) { next.push(part); continue; }
+      const hit0 = Math.max(part[0], xs[0], ys[0]);
+      const hit1 = Math.min(part[1], xs[1], ys[1]);
+      if (hit1 - hit0 < 0.002) { next.push(part); continue; }
+      if (hit0 > part[0] + 0.002) next.push([part[0], hit0]);
+      if (hit1 < part[1] - 0.002) next.push([hit1, part[1]]);
+    }
+    parts = next;
+  }
+  const pieces = [];
+  for (const part of parts) {
+    if (part[1] - part[0] < 0.02) continue;
+    pieces.push({
+      x1: x1 + dx * part[0], y1: y1 + dy * part[0],
+      x2: x1 + dx * part[1], y2: y1 + dy * part[1],
+    });
+  }
+  return pieces;
+}
 function boxHitsSegment(box, seg) {
   let x1 = seg.x1, y1 = seg.y1, x2 = seg.x2, y2 = seg.y2;
   const l = box.l, r = box.r, t = box.t, b = box.b;
@@ -787,6 +822,7 @@ function drawPlate() {
     }
   }
   const segments = [];
+  const strokes = [];
   ctx.lineCap = "round";
   for (const pair of world.links) {
     const a = byId[pair[0].star.id];
@@ -811,21 +847,7 @@ function drawPlate() {
     const x2 = b.p.x - ux * pad;
     const y2 = b.p.y - uy * pad;
     segments.push({ x1, y1, x2, y2 });
-    ctx.setLineDash(hot ? [5, 6] : [8, 10]);
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.globalAlpha = alpha * 0.85;
-    ctx.strokeStyle = "rgb(7, 13, 22)";
-    ctx.lineWidth = (hot ? 2.2 : 1.9) * depth + 2.6;
-    ctx.stroke();
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    ctx.globalAlpha = Math.min(1, alpha);
-    ctx.strokeStyle = hot ? ink.accent : tone;
-    ctx.lineWidth = (hot ? 2.4 : 2.1) * depth;
-    ctx.stroke();
-    ctx.restore();
+    strokes.push({ x1, y1, x2, y2, hot, alpha, depth, tone });
   }
   ctx.setLineDash([]);
   namedOnScreen = [];
@@ -867,6 +889,7 @@ function drawPlate() {
     });
   }
   const boxes = [];
+  const paints = [];
   ctx.textBaseline = "middle";
   ctx.font = "400 14px " + ink.body;
   const ranked = view.slice().sort((a, b) => {
@@ -937,15 +960,12 @@ function drawPlate() {
       row.ly = spot.y;
       row.labelW = lines ? Math.max(ctx.measureText(lines[0]).width, ctx.measureText(lines[1]).width) : width;
     }
-    ctx.globalAlpha = item.star.id === picked ? 1 : 0.92;
-    ctx.fillStyle = item.star.id === picked ? ink.accent : ink.ink;
-    ctx.textAlign = spot.align;
-    if (lines) {
-      paintLabel(lines[0], spot.x, spot.y - 8);
-      paintLabel(lines[1], spot.x, spot.y + 8);
-    } else {
-      paintLabel(full, spot.x, spot.y);
-    }
+    paints.push({
+      lines, full, spot,
+      alpha: item.star.id === picked ? 1 : 0.92,
+      fill: item.star.id === picked ? ink.accent : ink.ink,
+      font: "400 14px " + ink.body,
+    });
   }
   ctx.font = "600 14px " + ink.body;
   ctx.textAlign = "center";
@@ -957,9 +977,45 @@ function drawPlate() {
     if (box.l < rect.left + 4 || box.r > rect.right - 4) continue;
     if (boxes.some((held) => boxesHit(box, held))) continue;
     boxes.push(box);
-    ctx.globalAlpha = 0.82;
-    ctx.fillStyle = ink.ink2;
-    paintLabel(cloud.name, cloud.x, y);
+    paints.push({
+      lines: null, full: cloud.name, spot: { x: cloud.x, y, align: "center" },
+      alpha: 0.82, fill: ink.ink2, font: "600 14px " + ink.body,
+    });
+  }
+  ctx.lineCap = "round";
+  for (const stroke of strokes) {
+    const gaps = boxes.map((box) => ({ l: box.l - 4, r: box.r + 4, t: box.t - 4, b: box.b + 4 }));
+    const pieces = segmentPieces(stroke.x1, stroke.y1, stroke.x2, stroke.y2, gaps);
+    ctx.setLineDash(stroke.hot ? [5, 6] : [8, 10]);
+    for (const piece of pieces) {
+      ctx.beginPath();
+      ctx.moveTo(piece.x1, piece.y1);
+      ctx.lineTo(piece.x2, piece.y2);
+      ctx.globalAlpha = stroke.alpha * 0.85;
+      ctx.strokeStyle = "rgb(7, 13, 22)";
+      ctx.lineWidth = (stroke.hot ? 2.2 : 1.9) * stroke.depth + 2.6;
+      ctx.stroke();
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = Math.min(1, stroke.alpha);
+      ctx.strokeStyle = stroke.hot ? ink.accent : stroke.tone;
+      ctx.lineWidth = (stroke.hot ? 2.4 : 2.1) * stroke.depth;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  ctx.setLineDash([]);
+  for (const paint of paints) {
+    ctx.font = paint.font;
+    ctx.globalAlpha = paint.alpha;
+    ctx.fillStyle = paint.fill;
+    ctx.textAlign = paint.spot.align;
+    if (paint.lines) {
+      paintLabel(paint.lines[0], paint.spot.x, paint.spot.y - 8);
+      paintLabel(paint.lines[1], paint.spot.x, paint.spot.y + 8);
+    } else {
+      paintLabel(paint.full, paint.spot.x, paint.spot.y);
+    }
   }
   ctx.restore();
   ctx.globalAlpha = 1;
