@@ -246,17 +246,17 @@ _PAGE = r"""<!DOCTYPE html>
     .systems button.fact { flex: none; }
   }
   @media (max-width: 640px) and (max-height: 700px) {
-    .room:has(#empty) {
+    .room,
+    .room:has(#empty),
+    .room:not(:has(#empty)),
+    .room:has(#note:not([hidden])) {
       grid-template-rows: auto minmax(0, 1fr) auto 0 auto auto;
     }
-    .room:has(#empty) .talk {
-      padding-top: 0;
-      padding-bottom: 0;
-    }
+    .talk { padding-top: 0; padding-bottom: 0; }
     /* A nota aberta fica na faixa dos instrumentos. O céu não encolhe. */
-    .room:has(#empty) #note:not([hidden]) {
+    #note:not([hidden]) {
       position: fixed;
-      z-index: 4;
+      z-index: 5;
       left: 0;
       right: 0;
       bottom: var(--note-bottom, 65px);
@@ -271,7 +271,7 @@ _PAGE = r"""<!DOCTYPE html>
       background: var(--color-bg);
       max-width: none;
     }
-    .room:has(#empty) #note:not([hidden]) #note-text {
+    #note:not([hidden]) #note-text {
       flex: 0 1 auto;
       min-width: 0;
       overflow: hidden;
@@ -279,8 +279,8 @@ _PAGE = r"""<!DOCTYPE html>
       white-space: nowrap;
       line-height: 1.25;
     }
-    .room:has(#empty) #note.is-links #note-text { display: none; }
-    .room:has(#empty) #note:not([hidden]) #note-links {
+    #note.is-links #note-text { display: none; }
+    #note:not([hidden]) #note-links {
       flex: none;
       max-width: 100%;
       min-width: 0;
@@ -288,13 +288,9 @@ _PAGE = r"""<!DOCTYPE html>
       overflow-x: auto;
       scrollbar-width: none;
     }
-    .room:has(#empty) #note:not([hidden]) #note-links::-webkit-scrollbar { height: 0; display: none; }
+    #note:not([hidden]) #note-links::-webkit-scrollbar { height: 0; display: none; }
     /* A fala fica na folga sob os nomes. O céu não encolhe. */
-    .room:not(:has(#note:not([hidden]))) {
-      grid-template-rows: auto minmax(0, 1fr) auto 0 auto auto;
-    }
-    .room:not(:has(#note:not([hidden]))) .talk { padding-top: 0; padding-bottom: 0; }
-    .room:not(:has(#empty)):not(:has(#note:not([hidden]))) #log {
+    .room:not(:has(#empty)) #log {
       position: fixed;
       z-index: 4;
       left: 0;
@@ -308,7 +304,7 @@ _PAGE = r"""<!DOCTYPE html>
       overflow: auto;
       scrollbar-width: none;
     }
-    .room:not(:has(#empty)):not(:has(#note:not([hidden]))) #log::-webkit-scrollbar { height: 0; display: none; }
+    .room:not(:has(#empty)) #log::-webkit-scrollbar { height: 0; display: none; }
     .room:not(:has(#empty)) #sky-read { display: none; }
   }
   @media (max-height: 780px) and (min-width: 641px) {
@@ -1685,7 +1681,7 @@ function showPermit(id, command) {
   permitCmd.textContent = command || "";
   permitEl.hidden = !permitId;
   wake();
-  requestAnimationFrame(() => { seatLog(); settleLog(); });
+  requestAnimationFrame(() => { seatNote(); seatLog(); settleLog(); });
 }
 async function refreshBrain() {
   try {
@@ -1816,7 +1812,7 @@ function openNote(star) {
   }
   requestAnimationFrame(() => {
     settleLog();
-    const sheet = window.matchMedia("(max-width: 640px) and (max-height: 700px)").matches && document.getElementById("empty");
+    const sheet = window.matchMedia("(max-width: 640px) and (max-height: 700px)").matches;
     noteEl.classList.toggle("is-links", !!(sheet && noteText.getBoundingClientRect().width < 24));
   });
 }
