@@ -841,7 +841,7 @@ function drawPlate() {
     const tone = a.star.kind === b.star.kind
       ? "rgb(" + (a.star.kind === "nota" ? GROUPS.notas.link : GROUPS.sistemas.link) + ")"
       : "rgb(232, 220, 196)";
-    const alpha = (hot ? 1 : aside ? 0.22 : 1) * depth;
+    const alpha = (hot ? 1 : aside ? 0.45 : 1) * depth;
     const x1 = a.p.x + ux * pad;
     const y1 = a.p.y + uy * pad;
     const x2 = b.p.x - ux * pad;
@@ -860,7 +860,7 @@ function drawPlate() {
     const dim = item.star.kind === "nota" && noteQuery && !noteHit(item.star);
     const aside = focusId && !neigh.has(item.star.id);
     const rgb = chosen ? "212, 196, 168" : item.star.kind === "nota" ? GROUPS.notas.rgb : GROUPS.sistemas.rgb;
-    const presence = (dim ? 0.16 : aside ? 0.2 : 1) * Math.max(0.42, Math.min(1, depthScale));
+    const presence = (dim ? 0.16 : aside ? 0.55 : 1) * Math.max(0.42, Math.min(1, depthScale));
     const size = (item.star.kind === "sistema" ? 40 : 32) * depthScale * pulse;
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
@@ -903,7 +903,7 @@ function drawPlate() {
     if (!item.star.label) continue;
     if (item.star.kind === "nota" && noteQuery && !noteHit(item.star) && item.star.id !== picked) continue;
     const focus = item.star.id === picked || item.star.id === hovered;
-    if (focusId && !neigh.has(item.star.id) && !focus) continue;
+    const quiet = focusId && !neigh.has(item.star.id) && !focus;
     if (item.p.persp < 0.42 && !focus) continue;
     const onStage = item.p.x >= rect.left + 8 && item.p.x <= rect.right - 8 && item.p.y >= rect.top + 12 && item.p.y <= rect.bottom - 36;
     if (!onStage && item.star.id !== picked) continue;
@@ -962,7 +962,7 @@ function drawPlate() {
     }
     paints.push({
       lines, full, spot,
-      alpha: item.star.id === picked ? 1 : 0.92,
+      alpha: item.star.id === picked ? 1 : quiet ? 0.66 : 0.92,
       fill: item.star.id === picked ? ink.accent : ink.ink,
       font: "400 14px " + ink.body,
     });
