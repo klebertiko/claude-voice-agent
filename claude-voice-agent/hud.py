@@ -123,8 +123,9 @@ def spoken_fallback(cleaned: str, name: str, moment: datetime) -> str:
     if _asks_date(norm):
         if "depois de amanha" in norm:
             return _speak_date(moment + timedelta(days=2), "Depois de amanhã", "é")
-        if "anteontem" in norm:
-            return _speak_date(moment - timedelta(days=2), "Anteontem", "foi")
+        if "anteontem" in norm or "antes de ontem" in norm:
+            label = "Anteontem" if "anteontem" in norm else "Antes de ontem"
+            return _speak_date(moment - timedelta(days=2), label, "foi")
         if "amanha" in norm:
             return _speak_date(moment + timedelta(days=1), "Amanhã", "é")
         if "ontem" in norm:
