@@ -359,9 +359,10 @@ function fitScene(rect) {
       sistemas: Object.assign(at(offset, 0), { radius: radiusPx / k, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
     };
   }
-  const radiusPx = Math.max(64, Math.min(rect.width * 0.3, rect.height * 0.17, (rect.width - 48) / 2));
-  const reach = Math.max(radiusPx * 0.9, rect.height / 2 - radiusPx - 48);
-  const offset = Math.min(rect.height * 0.24, reach);
+  const room = Math.max(96, rect.height - 28);
+  const radiusPx = Math.max(32, Math.min(rect.width * 0.3, room * 0.2, (rect.width - 48) / 2, (room - 8) / 2.8));
+  const reach = Math.max(radiusPx * 0.7, rect.height / 2 - radiusPx - 22);
+  const offset = Math.min(rect.height * 0.2, reach);
   return {
     notas: Object.assign(at(0, -offset), { radius: radiusPx / k, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
     sistemas: Object.assign(at(0, offset), { radius: radiusPx / k, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
