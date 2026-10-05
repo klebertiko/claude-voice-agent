@@ -1569,7 +1569,14 @@ def test_note_search_stays_in_the_vault(tmp_path):
     assert _reply("mostra a última nota", fetch, empty) == "Nada anotado, Senhor."
     assert _reply("mostra as notas", fetch, latest).startswith("Lembretes, Senhor.")
     assert "entregar o projeto na sexta" in _reply("mostra as notas", fetch, latest)
-    assert _reply("as últimas notas", fetch, latest) is None
+    listed_late = _reply("as últimas notas", fetch, latest)
+    assert listed_late.startswith("Lembretes, Senhor.")
+    assert "entregar o projeto na sexta" in listed_late
+    assert "revisar o projeto de voz" in listed_late
+    assert _reply("os últimos lembretes", fetch, latest) == listed_late
+    assert _reply("me mostra as últimas notas", fetch, latest) == listed_late
+    assert _reply("quais são as últimas notas", fetch, latest) == listed_late
+    assert _reply("as últimas notas", fetch, empty) == "Nada anotado, Senhor."
     assert _reply("mostra a nota do projeto", fetch, path) == (
         "Nas notas, Senhor. entregar o projeto na sexta."
     )
@@ -1617,7 +1624,8 @@ def test_note_search_stays_in_the_vault(tmp_path):
     )
     assert "primeira" not in latest.read_text(encoding="utf-8")
     assert "mais antigo" not in latest.read_text(encoding="utf-8")
-    assert _reply("as primeiras notas", fetch, latest) is None
+    assert _reply("as primeiras notas", fetch, latest) == listed_late
+    assert _reply("os primeiros recados", fetch, latest) == listed_late
     assert _reply("quantas notas eu tenho", fetch, latest) == "São 2 notas, Senhor."
     assert _reply("tem quantas notas", fetch, latest) == "São 2 notas, Senhor."
     assert _reply("tem quantos lembretes", fetch, latest) == "São 2 notas, Senhor."

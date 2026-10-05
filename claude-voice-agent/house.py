@@ -1729,6 +1729,12 @@ def house_reply(
             r"(?:me\s+)?(?:mostra|mostre|mostrar|le|leia|ler)\s+"
             r"(?:as|os|minhas|meus)\s+(?:notas|lembretes|recados)",
             norm,
+        ) or re.fullmatch(
+            r"(?:(?:me\s+)?(?:mostra|mostre|mostrar|le|leia|ler)\s+)?"
+            r"(?:quais(?:\s+sao)?\s+)?"
+            r"(?:as|os)\s+(?:ultimas|ultimos|primeiras|primeiros)\s+"
+            r"(?:notas|lembretes|recados)",
+            norm,
         ):
             return _list_notes(reminders_path)
         extreme = _extreme_place(norm)
