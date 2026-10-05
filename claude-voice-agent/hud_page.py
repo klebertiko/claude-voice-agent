@@ -751,13 +751,13 @@ function drawPlate() {
     ctx.beginPath();
     ctx.moveTo(a.p.x + ux * pad, a.p.y + uy * pad);
     ctx.lineTo(b.p.x - ux * pad, b.p.y - uy * pad);
-    ctx.globalAlpha = alpha * 0.72;
+    ctx.globalAlpha = alpha * 0.85;
     ctx.strokeStyle = "rgb(7, 13, 22)";
-    ctx.lineWidth = (hot ? 1.7 : 1.5) * depth + 2.2;
+    ctx.lineWidth = (hot ? 2.2 : 1.9) * depth + 2.6;
     ctx.stroke();
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = hot ? ink.accent : tone;
-    ctx.lineWidth = (hot ? 1.7 : 1.5) * depth;
+    ctx.lineWidth = (hot ? 2.2 : 1.9) * depth;
     ctx.stroke();
   }
   ctx.setLineDash([]);
@@ -772,21 +772,27 @@ function drawPlate() {
     const aside = focusId && !neigh.has(item.star.id);
     const rgb = chosen ? "212, 196, 168" : item.star.kind === "nota" ? GROUPS.notas.rgb : GROUPS.sistemas.rgb;
     const presence = (dim ? 0.16 : aside ? 0.2 : 1) * Math.max(0.42, Math.min(1, depthScale));
-    const size = (item.star.kind === "sistema" ? 46 : 38) * depthScale * pulse;
+    const size = (item.star.kind === "sistema" ? 40 : 32) * depthScale * pulse;
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-    ctx.globalAlpha = presence;
+    ctx.globalAlpha = presence * 0.72;
     ctx.drawImage(glowSprite(rgb), item.p.x - size / 2, item.p.y - size / 2, size, size);
     ctx.restore();
+    const point = (item.star.kind === "sistema" ? 2.15 : 1.85) * depthScale * pulse;
+    const ring = (item.star.kind === "sistema" ? 7.4 : 5.4) * depthScale * pulse;
     ctx.globalAlpha = presence;
+    ctx.fillStyle = "rgb(7, 13, 22)";
+    ctx.beginPath();
+    ctx.arc(item.p.x, item.p.y, ring * 0.62, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = chosen ? ink.accent : ink.ink;
     ctx.beginPath();
-    ctx.arc(item.p.x, item.p.y, (item.star.kind === "sistema" ? 3.2 : 2.7) * depthScale * pulse, 0, Math.PI * 2);
+    ctx.arc(item.p.x, item.p.y, point, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = chosen ? ink.accent : ink.ink;
-    ctx.lineWidth = item.star.kind === "sistema" ? 1.35 : 1.15;
+    ctx.lineWidth = item.star.kind === "sistema" ? 1.25 : 1.05;
     ctx.beginPath();
-    ctx.arc(item.p.x, item.p.y, (item.star.kind === "sistema" ? 10 : 6.2) * depthScale * pulse, 0, Math.PI * 2);
+    ctx.arc(item.p.x, item.p.y, ring, 0, Math.PI * 2);
     ctx.stroke();
     namedOnScreen.push({
       star: item.star, pos: item.pos, x: item.p.x, y: item.p.y,
