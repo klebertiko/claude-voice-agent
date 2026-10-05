@@ -195,8 +195,9 @@ _PAGE = r"""<!DOCTYPE html>
       grid-template-rows: auto minmax(0, 1fr) auto minmax(2.75rem, 4rem) auto auto;
     }
     .room:has(#note:not([hidden])) {
-      grid-template-rows: auto minmax(0, 1fr) auto minmax(7.5rem, 9rem) auto auto;
+      grid-template-rows: auto minmax(0, 1fr) auto auto auto auto;
     }
+    #log { max-height: 3.5rem; }
     .strip { padding: 12px 16px; }
     .mark { width: 28px; height: 44px; }
     .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
