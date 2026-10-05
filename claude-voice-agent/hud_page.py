@@ -56,9 +56,11 @@ _PAGE = r"""<!DOCTYPE html>
     background: var(--color-bg);
   }
   .strip h1 {
+    display: flex; align-items: center; gap: 10px;
     font-family: var(--font-body); font-weight: 600; font-size: var(--text-body);
     line-height: 1.25; letter-spacing: 0;
   }
+  .belt { width: 22px; height: 14px; flex: none; }
   .meta { display: flex; align-items: baseline; gap: 24px; }
   #status { font-size: var(--text-body); color: var(--color-ink-2); }
   body[data-state="listening"] #status,
@@ -186,7 +188,7 @@ _PAGE = r"""<!DOCTYPE html>
 <canvas id="field" aria-label="constelação"></canvas>
 <div class="room">
   <header class="strip">
-    <h1>__NAME__</h1>
+    <h1><svg class="belt" viewBox="0 0 22 14" aria-hidden="true"><circle cx="3" cy="11" r="1.35" fill="currentColor"/><circle cx="11" cy="7" r="1.55" fill="currentColor"/><circle cx="19" cy="3" r="1.35" fill="currentColor"/></svg>__NAME__</h1>
     <div class="meta">
       <p id="status">pronto</p>
       <p id="clock">00:00:00</p>
@@ -203,8 +205,8 @@ _PAGE = r"""<!DOCTYPE html>
       <button type="button" class="fact" data-brain="ollama"><span class="k">Cérebro</span><span class="v is-down" id="brain">ausente</span></button>
       <button type="button" class="fact" data-ask="quais lembretes"><span class="k">Céu</span><span class="v" id="sky">0</span></button>
       <button type="button" class="fact" data-ask="quais lembretes"><span class="k">Lembretes</span><span class="v" id="notes">0</span></button>
-      <button type="button" class="fact" data-voice="1"><span class="k">Voz</span><span class="v" id="voice-name">george</span></button>
-      <button type="button" class="fact" data-ask="qual o ritmo"><span class="k">Ritmo</span><span class="v">1.32</span></button>
+      <button type="button" class="fact" data-voice="1"><span class="k">Voz</span><span class="v" id="voice-name">daniel</span></button>
+      <button type="button" class="fact" data-ask="qual o ritmo"><span class="k">Ritmo</span><span class="v">1.2</span></button>
       <button type="button" class="fact" data-ask="qual a carga"><span class="k">Carga</span><span class="v" id="load">—</span></button>
       <button type="button" class="fact" data-ask="qual o fuso"><span class="k">Fuso</span><span class="v">Brasília</span></button>
       <button type="button" class="fact" data-ask="qual a data"><span class="k">Data</span><span class="v" id="date">—</span></button>
@@ -317,7 +319,7 @@ const systemText = {
   "sys-noticias": "Sobre o que, Senhor?",
   "sys-busca": "Busca na web.",
   "sys-lembretes": "Notas deste céu.",
-  "sys-voz": "Voz george, ritmo 1.32.",
+  "sys-voz": "Voz daniel, ritmo 1.2.",
 };
 function sceneScale(rect) {
   return Math.max(1, Math.min(rect.width, rect.height) * 0.92);
@@ -539,6 +541,31 @@ function labelSpots(x, y, cx0, cy0) {
   }
   return spots;
 }
+function paintNebula(cloud) {
+  const rad = Math.max(96, cloud.maxD * 1.75);
+  ctx.save();
+  ctx.translate(cloud.x, cloud.y);
+  ctx.rotate(cloud.angle || 0);
+  ctx.scale(1, 0.58);
+  const disc = ctx.createRadialGradient(0, 0, 0, 0, 0, rad);
+  disc.addColorStop(0, "rgba(" + cloud.rgb + ",0.5)");
+  disc.addColorStop(0.22, "rgba(" + cloud.rgb + ",0.26)");
+  disc.addColorStop(0.55, "rgba(" + cloud.rgb + ",0.1)");
+  disc.addColorStop(1, "rgba(" + cloud.rgb + ",0)");
+  ctx.fillStyle = disc;
+  ctx.beginPath();
+  ctx.arc(0, 0, rad, 0, Math.PI * 2);
+  ctx.fill();
+  const arm = rad * 0.34;
+  const dust = ctx.createRadialGradient(arm, 0, 0, arm, 0, rad * 0.62);
+  dust.addColorStop(0, "rgba(" + cloud.rgb + ",0.2)");
+  dust.addColorStop(1, "rgba(" + cloud.rgb + ",0)");
+  ctx.fillStyle = dust;
+  ctx.beginPath();
+  ctx.arc(arm, 0, rad * 0.62, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
 function drawPlate() {
   const w = canvas.width / DPR, h = canvas.height / DPR;
   const rect = well.getBoundingClientRect();
@@ -568,23 +595,21 @@ function drawPlate() {
     let sx = 0, sy = 0, sz = 0;
     for (const item of pts) { sx += item.p.x; sy += item.p.y; sz += item.p.z; }
     sx /= pts.length; sy /= pts.length; sz /= pts.length;
-    let maxD = 0;
-    for (const item of pts) maxD = Math.max(maxD, Math.hypot(item.p.x - sx, item.p.y - sy));
+    let maxD = 0, sxx = 0, syy = 0, sxy = 0;
+    for (const item of pts) {
+      const dx = item.p.x - sx;
+      const dy = item.p.y - sy;
+      maxD = Math.max(maxD, Math.hypot(dx, dy));
+      sxx += dx * dx;
+      syy += dy * dy;
+      sxy += dx * dy;
+    }
+    const angle = 0.5 * Math.atan2(2 * sxy, sxx - syy);
     const meta = key === "nota" ? fit.notas : fit.sistemas;
-    centroids[key] = { x: sx, y: sy, z: sz, maxD, name: meta.name, rgb: meta.rgb };
+    centroids[key] = { x: sx, y: sy, z: sz, maxD, angle, name: meta.name, rgb: meta.rgb };
   }
   const clouds = Object.values(centroids).sort((a, b) => b.z - a.z);
-  for (const cloud of clouds) {
-    const rad = Math.max(80, cloud.maxD * 1.55);
-    const g = ctx.createRadialGradient(cloud.x, cloud.y, 0, cloud.x, cloud.y, rad);
-    g.addColorStop(0, "rgba(" + cloud.rgb + ",0.55)");
-    g.addColorStop(0.42, "rgba(" + cloud.rgb + ",0.2)");
-    g.addColorStop(1, "rgba(" + cloud.rgb + ",0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(cloud.x, cloud.y, rad, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  for (const cloud of clouds) paintNebula(cloud);
   const byId = {};
   for (const item of view) byId[item.star.id] = item;
   const focusId = picked || hovered;
