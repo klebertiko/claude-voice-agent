@@ -202,7 +202,7 @@ _PAGE = r"""<!DOCTYPE html>
     body { overflow: hidden; }
     .room {
       height: 100vh; min-height: 0;
-      grid-template-rows: auto auto minmax(0, 1fr) minmax(4.5rem, 7rem) auto auto;
+      grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
     }
     .strip { grid-row: 1; }
     .telemetry { grid-row: 2; padding-top: 0; padding-bottom: 8px; }
@@ -210,7 +210,7 @@ _PAGE = r"""<!DOCTYPE html>
     .talk { grid-row: 4; min-height: 0; overflow: hidden; padding-top: 8px; padding-bottom: 8px; }
     #permit { grid-row: 5; }
     .floor { grid-row: 6; }
-    #log { max-height: none; overflow: auto; }
+    #log { max-height: 6rem; overflow: auto; }
   }
   @media (min-width: 641px) and (max-width: 959px) {
     .room:has(#note:not([hidden])) {
@@ -252,7 +252,11 @@ _PAGE = r"""<!DOCTYPE html>
   }
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
   @media (max-width: 1399px) {
-    .systems { flex-flow: row wrap; overflow: visible; row-gap: 0; }
+    .systems { flex-flow: row nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+    .systems::-webkit-scrollbar { height: 0; display: none; }
+    .systems.has-more {
+      mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    }
   }
   @media (max-width: 640px) {
     .systems { flex-flow: row nowrap; overflow-x: auto; }
