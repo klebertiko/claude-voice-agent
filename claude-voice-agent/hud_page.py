@@ -71,10 +71,12 @@ _PAGE = r"""<!DOCTYPE html>
   .well { position: relative; min-height: 28rem; cursor: grab; touch-action: none; }
   .well:active { cursor: grabbing; }
   #sky-read {
-    position: absolute; top: auto; bottom: 16px; left: 16px; right: 16px; margin: 0;
+    position: absolute; top: auto; bottom: 12px; left: 16px; right: 16px; margin: 0;
     text-align: center; pointer-events: none;
-    font-size: var(--text-body); line-height: 1.5; color: var(--color-ink-2);
+    font-size: var(--text-support); line-height: 1.4; color: var(--color-ink-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  #sky-read[hidden] { display: none; }
   .telemetry, .talk {
     min-width: 0; min-height: 0; padding: 8px 24px 32px;
     background: var(--color-bg);
@@ -215,14 +217,14 @@ _PAGE = r"""<!DOCTYPE html>
 <canvas id="field" aria-label="constelação"></canvas>
 <div class="room">
   <header class="strip">
-    <h1><svg class="mark" viewBox="0 0 40 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 L7 18 L13 30 L8 54"/><path d="M20 6 L33 16 L27 34 L33 58"/><path d="M13 30 L20 32 L27 34"/><path d="M20 32 L20 42"/></g><g fill="currentColor"><circle cx="20" cy="6" r="2.1"/><circle cx="7" cy="18" r="2.1"/><circle cx="33" cy="16" r="2.1"/><circle cx="13" cy="30" r="2.3"/><circle cx="20" cy="32" r="2.5"/><circle cx="27" cy="34" r="2.3"/><circle cx="20" cy="42" r="1.7"/><circle cx="8" cy="54" r="2.1"/><circle cx="33" cy="58" r="2.4"/></g></svg>__NAME__</h1>
+    <h1><svg class="mark" viewBox="0 0 40 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="0.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 L7 18 L13 30 L8 54"/><path d="M20 6 L33 16 L27 34 L33 58"/><path d="M13 30 L20 32 L27 34"/><path d="M20 32 L20 42"/></g><g fill="currentColor"><circle cx="20" cy="6" r="1.35"/><circle cx="7" cy="18" r="1.9"/><circle cx="33" cy="16" r="1.7"/><circle cx="13" cy="30" r="1.85"/><circle cx="20" cy="32" r="2.15"/><circle cx="27" cy="34" r="1.85"/><circle cx="20" cy="42" r="1.15"/><circle cx="8" cy="54" r="1.7"/><circle cx="33" cy="58" r="2.35"/></g></svg>__NAME__</h1>
     <div class="meta">
       <p id="status">pronto</p>
       <p id="clock">00:00:00</p>
     </div>
   </header>
   <div class="well">
-    <p id="sky-read">Arraste para orbitar. A roda aproxima.</p>
+    <p id="sky-read" hidden>Arraste para orbitar. A roda aproxima.</p>
   </div>
   <aside class="telemetry">
     <div class="systems">
@@ -314,6 +316,11 @@ let zoom = 1;
 let drag = null;
 let dragMoved = 0;
 const orbitHint = "Arraste para orbitar. A roda aproxima.";
+function readSky(text) {
+  const line = text || "";
+  skyRead.textContent = line;
+  skyRead.hidden = line === "" || line === orbitHint;
+}
 const GROUPS = {
   notas: { name: "Notas", rgb: "214, 78, 112", link: "255, 220, 226" },
   sistemas: { name: "Sistemas", rgb: "64, 112, 196", link: "186, 214, 242" },
@@ -1011,7 +1018,7 @@ async function refreshBrain() {
       btn.setAttribute("aria-pressed", btn.dataset.brain === choice ? "true" : "false");
     }
     if (picked && String(picked).indexOf("sys-") === 0) {
-      skyRead.textContent = systemText[picked] || skyRead.textContent;
+      readSky(systemText[picked] || skyRead.textContent);
     }
     refreshSky();
   } catch (err) {
@@ -1069,7 +1076,7 @@ function focusStar(id) {
   const star = memory.find((item) => item.id === id);
   if (!star) return;
   picked = id;
-  skyRead.textContent = star.text || star.label;
+  readSky(star.text || star.label);
   const node = buildWorld(fitScene(well.getBoundingClientRect())).all.find((item) => item.star.id === id);
   if (node) {
     const aim = anglesToward(node.pos);
@@ -1096,7 +1103,7 @@ async function chooseBrain(id) {
     }
     if (data.reply) {
       addLine("agent", data.reply);
-      skyRead.textContent = data.reply;
+      readSky(data.reply);
     }
     if (data.audio_b64) await playWav(data.audio_b64);
     else setState("idle");
@@ -1111,13 +1118,13 @@ function runSystem(id) {
   if (id === "sys-clima") {
     text.value = "tempo em ";
     text.focus();
-    skyRead.textContent = "De qual lugar, Senhor?";
+    readSky("De qual lugar, Senhor?");
     return;
   }
   if (id === "sys-noticias") {
     text.value = "notícias sobre ";
     text.focus();
-    skyRead.textContent = "Sobre o que, Senhor?";
+    readSky("Sobre o que, Senhor?");
     return;
   }
   if (id === "sys-lembretes") { sendText("quais lembretes"); return; }
@@ -1125,7 +1132,7 @@ function runSystem(id) {
   if (id === "sys-busca") {
     text.value = "busque ";
     text.focus();
-    skyRead.textContent = "O que devo procurar, Senhor?";
+    readSky("O que devo procurar, Senhor?");
   }
 }
 function pointStar(ev, choose) {
@@ -1134,10 +1141,10 @@ function pointStar(ev, choose) {
   if (!hit) {
     if (choose) {
       picked = "";
-      skyRead.textContent = orbitHint;
+      readSky(orbitHint);
     } else if (picked) {
       const held = namedOnScreen.find((item) => item.star.id === picked);
-      if (held) skyRead.textContent = held.star.kind === "sistema" ? (systemText[held.star.id] || held.star.text) : held.star.text;
+      if (held) readSky(held.star.kind === "sistema" ? (systemText[held.star.id] || held.star.text) : held.star.text);
     }
     return;
   }
@@ -1149,7 +1156,7 @@ function pointStar(ev, choose) {
     if (hit.star.kind === "nota") openNote(hit.star);
     else runSystem(hit.star.id);
   }
-  skyRead.textContent = hit.star.kind === "sistema" ? (systemText[hit.star.id] || hit.star.text) : hit.star.text;
+  readSky(hit.star.kind === "sistema" ? (systemText[hit.star.id] || hit.star.text) : hit.star.text);
 }
 well.addEventListener("pointerdown", (ev) => {
   drag = { x: ev.clientX, y: ev.clientY, yaw: yawUser, pitch: pitchUser };
@@ -1180,7 +1187,7 @@ well.addEventListener("pointerup", () => {
 });
 well.addEventListener("pointerleave", () => {
   if (!drag) hovered = "";
-  if (!drag && !picked) skyRead.textContent = orbitHint;
+  if (!drag && !picked) readSky(orbitHint);
   wake();
 });
 well.addEventListener("wheel", (ev) => {
