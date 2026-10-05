@@ -206,13 +206,8 @@ _PAGE = r"""<!DOCTYPE html>
     #permit { grid-row: 5; }
     .floor { grid-row: 6; padding-top: 4px; padding-bottom: 12px; }
     .meta { gap: 16px; }
-    .systems {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      overflow: visible;
-      gap: 0 16px;
-    }
-    .systems button.fact { min-height: 36px; }
+    .systems { flex-flow: row nowrap; overflow-x: auto; }
+    .systems button.fact { flex: none; }
   }
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
 </style>
