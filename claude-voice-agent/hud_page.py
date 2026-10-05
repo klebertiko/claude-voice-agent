@@ -380,8 +380,8 @@ function fitScene(rect) {
   const offset = Math.min(rect.height * 0.26, reach);
   const up = rect.height < 280 ? offset * 0.45 : offset;
   return {
-    notas: Object.assign(at(0, -up), { radius: radiusPx / k, zScale: 0.36, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
-    sistemas: Object.assign(at(0, offset * 0.8), { radius: radiusPx * 0.72 / k, zScale: 0.18, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
+    notas: Object.assign(at(0, -up), { radius: radiusPx / k, zScale: 0.7, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
+    sistemas: Object.assign(at(0, offset * 0.8), { radius: radiusPx * 0.72 / k, zScale: 0.42, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
   };
 }
 function ringPos(index, total, center, radius, tilt) {
