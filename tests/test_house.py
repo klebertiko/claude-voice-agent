@@ -319,6 +319,10 @@ def test_reminder_roundtrip(tmp_path):
     assert _reply("anota que", fetch, path) == "O que devo anotar, Senhor?"
     assert _reply("anota isso", fetch, path) == "O que devo anotar, Senhor?"
     assert "pagar a luz" in _reply("quais são os lembretes", fetch, path)
+    assert _reply("o que eu tenho anotado", fetch, path).startswith("Lembretes, Senhor.")
+    assert _reply("mostra minhas notas", fetch, path).startswith("Lembretes, Senhor.")
+    assert _reply("leia os lembretes", fetch, path).startswith("Lembretes, Senhor.")
+    assert _reply("meus recados", fetch, path).startswith("Lembretes, Senhor.")
     assert _reply("liste os arquivos", fetch, path) is None
 
 
@@ -413,6 +417,18 @@ def test_note_search_stays_in_the_vault(tmp_path):
         "O que devo buscar nas notas, Senhor?"
     )
     assert _reply("buscar nota marte", fetch, path) == "Não há nota com isso, Senhor."
+    assert _reply("cadê a nota do projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("onde anotei o projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("tem recado sobre projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("cadê a nota", fetch, path) == "O que devo buscar nas notas, Senhor?"
+    voice_hit = _reply("onde eu anotei a voz", fetch, voice)
+    assert voice_hit == "Nas notas, Senhor. revisar o projeto de voz."
 
 
 def test_camera_and_image_are_refused(tmp_path):

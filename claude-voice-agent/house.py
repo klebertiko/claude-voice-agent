@@ -236,7 +236,8 @@ def _note_subject(norm: str) -> str | None:
         "procurar nas minhas notas", "procure nas minhas notas", "procura nas minhas notas",
         "pesquisar nas minhas notas", "pesquise nas minhas notas", "pesquisa nas minhas notas",
         "nas notas", "tem nota", "tem nota sobre", "tem alguma nota",
-        "alguma nota", "uma nota",
+        "alguma nota", "uma nota", "tem recado", "cade a nota", "cade o lembrete",
+        "onde anotei", "onde eu anotei",
         "tem alguma coisa nas notas", "tem algo nas notas",
         "nas minhas notas", "nas minhas notas tem",
         "o que anotei sobre", "o que eu anotei sobre",
@@ -290,6 +291,25 @@ def _note_subject(norm: str) -> str | None:
     asked = re.match(r"^o que (?:eu )?anotei\s+(?:sobre|de|do|da)\s+(.+)$", norm)
     if asked:
         return _clean_subject(asked.group(1))
+    placed = re.match(
+        r"^onde(?:\s+eu)?\s+anotei(?:\s+(?:o|a|os|as|sobre|de|do|da))?\s+(.+)$",
+        norm,
+    )
+    if placed:
+        return _clean_subject(placed.group(1))
+    lost = re.match(
+        r"^cade(?:\s+(?:a|o))?\s+(?:nota|lembrete|recado)"
+        r"(?:\s+(?:do|da|de|sobre))?(?:\s+(.*))?$",
+        norm,
+    )
+    if lost:
+        return _clean_subject(lost.group(1) or "")
+    recado = re.match(
+        r"^tem\s+recado(?:\s+(?:sobre|de|do|da))?(?:\s+(.*))?$",
+        norm,
+    )
+    if recado:
+        return _clean_subject(recado.group(1) or "")
     return None
 
 
@@ -712,8 +732,13 @@ def house_reply(
             return _remember(body, reminders_path, moment)
         if norm in {
             "quais lembretes", "meus lembretes", "o que anotei", "o que eu anotei",
+            "o que tenho anotado", "o que eu tenho anotado",
             "quais sao os lembretes", "quais os lembretes",
             "lista os lembretes", "listar lembretes", "liste os lembretes",
+            "mostra minhas notas", "mostra os lembretes", "mostra as notas",
+            "le minhas notas", "leia minhas notas",
+            "le os lembretes", "leia os lembretes", "ler os lembretes",
+            "meus recados",
         }:
             return _list_notes(reminders_path)
         if _wants_weather(norm):
