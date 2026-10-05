@@ -195,6 +195,8 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
         "De qual lugar, Senhor.": "weather",
         "Sobre o que, Senhor.": "news",
         "O que devo procurar, Senhor?": "search",
+        "O que devo anotar, Senhor?": "note",
+        "O que devo buscar nas notas, Senhor?": "notes",
     }
 
     def reply(cleaned: str, history: list[tuple[str, str]]) -> str:
@@ -216,9 +218,16 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
             kind = pending["kind"]
             pending["kind"] = ""
             try:
-                return continue_house(kind, cleaned)
+                spoken = continue_house(
+                    kind,
+                    cleaned,
+                    reminders_path=settings.reminders_path,
+                    moment=moment,
+                )
             except (OSError, ValueError, json.JSONDecodeError, TimeoutError):
                 return "Não alcancei isso agora, Senhor."
+            pending["kind"] = asked.get(spoken, "")
+            return spoken
         fact = _panel_fact(cleaned, persona)
         if fact:
             return fact

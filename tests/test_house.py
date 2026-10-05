@@ -152,6 +152,32 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert reply("Campinas", []) == "Em Campinas, 19 graus, nublado, Senhor."
 
 
+def test_the_next_line_is_the_note(tmp_path):
+    from claude_agent_voice.hud import make_reply_fn
+    from claude_agent_voice.personas import get_persona
+    from claude_agent_voice.settings import Settings
+
+    notes = tmp_path / "n.json"
+    reply = make_reply_fn(
+        Settings.from_env(
+            env={
+                "CLAUDE_VOICE_CODEX_CLI": "missing-codex",
+                "CLAUDE_VOICE_CURSOR_CLI": "missing-cursor",
+                "CLAUDE_VOICE_CLAUDE_CLI": "missing-claude",
+                "OLLAMA_HOST": "",
+                "CLAUDE_VOICE_OLLAMA_HOST": "",
+                "CLAUDE_VOICE_REMINDERS": str(notes),
+            }
+        ),
+        get_persona("orion"),
+        lambda: WHEN,
+    )
+    assert reply("anote", []) == "O que devo anotar, Senhor?"
+    assert reply("comprar café", []) == "Anotado, Senhor."
+    assert reply("buscar nota", []) == "O que devo buscar nas notas, Senhor?"
+    assert "comprar café" in reply("café", [])
+
+
 def test_network_failure_is_spoken(tmp_path):
     def fetch(_url):
         raise TimeoutError("off")

@@ -206,8 +206,15 @@ def _answer_text(text: str) -> str:
     return text.strip()
 
 
-def continue_house(kind: str, text: str, *, fetch=None) -> str:
-    """A resposta curta depois de Orion pedir lugar, assunto ou busca."""
+def continue_house(
+    kind: str,
+    text: str,
+    *,
+    fetch=None,
+    reminders_path: Path | None = None,
+    moment: datetime | None = None,
+) -> str:
+    """A resposta curta depois de Orion pedir lugar, assunto, busca ou nota."""
     fetch = fetch or _http_get
     said = _answer_text(text)
     try:
@@ -217,6 +224,10 @@ def continue_house(kind: str, text: str, *, fetch=None) -> str:
             return _news(said, fetch)
         if kind == "search":
             return _search(said, fetch)
+        if kind == "note" and reminders_path is not None and moment is not None:
+            return _remember(text, reminders_path, moment)
+        if kind == "notes" and reminders_path is not None:
+            return _find_notes(text, reminders_path)
     except (OSError, ValueError, json.JSONDecodeError, ET.ParseError, KeyError, TimeoutError):
         return "Não alcancei isso agora, Senhor."
     return "Não entendi, Senhor."
@@ -277,6 +288,8 @@ def house_reply(
             clock_h = moment.hour
             sky = _weather("São Paulo", fetch)
             return f"São {clock_h} horas, Senhor. {sky}"
+        if norm in {"anote", "anota", "lembrete"}:
+            return "O que devo anotar, Senhor?"
         if norm.startswith(("lembrete ", "me lembre de ", "me lembra de ", "anote ", "anota ")):
             match = re.search(
                 r"(?:me lembre de|me lembra de|lembrete|anote|anota)\s+(.+)$",
@@ -298,6 +311,8 @@ def house_reply(
             return _news(topic, fetch)
         if norm in {"busque", "pesquise", "procure", "busca", "pesquisa"}:
             return "O que devo procurar, Senhor?"
+        if norm in {"buscar nota", "notas sobre"}:
+            return "O que devo buscar nas notas, Senhor?"
         if norm.startswith("buscar nota ") or norm.startswith("notas sobre "):
             query = norm.split(" ", 2)[-1] if norm.startswith("buscar nota ") else norm[len("notas sobre ") :]
             return _find_notes(query, reminders_path)
