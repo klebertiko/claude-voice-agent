@@ -324,7 +324,7 @@ _PAGE = r"""<!DOCTYPE html>
     .systems .band { display: contents; }
     .systems .fact[data-brain] { order: 9; }
     .systems .fact[data-brain][aria-pressed="true"] { order: 0; }
-    .systems:not(:has(.fact[aria-pressed="true"])) .fact[data-brain="ollama"] { order: 0; }
+    .systems:not(:has(.fact[aria-pressed="true"])) .fact[data-brain] { order: 0; }
     .systems .fact:has(#notes) { order: 1; }
     .systems .fact:has(#date) { order: 2; }
     .systems .fact[data-voice] { order: 3; }
@@ -2200,13 +2200,14 @@ function markMore() {
   const rect = systemsEl.getBoundingClientRect();
   let clip = rect.width;
   if (more) {
+    let clipLeft = Infinity;
     for (const fact of systemsEl.querySelectorAll(".fact")) {
       const row = fact.getBoundingClientRect();
-      if (row.left < rect.right - 8 && row.right > rect.right + 8 && row.left - rect.left >= 44) {
-        clip = row.left - rect.left;
-        break;
+      if (row.left < rect.right - 1 && row.right > rect.right + 1 && row.left - rect.left >= 44) {
+        clipLeft = Math.min(clipLeft, row.left);
       }
     }
+    if (clipLeft < Infinity) clip = clipLeft - rect.left;
   }
   systemsEl.style.setProperty("--clip", clip + "px");
   const tel = systemsEl.closest(".telemetry");
