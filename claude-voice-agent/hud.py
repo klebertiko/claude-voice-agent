@@ -63,6 +63,10 @@ def brazil_now() -> datetime:
 def _weather_field(text: str) -> str:
     """Qual leitura o pedido quer. Vazio é a temperatura de sempre."""
     norm = _plain(text)
+    if "fim de semana" in norm and (
+        _has_word(text, "clima") or _has_word(text, "tempo") or _has_word(text, "previsao")
+    ):
+        return "fim"
     if _has_word(text, "semana") and (
         _has_word(text, "clima") or _has_word(text, "tempo") or _has_word(text, "previsao")
     ):

@@ -306,6 +306,23 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         if dew is None:
             return "Não alcancei o clima, Senhor."
         return f"Em {label}, ponto de orvalho de {_speak_graus(dew)}, Senhor."
+    if field == "fim":
+        url = (
+            "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_min,temperature_2m_max"
+            f"&forecast_days=8&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        daily = data.get("daily") or {}
+        span = _weekend_span(
+            daily.get("time") or [],
+            daily.get("temperature_2m_min") or [],
+            daily.get("temperature_2m_max") or [],
+        )
+        if span is None:
+            return "Não alcancei o clima, Senhor."
+        low, high = span
+        spoken = _speak_graus(low) if low == high else f"de {_speak_span(low)} a {_speak_span(high)} graus"
+        return f"Em {label}, no fim de semana, {spoken}, Senhor."
     if field == "semana":
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_min,temperature_2m_max"
@@ -407,6 +424,35 @@ def _wants_dollar(norm: str) -> bool:
         r"(?:o\s+)?dolar\s+(?:hoje|agora)",
         norm,
     ))
+
+
+def _weekend_span(times, lows, highs) -> tuple[int, int] | None:
+    """Sábado e domingo à frente. No domingo, só o dia que resta."""
+    rows = []
+    for index, stamp in enumerate(times):
+        try:
+            day = datetime.fromisoformat(str(stamp)).date()
+        except ValueError:
+            continue
+        low = lows[index] if index < len(lows) else None
+        high = highs[index] if index < len(highs) else None
+        if low is None or high is None:
+            continue
+        rows.append((day, float(low), float(high)))
+    if not rows:
+        return None
+    today = rows[0][0]
+    if today.weekday() == 6:
+        chosen = [row for row in rows if row[0] == today]
+    else:
+        saturday = today + timedelta(days=(5 - today.weekday()) % 7)
+        sunday = saturday + timedelta(days=1)
+        chosen = [row for row in rows if row[0] in {saturday, sunday}]
+    if not chosen:
+        return None
+    low = int(round(min(row[1] for row in chosen)))
+    high = int(round(max(row[2] for row in chosen)))
+    return low, high
 
 
 def _speak_span(graus: int) -> str:
@@ -1463,6 +1509,21 @@ def _air_place(norm: str) -> str | None:
     return _city_name(match.group(1) or "")
 
 
+def _weekend_place(norm: str) -> str | None:
+    """None quando não é o fim de semana. Vazio quando falta a cidade."""
+    match = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
+        r"(?:qual\s+(?:e\s+)?)?(?:(?:o|a)\s+)?"
+        r"(?:tempo|clima|previsao)(?:\s+do\s+tempo)?"
+        r"\s+(?:para\s+(?:o\s+)?|no\s+|do\s+|de\s+)?fim\s+de\s+semana"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if not match:
+        return None
+    return _city_name(match.group(1) or "")
+
+
 def _week_place(norm: str) -> str | None:
     """None quando não é o clima da semana. Vazio quando falta a cidade."""
     match = re.fullmatch(
@@ -1839,6 +1900,11 @@ def house_reply(
                 return "De qual lugar, Senhor."
             day = "amanha" if re.search(r"\bamanha\b", norm) else ""
             return _weather(dew_place, fetch, day=day, field="orvalho")
+        weekend_place = _weekend_place(norm)
+        if weekend_place is not None:
+            if not weekend_place:
+                return "De qual lugar, Senhor."
+            return _weather(weekend_place, fetch, field="fim")
         week_place = _week_place(norm)
         if week_place is not None:
             if not week_place:

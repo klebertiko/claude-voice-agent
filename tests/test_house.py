@@ -56,6 +56,47 @@ def test_weather_asks_for_the_place(tmp_path):
     assert _reply("vai chover à noite", fetch, path) == "De qual lugar, Senhor."
 
 
+def test_weekend_names_saturday_and_sunday(tmp_path):
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "geocoding" in url:
+            assert "recife" in url.lower() or "curitiba" in url.lower()
+            name = "Recife" if "recife" in url.lower() else "Curitiba"
+            return '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
+        if "news.google" in url:
+            assert "q=fim" in url
+            assert "forecast_days=8" not in url
+            return "<rss><channel><item><title>Alpha sobe</title></item></channel></rss>"
+        assert "forecast_days=8" in url
+        assert "temperature_2m_min" in url
+        return (
+            '{"daily":{"time":["2026-10-05","2026-10-06","2026-10-07","2026-10-08",'
+            '"2026-10-09","2026-10-10","2026-10-11","2026-10-12"],'
+            '"temperature_2m_min":[18,18,18,18,18,12,14,18],'
+            '"temperature_2m_max":[35,22,22,22,22,26,28,22]}}'
+        )
+
+    path = tmp_path / "n.json"
+    assert _reply("clima para o fim de semana", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("tempo no fim de semana", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("notícias do fim de semana", fetch, path) == (
+        "Nas notícias, Senhor. Alpha sobe."
+    )
+    assert "forecast_days=8" not in "".join(seen)
+    assert _reply("clima para o fim de semana em recife", fetch, path) == (
+        "Em Recife, no fim de semana, de 12 a 28 graus, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "fim" not in seen[-2]
+    assert "forecast_days=8" in seen[-1]
+    assert _reply("me fala o tempo no fim de semana em curitiba", fetch, path) == (
+        "Em Curitiba, no fim de semana, de 12 a 28 graus, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+
+
 def test_week_names_the_span(tmp_path):
     seen = []
 
@@ -2104,6 +2145,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
             return f"{when} {place}, chance de chuva de 40 por cento, Senhor."
         if field == "semana":
             return f"Em {place}, na semana, de 14 a 29 graus, Senhor."
+        if field == "fim":
+            return f"Em {place}, no fim de semana, de 12 a 28 graus, Senhor."
         if field == "maxima":
             when = "Amanhã em" if day == "amanha" else "Em"
             return f"{when} {place}, máxima de 31 graus, Senhor."
@@ -2195,6 +2238,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
     )
     assert reply("clima para a semana", []) == "De qual lugar, Senhor."
     assert reply("Curitiba", []) == "Em Curitiba, na semana, de 14 a 29 graus, Senhor."
+    assert reply("clima para o fim de semana", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Em Recife, no fim de semana, de 12 a 28 graus, Senhor."
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):
