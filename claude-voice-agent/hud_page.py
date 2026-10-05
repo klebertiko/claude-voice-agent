@@ -591,6 +591,8 @@ function labelSpots(x, y, cx0, cy0) {
     { x: x - 14, y, align: "right" },
     { x, y: y - 18, align: "center" },
     { x, y: y + 18, align: "center" },
+    { x, y: y - 36, align: "center" },
+    { x, y: y + 36, align: "center" },
   ];
   if (cx0 != null) {
     const dx = x - cx0;
@@ -773,19 +775,6 @@ function drawPlate() {
   }
   const boxes = [];
   ctx.textBaseline = "middle";
-  ctx.font = "600 14px " + ink.body;
-  ctx.textAlign = "center";
-  for (const cloud of Object.values(centroids)) {
-    const y = cloud.y - Math.max(36, cloud.maxD) - 10;
-    if (y < rect.top + 12 || y > rect.bottom - 36) continue;
-    const width = ctx.measureText(cloud.name).width;
-    const box = labelBox(cloud.x, y, "center", width);
-    if (box.l < rect.left + 4 || box.r > rect.right - 4) continue;
-    boxes.push(box);
-    ctx.globalAlpha = 0.82;
-    ctx.fillStyle = ink.ink2;
-    ctx.fillText(cloud.name, cloud.x, y);
-  }
   ctx.font = "400 14px " + ink.body;
   const ranked = view.slice().sort((a, b) => {
     const af = a.star.id === picked || a.star.id === hovered;
@@ -802,18 +791,40 @@ function drawPlate() {
     if (item.p.persp < 0.42 && !focus) continue;
     const onStage = item.p.x >= rect.left + 8 && item.p.x <= rect.right - 8 && item.p.y >= rect.top + 12 && item.p.y <= rect.bottom - 36;
     if (!onStage && item.star.id !== picked) continue;
-    const width = ctx.measureText(item.star.label).width;
+    const full = item.star.label;
+    const width = ctx.measureText(full).width;
     const home = centroids[item.star.kind];
     const options = labelSpots(item.p.x, item.p.y, home && home.x, home && home.y);
+    const fits = (trial) => trial.l >= rect.left + 4 && trial.r <= rect.right - 4 && trial.t >= rect.top + 4 && trial.b <= rect.bottom - 28 && !boxes.some((held) => boxesHit(trial, held));
     let spot = null;
     let box = null;
+    let lines = null;
     for (const opt of options) {
       const trial = labelBox(opt.x, opt.y, opt.align, width);
-      if (trial.l < rect.left + 4 || trial.r > rect.right - 4 || trial.t < rect.top + 4 || trial.b > rect.bottom - 28) continue;
-      if (boxes.some((held) => boxesHit(trial, held))) continue;
+      if (!fits(trial)) continue;
       spot = opt;
       box = trial;
       break;
+    }
+    if (!spot && full.indexOf(" ") > 0) {
+      const words = full.split(" ");
+      let best = null;
+      let bestW = Infinity;
+      for (let cut = 1; cut < words.length; cut++) {
+        const pair = [words.slice(0, cut).join(" "), words.slice(cut).join(" ")];
+        const lineW = Math.max(ctx.measureText(pair[0]).width, ctx.measureText(pair[1]).width);
+        if (lineW < bestW) { bestW = lineW; best = pair; }
+      }
+      for (const opt of options) {
+        const trial = labelBox(opt.x, opt.y, opt.align, bestW);
+        trial.t -= 8;
+        trial.b += 8;
+        if (!fits(trial)) continue;
+        spot = opt;
+        box = trial;
+        lines = best;
+        break;
+      }
     }
     if (!spot && item.star.id === picked) {
       spot = options[0];
@@ -822,11 +833,35 @@ function drawPlate() {
     if (!spot) continue;
     boxes.push(box);
     const row = namedOnScreen.find((entry) => entry.star.id === item.star.id);
-    if (row) { row.align = spot.align; row.lx = spot.x; row.ly = spot.y; row.labelW = width; }
+    if (row) {
+      row.align = spot.align;
+      row.lx = spot.x;
+      row.ly = spot.y;
+      row.labelW = lines ? Math.max(ctx.measureText(lines[0]).width, ctx.measureText(lines[1]).width) : width;
+    }
     ctx.globalAlpha = item.star.id === picked ? 1 : 0.92;
     ctx.fillStyle = item.star.id === picked ? ink.accent : ink.ink;
     ctx.textAlign = spot.align;
-    ctx.fillText(item.star.label, spot.x, spot.y);
+    if (lines) {
+      ctx.fillText(lines[0], spot.x, spot.y - 8);
+      ctx.fillText(lines[1], spot.x, spot.y + 8);
+    } else {
+      ctx.fillText(full, spot.x, spot.y);
+    }
+  }
+  ctx.font = "600 14px " + ink.body;
+  ctx.textAlign = "center";
+  for (const cloud of Object.values(centroids)) {
+    const y = cloud.y - Math.max(36, cloud.maxD) - 10;
+    if (y < rect.top + 12 || y > rect.bottom - 36) continue;
+    const width = ctx.measureText(cloud.name).width;
+    const box = labelBox(cloud.x, y, "center", width);
+    if (box.l < rect.left + 4 || box.r > rect.right - 4) continue;
+    if (boxes.some((held) => boxesHit(box, held))) continue;
+    boxes.push(box);
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = ink.ink2;
+    ctx.fillText(cloud.name, cloud.x, y);
   }
   ctx.restore();
   ctx.globalAlpha = 1;
@@ -840,7 +875,7 @@ function starAt(x, y) {
     const dot = Math.hypot(item.x - x, item.y - y);
     if (dot < bestD) { best = item; bestD = dot; }
     const width = item.labelW || 0;
-    if (width > 8 && Math.abs(y - (item.ly || item.y)) <= 12) {
+    if (width > 8 && Math.abs(y - (item.ly || item.y)) <= 16) {
       const left = item.align === "center" ? item.lx - width / 2 : item.align === "right" ? item.lx - width : item.lx;
       if (x >= left - 4 && x <= left + width + 4) { best = item; bestD = 0; }
     }
