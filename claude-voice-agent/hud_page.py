@@ -249,11 +249,14 @@ _PAGE = r"""<!DOCTYPE html>
     #note:not([hidden]) #note-text {
       flex: 1 1 auto;
       min-width: 46%;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      overflow-x: auto;
+      overflow-y: hidden;
+      text-overflow: clip;
       white-space: nowrap;
       line-height: 1.25;
+      scrollbar-width: none;
     }
+    #note:not([hidden]) #note-text::-webkit-scrollbar { height: 0; display: none; }
     #note:not([hidden]) #note-links {
       flex: 0 1 auto;
       max-width: 50%;
@@ -369,11 +372,14 @@ _PAGE = r"""<!DOCTYPE html>
     #note:not([hidden]) #note-text {
       flex: 1 1 auto;
       min-width: 8rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      overflow-x: auto;
+      overflow-y: hidden;
+      text-overflow: clip;
       white-space: nowrap;
       line-height: 1.25;
+      scrollbar-width: none;
     }
+    #note:not([hidden]) #note-text::-webkit-scrollbar { height: 0; display: none; }
     #note:not([hidden]) #note-links {
       flex: 0 1 auto;
       max-width: 62%;
