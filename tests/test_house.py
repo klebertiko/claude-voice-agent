@@ -56,6 +56,46 @@ def test_weather_asks_for_the_place(tmp_path):
     assert _reply("vai chover à noite", fetch, path) == "De qual lugar, Senhor."
 
 
+def test_day_after_tomorrow_is_not_tomorrow(tmp_path):
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "geocoding" in url:
+            assert "recife" in url.lower() or "curitiba" in url.lower()
+            name = "Recife" if "recife" in url.lower() else "Curitiba"
+            return '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
+        if "forecast_days=3" in url:
+            assert "temperature_2m_max" in url
+            return '{"daily":{"temperature_2m_max":[28,27,31],"weather_code":[1,3,2]}}'
+        if "forecast_days=2" in url:
+            return '{"daily":{"temperature_2m_max":[28,27],"weather_code":[1,3]}}'
+        return '{"current":{"temperature_2m":22,"weather_code":1}}'
+
+    path = tmp_path / "n.json"
+    assert _reply("tempo para depois de amanhã", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("qualidade do ar depois de amanhã em recife", fetch, path) is None
+    assert seen == []
+    assert _reply("tempo depois de amanhã em recife", fetch, path) == (
+        "Depois de amanhã em Recife, máxima de 31 graus, parcialmente nublado, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "forecast_days=3" in seen[-1]
+    assert _reply("vai chover depois de amanhã em curitiba", fetch, path) == (
+        "Depois de amanhã em Curitiba, máxima de 31 graus, parcialmente nublado, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    assert "forecast_days=3" in seen[-1]
+    assert _reply("tempo amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, máxima de 27 graus, nublado, Senhor."
+    )
+    assert "forecast_days=2" in seen[-1]
+    assert _reply("tempo para depois em recife", fetch, path) == (
+        "Em Recife, 22 graus, quase limpo, Senhor."
+    )
+    assert "daily=" not in seen[-1]
+
+
 def test_weekend_names_saturday_and_sunday(tmp_path):
     seen = []
 
@@ -2153,6 +2193,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
         if field == "minima":
             when = "Amanhã em" if day == "amanha" else "Em"
             return f"{when} {place}, mínima de 18 graus, Senhor."
+        if day == "depois":
+            return f"Depois de amanhã em {place}, máxima de 31 graus, nublado, Senhor."
         if day == "amanha":
             return f"Amanhã em {place}, máxima de 27 graus, nublado, Senhor."
         return f"Em {place}, 19 graus, nublado, Senhor."
@@ -2240,6 +2282,10 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert reply("Curitiba", []) == "Em Curitiba, na semana, de 14 a 29 graus, Senhor."
     assert reply("clima para o fim de semana", []) == "De qual lugar, Senhor."
     assert reply("Recife", []) == "Em Recife, no fim de semana, de 12 a 28 graus, Senhor."
+    assert reply("tempo para depois de amanhã", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == (
+        "Depois de amanhã em Recife, máxima de 31 graus, nublado, Senhor."
+    )
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):

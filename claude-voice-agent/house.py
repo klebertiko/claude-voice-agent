@@ -35,6 +35,15 @@ _WX = {
 }
 
 
+def _forecast_day(norm: str) -> str:
+    """«depois de amanhã» não é amanhã."""
+    if "depois de amanha" in norm:
+        return "depois"
+    if re.search(r"\bamanha\b", norm):
+        return "amanha"
+    return ""
+
+
 def _plain(text: str) -> str:
     import unicodedata
 
@@ -78,20 +87,22 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
     if not hit:
         return "Não achei essa cidade, Senhor."
     lat, lon, label = hit["latitude"], hit["longitude"], hit.get("name") or name
+    ahead = 2 if day == "depois" else 1 if day == "amanha" else 0
+    when = "Depois de amanhã em" if ahead == 2 else "Amanhã em" if ahead == 1 else "Em"
     if field == "umidade":
-        if day == "amanha":
+        if ahead:
             key = "relative_humidity_2m_mean"
             url = (
                 "https://api.open-meteo.com/v1/forecast?daily="
                 + key
-                + f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+                + f"&forecast_days={ahead + 1}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
             )
             data = json.loads(fetch(url))
             values = (data.get("daily") or {}).get(key) or []
-            if len(values) <= 1 or values[1] is None:
+            if len(values) <= ahead or values[ahead] is None:
                 return "Não alcancei o clima, Senhor."
-            pct = int(round(float(values[1])))
-            return f"Amanhã em {label}, umidade de {pct} por cento, Senhor."
+            pct = int(round(float(values[ahead])))
+            return f"{when} {label}, umidade de {pct} por cento, Senhor."
         url = (
             "https://api.open-meteo.com/v1/forecast?current=relative_humidity_2m"
             f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
@@ -103,19 +114,19 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         pct = int(round(float(humid)))
         return f"Em {label}, umidade de {pct} por cento, Senhor."
     if field == "sensacao":
-        if day == "amanha":
+        if ahead:
             key = "apparent_temperature_mean"
             url = (
                 "https://api.open-meteo.com/v1/forecast?daily="
                 + key
-                + f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+                + f"&forecast_days={ahead + 1}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
             )
             data = json.loads(fetch(url))
             values = (data.get("daily") or {}).get(key) or []
-            if len(values) <= 1 or values[1] is None:
+            if len(values) <= ahead or values[ahead] is None:
                 return "Não alcancei o clima, Senhor."
-            graus = int(round(float(values[1])))
-            return f"Amanhã em {label}, sensação de {graus} graus, Senhor."
+            graus = int(round(float(values[ahead])))
+            return f"{when} {label}, sensação de {graus} graus, Senhor."
         url = (
             "https://api.open-meteo.com/v1/forecast?current=apparent_temperature"
             f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
@@ -127,19 +138,19 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         graus = int(round(float(feels)))
         return f"Em {label}, sensação de {graus} graus, Senhor."
     if field == "vento":
-        if day == "amanha":
+        if ahead:
             key = "wind_speed_10m_mean"
             url = (
                 "https://api.open-meteo.com/v1/forecast?daily="
                 + key
-                + f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+                + f"&forecast_days={ahead + 1}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
             )
             data = json.loads(fetch(url))
             values = (data.get("daily") or {}).get(key) or []
-            if len(values) <= 1 or values[1] is None:
+            if len(values) <= ahead or values[ahead] is None:
                 return "Não alcancei o clima, Senhor."
-            km = int(round(float(values[1])))
-            return f"Amanhã em {label}, vento de {km} quilômetros por hora, Senhor."
+            km = int(round(float(values[ahead])))
+            return f"{when} {label}, vento de {km} quilômetros por hora, Senhor."
         url = (
             "https://api.open-meteo.com/v1/forecast?current=wind_speed_10m"
             f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
@@ -152,7 +163,7 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         return f"Em {label}, vento de {km} quilômetros por hora, Senhor."
     if field in {"nascer", "por"}:
         key = "sunrise" if field == "nascer" else "sunset"
-        days = 2 if day == "amanha" else 1
+        days = ahead + 1
         url = (
             "https://api.open-meteo.com/v1/forecast?daily="
             + key
@@ -160,30 +171,28 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         )
         data = json.loads(fetch(url))
         times = (data.get("daily") or {}).get(key) or []
-        index = 1 if day == "amanha" else 0
+        index = ahead
         clock = _sun_clock(str(times[index])) if len(times) > index else ""
         if not clock:
             return "Não alcancei o clima, Senhor."
         verb = "nasce" if field == "nascer" else "se põe"
-        when = "Amanhã em" if day == "amanha" else "Em"
         return f"{when} {label}, o sol {verb} às {clock}, Senhor."
     if field == "uv":
-        days = 2 if day == "amanha" else 1
+        days = ahead + 1
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=uv_index_max"
             f"&forecast_days={days}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
         )
         data = json.loads(fetch(url))
         values = (data.get("daily") or {}).get("uv_index_max") or []
-        index = 1 if day == "amanha" else 0
+        index = ahead
         if len(values) <= index or values[index] is None:
             return "Não alcancei o clima, Senhor."
         level = int(round(float(values[index])))
-        when = "Amanhã em" if day == "amanha" else "Em"
         return f"{when} {label}, índice UV de {level}, Senhor."
     if field in {"maxima", "minima"}:
         key = "temperature_2m_max" if field == "maxima" else "temperature_2m_min"
-        days = 2 if day == "amanha" else 1
+        days = ahead + 1
         url = (
             "https://api.open-meteo.com/v1/forecast?daily="
             + key
@@ -191,27 +200,26 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         )
         data = json.loads(fetch(url))
         values = (data.get("daily") or {}).get(key) or []
-        index = 1 if day == "amanha" else 0
+        index = ahead
         if len(values) <= index or values[index] is None:
             return "Não alcancei o clima, Senhor."
         graus = int(round(float(values[index])))
         word = "máxima" if field == "maxima" else "mínima"
-        when = "Amanhã em" if day == "amanha" else "Em"
         return f"{when} {label}, {word} de {graus} graus, Senhor."
     if field == "pressao":
-        if day == "amanha":
+        if ahead:
             key = "surface_pressure_mean"
             url = (
                 "https://api.open-meteo.com/v1/forecast?daily="
                 + key
-                + f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+                + f"&forecast_days={ahead + 1}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
             )
             data = json.loads(fetch(url))
             values = (data.get("daily") or {}).get(key) or []
-            if len(values) <= 1 or values[1] is None:
+            if len(values) <= ahead or values[ahead] is None:
                 return "Não alcancei o clima, Senhor."
-            mb = int(round(float(values[1])))
-            return f"Amanhã em {label}, pressão de {mb} milibares, Senhor."
+            mb = int(round(float(values[ahead])))
+            return f"{when} {label}, pressão de {mb} milibares, Senhor."
         url = (
             "https://api.open-meteo.com/v1/forecast?current=surface_pressure"
             f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
@@ -223,18 +231,17 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         mb = int(round(float(hpa)))
         return f"Em {label}, pressão de {mb} milibares, Senhor."
     if field == "chance":
-        days = 2 if day == "amanha" else 1
+        days = ahead + 1
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=precipitation_probability_max"
             f"&forecast_days={days}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
         )
         data = json.loads(fetch(url))
         values = (data.get("daily") or {}).get("precipitation_probability_max") or []
-        index = 1 if day == "amanha" else 0
+        index = ahead
         if len(values) <= index or values[index] is None:
             return "Não alcancei o clima, Senhor."
         pct = int(round(float(values[index])))
-        when = "Amanhã em" if day == "amanha" else "Em"
         return f"{when} {label}, chance de chuva de {pct} por cento, Senhor."
     if field == "ar":
         url = (
@@ -260,20 +267,20 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
             band = "péssima"
         return f"Em {label}, qualidade do ar {band}, índice {value}, Senhor."
     if field == "visibilidade":
-        if day == "amanha":
+        if ahead:
             key = "visibility_mean"
             url = (
                 "https://api.open-meteo.com/v1/forecast?daily="
                 + key
-                + f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+                + f"&forecast_days={ahead + 1}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
             )
             data = json.loads(fetch(url))
             values = (data.get("daily") or {}).get(key) or []
-            if len(values) <= 1 or values[1] is None or float(values[1]) < 0:
+            if len(values) <= ahead or values[ahead] is None or float(values[ahead]) < 0:
                 return "Não alcancei o clima, Senhor."
             return (
-                f"Amanhã em {label}, visibilidade de "
-                f"{_speak_visibility(values[1])}, Senhor."
+                f"{when} {label}, visibilidade de "
+                f"{_speak_visibility(values[ahead])}, Senhor."
             )
         url = (
             "https://api.open-meteo.com/v1/forecast?current=visibility"
@@ -285,18 +292,18 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
             return "Não alcancei o clima, Senhor."
         return f"Em {label}, visibilidade de {_speak_visibility(meters)}, Senhor."
     if field == "orvalho":
-        if day == "amanha":
+        if ahead:
             key = "dew_point_2m_mean"
             url = (
                 "https://api.open-meteo.com/v1/forecast?daily="
                 + key
-                + f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+                + f"&forecast_days={ahead + 1}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
             )
             data = json.loads(fetch(url))
             values = (data.get("daily") or {}).get(key) or []
-            if len(values) <= 1 or values[1] is None:
+            if len(values) <= ahead or values[ahead] is None:
                 return "Não alcancei o clima, Senhor."
-            return f"Amanhã em {label}, ponto de orvalho de {_speak_graus(values[1])}, Senhor."
+            return f"{when} {label}, ponto de orvalho de {_speak_graus(values[ahead])}, Senhor."
         url = (
             "https://api.open-meteo.com/v1/forecast?current=dew_point_2m"
             f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
@@ -338,20 +345,20 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         high = int(round(max(highs)))
         span = _speak_graus(low) if low == high else f"de {_speak_span(low)} a {_speak_span(high)} graus"
         return f"Em {label}, na semana, {span}, Senhor."
-    if day == "amanha":
+    if ahead:
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max,weather_code"
-            f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+            f"&forecast_days={ahead + 1}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
         )
         data = json.loads(fetch(url))
         daily = data.get("daily") or {}
         highs = daily.get("temperature_2m_max") or []
         codes = daily.get("weather_code") or []
-        if len(highs) < 2:
+        if len(highs) <= ahead:
             return "Não alcancei o clima, Senhor."
-        sky = _WX.get(int(codes[1] if len(codes) > 1 else 0), "instável")
-        graus = int(round(float(highs[1])))
-        return f"Amanhã em {label}, máxima de {graus} graus, {sky}, Senhor."
+        sky = _WX.get(int(codes[ahead] if len(codes) > ahead else 0), "instável")
+        graus = int(round(float(highs[ahead])))
+        return f"{when} {label}, máxima de {graus} graus, {sky}, Senhor."
     url = (
         "https://api.open-meteo.com/v1/forecast?current=temperature_2m,weather_code"
         f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
@@ -939,10 +946,11 @@ def _city_name(place: str) -> str:
     """Tira hoje, agora e um lugar vago. «curitiba hoje» fica «curitiba»."""
     place = (place or "").strip(" .")
     place = re.sub(
-        r"^(?:hoje|agora|la|muito|amanha|depois)(?:\s+(?:em|no|na|de|do|da))?\s+",
+        r"^(?:depois\s+de\s+amanha|hoje|agora|la|muito|amanha|depois)(?:\s+(?:em|no|na|de|do|da))?\s+",
         "",
         place,
     )
+    place = re.sub(r"\s+depois\s+de\s+amanha$", "", place)
     place = re.sub(r"\s+(?:hoje|agora|amanha)$", "", place).strip()
     if not place or place in _VAGUE_PLACE:
         return ""
@@ -969,7 +977,7 @@ def _spoken_place(text: str) -> str:
 
 
 _SKY_WHEN = (
-    r"(?:\s+(?:hoje|agora|la|muito|amanha|depois))?"
+    r"(?:\s+(?:depois\s+de\s+amanha|hoje|agora|la|muito|amanha|depois))?"
     r"(?:\s+(?:a noite|de noite|a tarde|de tarde|de manha|a manha|de madrugada))?"
 )
 
@@ -977,7 +985,7 @@ _SKY_WHEN = (
 def _heat_place(norm: str) -> str | None:
     """Cidade numa frase de calor, frio, sol ou nuvem. None se não for essa frase."""
     match = re.match(
-        r"^(?:(?:amanha|hoje|depois)\s+)?"
+        r"^(?:(?:depois\s+de\s+amanha|amanha|hoje|depois)\s+)?"
         r"(?:faz (?:calor|frio|sol)"
         r"|tem (?:sol|calor|frio)"
         r"|(?:esta|ta)(?:\s+fazendo)?(?:\s+muito)?\s+(?:calor|quente|frio|sol|nublado)"
@@ -1000,7 +1008,7 @@ def _rain_place(norm: str) -> str | None:
     match = re.match(
         r"^(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:sera\s+que\s+)?"
-        r"(?:(?:amanha|hoje|depois)\s+)?"
+        r"(?:(?:depois\s+de\s+amanha|amanha|hoje|depois)\s+)?"
         r"(?:(?:se\s+)?vai chover|(?:esta|ta)\s+(?:chovendo|garoando)|chove|garoa"
         r"|vai dar(?:\s+uma)?\s+chuva|risco de chuva|pode chover)"
         + _SKY_WHEN
@@ -1047,7 +1055,7 @@ def _quanto_place(norm: str) -> str | None:
 def _later_place(norm: str) -> str | None:
     """Cidade em «tempo para amanhã em Curitiba». None se não for essa frase."""
     match = re.match(
-        r"^(?:tempo|clima)\s+para\s+(?:amanha|hoje|depois)"
+        r"^(?:tempo|clima)\s+para\s+(?:depois\s+de\s+amanha|amanha|hoje|depois)"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?$",
         norm,
     )
@@ -1073,7 +1081,7 @@ def _place_of(norm: str) -> str:
     if quanto is not None:
         return quanto
     day_city = re.search(
-        r"\b(?:tempo|clima|previsao)\s+(?:para\s+)?(?:amanha|hoje|depois)\s+(?:em|no|na|de)\s+(.+)$",
+        r"\b(?:tempo|clima|previsao)\s+(?:para\s+)?(?:depois\s+de\s+amanha|amanha|hoje|depois)\s+(?:em|no|na|de)\s+(.+)$",
         norm,
     )
     if day_city:
@@ -1320,8 +1328,8 @@ def _humidity_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?umidade(?:\s+do\s+ar)?"
-        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
-        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1330,8 +1338,8 @@ def _humidity_place(norm: str) -> str | None:
     damp = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:(?:esta|ta)\s+)?(?:muito\s+)?umido"
-        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
-        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1345,8 +1353,8 @@ def _feels_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?sensacao(?:\s+termica)?"
-        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
-        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1355,7 +1363,7 @@ def _feels_place(norm: str) -> str | None:
     return _city_name(match.group(1) or "")
 
 
-_SUN_TAIL = r"(?:\s+(?:amanha|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?"
+_SUN_TAIL = r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?"
 
 
 def _sun_place(norm: str) -> tuple[str, str] | None:
@@ -1387,8 +1395,8 @@ def _extreme_place(norm: str) -> tuple[str, str] | None:
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?(?:temperatura\s+)?"
         r"(maxima|minima)"
-        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
-        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de|para)\s+(.+))?",
         norm,
     )
@@ -1402,8 +1410,8 @@ def _pressure_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?pressao(?:\s+atmosferica)?"
-        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
-        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1430,8 +1438,8 @@ def _chance_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?(?:chance|probabilidade)\s+de\s+chuva"
-        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
-        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1445,8 +1453,8 @@ def _wind_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:(?:o|a)\s+)?(?:velocidade\s+do\s+)?vento"
-        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
-        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1455,8 +1463,8 @@ def _wind_place(norm: str) -> str | None:
     blowing = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:(?:esta|ta)\s+)?ventando"
-        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
-        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1470,8 +1478,8 @@ def _dew_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:o\s+)?ponto\s+de\s+orvalho"
-        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
-        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1485,8 +1493,8 @@ def _visibility_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?visibilidade"
-        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
-        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1544,7 +1552,7 @@ def _how_city(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"como\s+(?:esta|ta|vai)"
-        r"(?:\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
         r"(?:\s+(?:em|no|na))?"
         r"(?:\s+(.+))?",
         norm,
@@ -1838,50 +1846,50 @@ def house_reply(
             kind, place = extreme
             if not place:
                 return "De qual lugar, Senhor."
-            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            day = _forecast_day(norm)
             return _weather(place, fetch, day=day, field=kind)
         pressure_place = _pressure_place(norm)
         if pressure_place is not None:
             if not pressure_place:
                 return "De qual lugar, Senhor."
-            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            day = _forecast_day(norm)
             return _weather(pressure_place, fetch, day=day, field="pressao")
         uv_place = _uv_place(norm)
         if uv_place is not None:
             if not uv_place:
                 return "De qual lugar, Senhor."
-            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            day = _forecast_day(norm)
             return _weather(uv_place, fetch, day=day, field="uv")
         sun = _sun_place(norm)
         if sun is not None:
             kind, place = sun
             if not place:
                 return "De qual lugar, Senhor."
-            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            day = _forecast_day(norm)
             return _weather(place, fetch, day=day, field=kind)
         wind_place = _wind_place(norm)
         if wind_place is not None:
             if not wind_place:
                 return "De qual lugar, Senhor."
-            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            day = _forecast_day(norm)
             return _weather(wind_place, fetch, day=day, field="vento")
         feels_place = _feels_place(norm)
         if feels_place is not None:
             if not feels_place:
                 return "De qual lugar, Senhor."
-            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            day = _forecast_day(norm)
             return _weather(feels_place, fetch, day=day, field="sensacao")
         humid_place = _humidity_place(norm)
         if humid_place is not None:
             if not humid_place:
                 return "De qual lugar, Senhor."
-            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            day = _forecast_day(norm)
             return _weather(humid_place, fetch, day=day, field="umidade")
         chance_place = _chance_place(norm)
         if chance_place is not None:
             if not chance_place:
                 return "De qual lugar, Senhor."
-            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            day = _forecast_day(norm)
             return _weather(chance_place, fetch, day=day, field="chance")
         air_place = _air_place(norm)
         if air_place is not None:
@@ -1892,13 +1900,13 @@ def house_reply(
         if seen_place is not None:
             if not seen_place:
                 return "De qual lugar, Senhor."
-            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            day = _forecast_day(norm)
             return _weather(seen_place, fetch, day=day, field="visibilidade")
         dew_place = _dew_place(norm)
         if dew_place is not None:
             if not dew_place:
                 return "De qual lugar, Senhor."
-            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            day = _forecast_day(norm)
             return _weather(dew_place, fetch, day=day, field="orvalho")
         weekend_place = _weekend_place(norm)
         if weekend_place is not None:
@@ -1912,13 +1920,13 @@ def house_reply(
             return _weather(week_place, fetch, field="semana")
         how_place = _how_city(norm)
         if how_place is not None:
-            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            day = _forecast_day(norm)
             return _weather(how_place, fetch, day=day)
         if _wants_weather(norm):
             place = _place_of(norm)
             if not place:
                 return "De qual lugar, Senhor."
-            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            day = _forecast_day(norm)
             return _weather(place, fetch, day=day)
         if (
             "noticia" in norm

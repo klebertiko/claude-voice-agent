@@ -324,7 +324,9 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
         housed = house_reply(cleaned, moment, reminders_path=settings.reminders_path)
         if housed:
             pending["kind"] = asked.get(housed, "")
-            if pending["kind"] == "weather" and _has_word(cleaned, "amanha"):
+            if pending["kind"] == "weather" and "depois de amanha" in _plain(cleaned):
+                pending["day"] = "depois"
+            elif pending["kind"] == "weather" and _has_word(cleaned, "amanha"):
                 pending["day"] = "amanha"
             else:
                 pending["day"] = ""
@@ -369,7 +371,9 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
                 pending["kind"] = asked.get(spoken, "")
                 return spoken
             pending["number"] = ""
-            if kind == "weather" and _has_word(cleaned, "amanha"):
+            if kind == "weather" and "depois de amanha" in _plain(cleaned):
+                day = "depois"
+            elif kind == "weather" and _has_word(cleaned, "amanha"):
                 day = "amanha"
             elif kind == "weather" and _has_word(cleaned, "hoje"):
                 day = ""
