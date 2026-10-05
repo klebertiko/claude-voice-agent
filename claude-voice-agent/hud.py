@@ -106,6 +106,14 @@ def spoken_fallback(cleaned: str, name: str, moment: datetime) -> str:
         if "ontem" in norm:
             return _speak_date(moment - timedelta(days=1), "Ontem", "foi")
         return _speak_date(moment)
+    if norm in {"bom dia", "um bom dia"}:
+        return "Bom dia, Senhor."
+    if norm in {"boa tarde", "uma boa tarde"}:
+        return "Boa tarde, Senhor."
+    if norm in {"boa noite", "uma boa noite"}:
+        return "Boa noite, Senhor."
+    if norm in {"obrigado", "obrigada", "valeu", "muito obrigado", "muito obrigada"}:
+        return "Disponha, Senhor."
     return (
         "Entendido, Senhor. Ainda não consigo fazer isso "
         "sem o cérebro ligado."

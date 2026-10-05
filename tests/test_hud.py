@@ -51,6 +51,13 @@ def test_spoken_clock_and_date():
     assert "quinta-feira, 1 de outubro" in ontem
     assert spoken_fallback("que horas são amanhã", "Orion", WHEN).startswith("Entendido")
     assert spoken_fallback("", "Orion", WHEN).startswith("Pois não")
+    assert spoken_fallback("bom dia", "Orion", WHEN) == "Bom dia, Senhor."
+    assert spoken_fallback("boa tarde", "Orion", WHEN) == "Boa tarde, Senhor."
+    assert spoken_fallback("boa noite", "Orion", WHEN) == "Boa noite, Senhor."
+    assert spoken_fallback("obrigado", "Orion", WHEN) == "Disponha, Senhor."
+    assert spoken_fallback("valeu", "Orion", WHEN) == "Disponha, Senhor."
+    assert spoken_fallback("obrigada", "Orion", WHEN) == "Disponha, Senhor."
+    assert spoken_fallback("bom dia para o projeto", "Orion", WHEN).startswith("Entendido")
 
 
 def test_turn_without_wake_is_ignored():
