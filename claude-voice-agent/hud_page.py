@@ -127,6 +127,7 @@ _PAGE = r"""<!DOCTYPE html>
   }
   #log-lines { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
   #log p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; font-size: var(--text-body); }
+  #log:has(#empty) { display: none; }
   #log .empty, #log .meta { color: var(--color-ink-2); }
   #log p[data-speaker]::before {
     content: attr(data-speaker);
@@ -950,21 +951,11 @@ function drawPlate() {
     ctx.drawImage(glowSprite(rgb), item.p.x - size / 2, item.p.y - size / 2, size, size);
     ctx.restore();
     const point = (item.star.kind === "sistema" ? 2.15 : 1.85) * depthScale * pulse;
-    const ring = (item.star.kind === "sistema" ? 7.4 : 5.4) * depthScale * pulse;
     ctx.globalAlpha = presence;
-    ctx.fillStyle = "rgb(7, 13, 22)";
-    ctx.beginPath();
-    ctx.arc(item.p.x, item.p.y, ring * 0.62, 0, Math.PI * 2);
-    ctx.fill();
     ctx.fillStyle = chosen ? ink.accent : ink.ink;
     ctx.beginPath();
     ctx.arc(item.p.x, item.p.y, point, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = chosen ? ink.accent : ink.ink;
-    ctx.lineWidth = item.star.kind === "sistema" ? 1.25 : 1.05;
-    ctx.beginPath();
-    ctx.arc(item.p.x, item.p.y, ring, 0, Math.PI * 2);
-    ctx.stroke();
     namedOnScreen.push({
       star: item.star, pos: item.pos, x: item.p.x, y: item.p.y,
       outside: inside, align: "left", lx: item.p.x + 12, ly: item.p.y, labelW: 0,
