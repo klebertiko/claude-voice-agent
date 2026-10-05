@@ -11,6 +11,14 @@ def test_orion_wake_activates_with_its_own_words():
     assert text == "que horas sao"
 
 
+def test_orion_wake_accepts_the_heard_spelling():
+    # O reconhecimento ouve "Orião". Sem acento isso é "oriao", não "orion".
+    gate = WakeGate(wake_words=get_persona("orion").wake_words, window_s=30.0)
+    should, text = gate.process("Orião, que horas são", now=100.0)
+    assert should is True
+    assert text == "que horas sao"
+
+
 def test_orion_gate_ignores_other_personas_wake():
     # a wake-word da Lilith NÃO deve abrir a janela do Orion
     gate = WakeGate(wake_words=get_persona("orion").wake_words, window_s=30.0)

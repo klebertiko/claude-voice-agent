@@ -60,7 +60,8 @@ ORION = Persona(
     tts_engine="kokoro",
     voice="bm_daniel*0.7+bm_lewis*0.3",
     # variantes que o Whisper costuma ouvir no lugar de "Orion".
-    wake_words=("orion", "oriom", "orian", "orions", "oreon"),
+    # "Orião" chega já sem acento: o portão compara "oriao", não "orion".
+    wake_words=("orion", "oriom", "orian", "orions", "oreon", "oriao"),
     speech_rate=1.2,
 )
 
