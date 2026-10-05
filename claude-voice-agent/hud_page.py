@@ -912,17 +912,28 @@ function drawPlate() {
     const options = labelSpots(item.p.x, item.p.y, home && home.x, home && home.y);
     const fits = (trial) => trial.l >= rect.left + 4 && trial.r <= rect.right - 4 && trial.t >= rect.top + 4 && trial.b <= rect.bottom - 28 && !boxes.some((held) => boxesHit(trial, held));
     const crosses = (trial) => segments.some((seg) => boxHitsSegment(trial, seg));
-    let spot = null;
-    let box = null;
-    let lines = null;
-    let crossed = false;
-    for (const opt of options) {
-      const trial = labelBox(opt.x, opt.y, opt.align, width);
-      if (!fits(trial)) continue;
-      if (!spot) { spot = opt; box = trial; crossed = crosses(trial); }
-      if (!crosses(trial)) { spot = opt; box = trial; crossed = false; break; }
-    }
-    if ((!spot || crossed) && full.indexOf(" ") > 0) {
+    const intrusion = (trial) => {
+      let worst = 0;
+      for (const other of view) {
+        if (other.star.id === item.star.id) continue;
+        const dx = other.p.x < trial.l ? trial.l - other.p.x : other.p.x > trial.r ? other.p.x - trial.r : 0;
+        const dy = other.p.y < trial.t ? trial.t - other.p.y : other.p.y > trial.b ? other.p.y - trial.b : 0;
+        if (dx === 0 && dy === 0) {
+          const inset = Math.min(other.p.x - trial.l, trial.r - other.p.x, other.p.y - trial.t, trial.b - other.p.y);
+          worst = Math.max(worst, 32 + inset);
+        } else if (dx * dx + dy * dy < 64) {
+          worst = Math.max(worst, 8 - Math.hypot(dx, dy));
+        }
+      }
+      return worst;
+    };
+    const consider = [];
+    const pushOpt = (opt, trial, wrapped) => {
+      if (!fits(trial)) return;
+      consider.push({ opt, trial, wrapped, cross: crosses(trial), intrusion: intrusion(trial) });
+    };
+    for (const opt of options) pushOpt(opt, labelBox(opt.x, opt.y, opt.align, width), null);
+    if (full.indexOf(" ") > 0) {
       const words = full.split(" ");
       let best = null;
       let bestW = Infinity;
@@ -931,26 +942,23 @@ function drawPlate() {
         const lineW = Math.max(ctx.measureText(pair[0]).width, ctx.measureText(pair[1]).width);
         if (lineW < bestW) { bestW = lineW; best = pair; }
       }
-      let wrapped = null;
       for (const opt of options) {
         const trial = labelBox(opt.x, opt.y, opt.align, bestW);
         trial.t -= 8;
         trial.b += 8;
-        if (!fits(trial)) continue;
-        if (!wrapped) wrapped = { opt, trial };
-        if (!crosses(trial)) { wrapped = { opt, trial }; break; }
-      }
-      if (wrapped && (!spot || !crosses(wrapped.trial))) {
-        spot = wrapped.opt;
-        box = wrapped.trial;
-        lines = best;
+        pushOpt(opt, trial, best);
       }
     }
-    if (!spot && item.star.id === picked) {
-      spot = options[0];
-      box = labelBox(spot.x, spot.y, spot.align, width);
+    consider.sort((a, b) => (a.intrusion - b.intrusion) || (a.cross - b.cross) || ((a.wrapped ? 1 : 0) - (b.wrapped ? 1 : 0)));
+    let chosen = consider[0] || null;
+    if (!chosen && item.star.id === picked) {
+      const opt = options[0];
+      chosen = { opt, trial: labelBox(opt.x, opt.y, opt.align, width), wrapped: null };
     }
-    if (!spot) continue;
+    if (!chosen) continue;
+    const spot = chosen.opt;
+    const box = chosen.trial;
+    const lines = chosen.wrapped;
     boxes.push(box);
     const row = namedOnScreen.find((entry) => entry.star.id === item.star.id);
     if (row) {
