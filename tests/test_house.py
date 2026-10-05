@@ -917,6 +917,26 @@ def test_news_asks_then_reads_the_topic(tmp_path):
     )
     assert seen[-1].endswith("q=brasil")
     assert "noticia" not in seen[-1].lower()
+    assert _reply("notícias quanto à economia", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=economia")
+    assert "quanto" not in seen[-1].lower()
+    assert _reply("manchetes quanto à tecnologia", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=tecnologia")
+    assert "quanto" not in seen[-1].lower()
+    assert _reply("plantão quanto à economia", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=economia")
+    assert "quanto" not in seen[-1].lower()
+    assert _reply("me dá as notícias quanto ao esporte", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=esporte")
+    assert "quanto" not in seen[-1].lower()
     assert _reply("resumo das notícias", fetch, tmp_path / "n.json") == (
         "Nas notícias, Senhor. Alpha sobe. Beta cai."
     )
@@ -1013,6 +1033,9 @@ def test_news_asks_then_reads_the_topic(tmp_path):
     assert _reply("quais as notícias", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
     assert _reply("me atualiza", fetch, tmp_path / "n.json") is None
     assert _reply("me atualiza quanto à", fetch, tmp_path / "n.json") is None
+    assert _reply("notícias quanto à", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
+    assert _reply("manchetes quanto à", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
+    assert _reply("plantão quanto à", fetch, tmp_path / "n.json") is None
     assert _reply("plantão médico", fetch, tmp_path / "n.json") is None
     assert _reply("as notícias", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
     assert _reply("o que está acontecendo", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."

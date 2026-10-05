@@ -902,7 +902,7 @@ def _usable_topic(topic: str) -> str:
 def _topic_of(norm: str) -> str:
     bulletin = re.fullmatch(
         r"(?:(?:me\s+)?(?:da|fala|diz|conta)\s+)?(?:o\s+)?plantao"
-        r"(?:\s+(?:de|da|do|das|dos|sobre|a\s+respeito\s+(?:de|do|da))\s+(.+))?",
+        r"(?:\s+(?:de|da|do|das|dos|sobre|a\s+respeito\s+(?:de|do|da)|quanto\s+(?:aos|ao|as|a))\s+(.+))?",
         norm,
     )
     if bulletin:
@@ -912,7 +912,7 @@ def _topic_of(norm: str) -> str:
         return subject
     headlines = re.fullmatch(
         r"(?:(?:quais|me\s+(?:da|fala|diz|conta|passa))\s+(?:as|os)\s+)?"
-        r"(?:as\s+)?manchetes?(?:\s+(?:sobre|de|do|da|em|no|na)\s+(.+))?",
+        r"(?:as\s+)?manchetes?(?:\s+(?:sobre|de|do|da|em|no|na|quanto\s+(?:aos|ao|as|a))\s+(.+))?",
         norm,
     )
     if headlines:
@@ -957,7 +957,10 @@ def _topic_of(norm: str) -> str:
     ):
         if norm.startswith(prefix):
             return _usable_topic(norm[len(prefix) :])
-    match = re.search(r"noticias?\s+(?:sobre|de|do|da|em|no|na)\s+(.+)$", norm)
+    match = re.search(
+        r"noticias?\s+(?:sobre|de|do|da|em|no|na|quanto\s+(?:aos|ao|as|a))\s+(.+)$",
+        norm,
+    )
     if match:
         return _usable_topic(match.group(1))
     fresh = re.match(
@@ -1000,7 +1003,10 @@ def _topic_of(norm: str) -> str:
     )
     if fresh_bit:
         return _usable_topic(fresh_bit.group(1) or "") or "brasil"
-    bare = re.match(r"^noticias?\s+(?!sobre\s|de\s|do\s|da\s|em\s|no\s|na\s)(.+)$", norm)
+    bare = re.match(
+        r"^noticias?\s+(?!sobre\s|de\s|do\s|da\s|em\s|no\s|na\s|quanto\s)(.+)$",
+        norm,
+    )
     if bare:
         topic = _usable_topic(bare.group(1))
         if topic in {"ultimas", "nova", "novas", "brasil", "brasileira", "brasileiras"}:
@@ -1508,7 +1514,7 @@ def house_reply(
             or "manchete" in norm
             or re.match(
                 r"^(?:(?:me\s+)?(?:da|fala|diz|conta)\s+)?(?:o\s+)?plantao"
-                r"(?:\s+(?:de|da|do|das|dos|sobre|a\s+respeito\s+(?:de|do|da))\s+\S.*)?$",
+                r"(?:\s+(?:de|da|do|das|dos|sobre|a\s+respeito\s+(?:de|do|da)|quanto\s+(?:aos|ao|as|a))\s+\S.*)?$",
                 norm,
             )
             or norm in {"o que esta acontecendo", "o que aconteceu"}
