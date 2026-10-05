@@ -314,7 +314,7 @@ let drag = null;
 let dragMoved = 0;
 const orbitHint = "Arraste para orbitar. A roda aproxima.";
 const GROUPS = {
-  notas: { name: "Notas", rgb: "214, 78, 112", link: "244, 196, 206" },
+  notas: { name: "Notas", rgb: "214, 78, 112", link: "255, 220, 226" },
   sistemas: { name: "Sistemas", rgb: "64, 112, 196", link: "186, 214, 242" },
 };
 const SYSTEMS = [
@@ -719,21 +719,26 @@ function drawPlate() {
     const dx = b.p.x - a.p.x;
     const dy = b.p.y - a.p.y;
     const len = Math.hypot(dx, dy) || 1;
-    const pad = 16;
-    if (len < pad * 2 + 8) continue;
+    const pad = 10;
+    if (len < pad * 2 + 4) continue;
     const ux = dx / len;
     const uy = dy / len;
     const depth = Math.max(0.45, Math.min(1, ((a.p.persp + b.p.persp) / 2) / 0.62));
     const tone = a.star.kind === b.star.kind
       ? "rgb(" + (a.star.kind === "nota" ? GROUPS.notas.link : GROUPS.sistemas.link) + ")"
       : ink.ink;
-    ctx.strokeStyle = hot ? ink.accent : tone;
-    ctx.globalAlpha = (hot ? 1 : aside ? 0.22 : 1) * depth;
-    ctx.lineWidth = (hot ? 1.7 : 1.5) * depth;
+    const alpha = (hot ? 1 : aside ? 0.22 : 1) * depth;
     ctx.setLineDash(hot ? [5, 6] : [8, 10]);
     ctx.beginPath();
     ctx.moveTo(a.p.x + ux * pad, a.p.y + uy * pad);
     ctx.lineTo(b.p.x - ux * pad, b.p.y - uy * pad);
+    ctx.globalAlpha = alpha * 0.72;
+    ctx.strokeStyle = "rgb(7, 13, 22)";
+    ctx.lineWidth = (hot ? 1.7 : 1.5) * depth + 2.2;
+    ctx.stroke();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = hot ? ink.accent : tone;
+    ctx.lineWidth = (hot ? 1.7 : 1.5) * depth;
     ctx.stroke();
   }
   ctx.setLineDash([]);
