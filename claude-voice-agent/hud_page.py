@@ -107,7 +107,9 @@ _PAGE = r"""<!DOCTYPE html>
     transform: rotate(-45deg);
     pointer-events: none;
   }
-  .systems button.fact[aria-pressed="true"] { color: var(--color-accent); }
+  .systems button.fact[aria-pressed="true"],
+  .systems button.fact[aria-pressed="true"] .k,
+  .systems button.fact[aria-pressed="true"] .v { color: var(--color-accent); }
   .systems .k, .systems dt { font-size: var(--text-support); font-weight: 400; line-height: 1.2; color: var(--color-ink-2); white-space: nowrap; }
   .systems .v, .systems dd {
     margin: 0; font-size: var(--text-body); line-height: 1.2; text-align: left; white-space: nowrap;
