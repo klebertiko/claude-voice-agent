@@ -671,6 +671,27 @@ def test_news_asks_then_reads_the_topic(tmp_path):
     )
     assert seen[-1].endswith("q=brasil")
     assert "urgente" not in seen[-1].lower()
+    assert _reply("plantão", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=brasil")
+    assert _reply("plantão de notícias", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=brasil")
+    assert "noticia" not in seen[-1].lower()
+    assert _reply("me dá o plantão", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=brasil")
+    assert _reply("plantão de economia", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=economia")
+    assert _reply("plantão sobre tecnologia", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=tecnologia")
     assert _reply("o que houve hoje", fetch, tmp_path / "n.json") == (
         "Nas notícias, Senhor. Alpha sobe. Beta cai."
     )
@@ -842,6 +863,7 @@ def test_news_asks_then_reads_the_topic(tmp_path):
     before = len(seen)
     assert _reply("quais as notícias", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
     assert _reply("me atualiza", fetch, tmp_path / "n.json") is None
+    assert _reply("plantão médico", fetch, tmp_path / "n.json") is None
     assert _reply("as notícias", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
     assert _reply("o que está acontecendo", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
     assert _reply("o que há de novo na geladeira", fetch, tmp_path / "n.json") is None

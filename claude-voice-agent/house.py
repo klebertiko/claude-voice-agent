@@ -828,6 +828,16 @@ def _usable_topic(topic: str) -> str:
 
 
 def _topic_of(norm: str) -> str:
+    bulletin = re.fullmatch(
+        r"(?:(?:me\s+)?(?:da|fala|diz|conta)\s+)?(?:o\s+)?plantao"
+        r"(?:\s+(?:de|das|dos|sobre)\s+(.+))?",
+        norm,
+    )
+    if bulletin:
+        subject = _usable_topic(bulletin.group(1) or "")
+        if subject in {"", "noticia", "noticias", "a noticia", "as noticias"}:
+            return "brasil"
+        return subject
     headlines = re.fullmatch(
         r"(?:(?:quais|me\s+(?:da|fala|diz|conta|passa))\s+(?:as|os)\s+)?"
         r"(?:as\s+)?manchetes?(?:\s+(?:sobre|de|do|da|em|no|na)\s+(.+))?",
@@ -1402,6 +1412,11 @@ def house_reply(
             "noticia" in norm
             or "novidade" in norm
             or "manchete" in norm
+            or re.match(
+                r"^(?:(?:me\s+)?(?:da|fala|diz|conta)\s+)?(?:o\s+)?plantao"
+                r"(?:\s+(?:de|das|dos|sobre)\s+\S.*)?$",
+                norm,
+            )
             or norm in {"o que esta acontecendo", "o que aconteceu"}
             or norm.startswith(("o que esta acontecendo ", "o que aconteceu "))
             or re.match(
