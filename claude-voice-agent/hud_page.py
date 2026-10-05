@@ -588,7 +588,7 @@ const systemText = {
   "sys-claude": "Claude, ausente.",
   "sys-clima": "De qual lugar, Senhor?",
   "sys-noticias": "Sobre o que, Senhor?",
-  "sys-busca": "Busca na web.",
+  "sys-busca": "O que devo procurar, Senhor?",
   "sys-lembretes": "Notas deste céu.",
   "sys-voz": "Voz daniel, ritmo 1.2.",
 };
@@ -2052,10 +2052,11 @@ function pointStar(ev, choose) {
     const aim = anglesToward(hit.pos);
     yawTarget = aim.yaw;
     pitchTarget = aim.pitch;
-    if (hit.star.kind === "nota") openNote(hit.star);
-    else { closeNote(); runSystem(hit.star.id); }
   }
   readSky(hit.star.kind === "sistema" ? (systemText[hit.star.id] || hit.star.text) : hit.star.text);
+  if (!choose) return;
+  if (hit.star.kind === "nota") openNote(hit.star);
+  else { closeNote(); runSystem(hit.star.id); }
 }
 function visibleStars() {
   return namedOnScreen.filter((item) => item.outside && item.star && item.star.label);
