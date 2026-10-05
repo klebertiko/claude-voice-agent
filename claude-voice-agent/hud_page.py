@@ -240,6 +240,10 @@ _PAGE = r"""<!DOCTYPE html>
   @media (max-height: 780px) and (min-width: 641px) {
     #log, .room:has(#note:not([hidden])) #log { max-height: 3.5rem; }
   }
+  @media (max-height: 740px) and (min-width: 641px) {
+    .strip { padding-top: 12px; padding-bottom: 12px; }
+    .floor { padding-bottom: 12px; }
+  }
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
   @media (max-width: 1399px) {
     .systems { flex-flow: row wrap; overflow: visible; row-gap: 0; }
@@ -411,6 +415,7 @@ const systemText = {
   "sys-lembretes": "Notas deste céu.",
   "sys-voz": "Voz daniel, ritmo 1.2.",
 };
+const WIDE = 641;
 const CAMERA = 4.15;
 const FOCAL = 2.55;
 const DEPTH = 2.35;
@@ -422,7 +427,7 @@ function fitScene(rect) {
   const persp = FOCAL / CAMERA;
   const k = persp * scale;
   const at = (sx, sy) => ({ x: sx / k, y: -sy / k, z: 0 });
-  const wide = rect.width >= 700;
+  const wide = rect.width >= WIDE;
   if (wide) {
     const radiusPx = Math.max(84, Math.min(rect.height * 0.34, rect.width * 0.2, (rect.height - 72) / 2));
     const reach = Math.max(radiusPx * 0.85, rect.width / 2 - radiusPx - 56);
@@ -800,7 +805,7 @@ function drawPlate() {
   ctx.fillRect(0, 0, w, h);
   if (rect.width < 40 || rect.height < 40) return;
   const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height * (rect.width >= 700 ? 0.48 : 0.545);
+  const cy = rect.top + rect.height * (rect.width >= WIDE ? 0.48 : 0.545);
   const fit = fitScene(rect);
   let scale = sceneScale(rect) * zoom;
   const yaw = yawUser;
@@ -811,7 +816,7 @@ function drawPlate() {
     return { star: node.star, pos: node.pos, p: project(rot, cx, cy, amount) };
   }).sort((a, b) => b.p.z - a.p.z);
   let view = projectView(scale);
-  if (rect.width < 700) {
+  if (rect.width < WIDE) {
     const padX = 12;
     const padTop = 14;
     const padBottom = 32;
@@ -859,7 +864,7 @@ function drawPlate() {
     return { disc, z: rot.z };
   }).sort((a, b) => b.z - a.z);
   const reachFor = (item) => {
-    if (rect.width >= 700) return item.disc.strong ? 1.32 : 1.25;
+    if (rect.width >= WIDE) return item.disc.strong ? 1.32 : 1.25;
     const base = 1.08;
     return item.disc.strong ? base * 1.18 : base * 1.48;
   };
@@ -875,7 +880,7 @@ function drawPlate() {
     paintDisc(center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, reach);
     const lean = item.disc.tilt;
     const zScale = center.zScale == null ? 1 : center.zScale;
-    const narrow = rect.width < 700;
+    const narrow = rect.width < WIDE;
     const forward = item.disc.strong ? (narrow ? 1.15 : 0.9) : 0.8;
     const lobe = item.disc.strong ? (narrow ? 1.15 : 0.78) : (narrow ? 0.72 : 0.74);
     const near = Object.assign({}, center, {
@@ -1106,7 +1111,7 @@ function drawPlate() {
   const systems = queue.filter((item) => item.star.kind === "sistema");
   for (const item of notes) paintOne(item, boxes);
   let kept = null;
-  if (rect.width < 700) {
+  if (rect.width < WIDE) {
     const busca = systems.find((item) => item.star.id === "sys-busca");
     const seated = busca && candidatesFor(busca, boxes);
     const best = seated && seated.pool[0];
