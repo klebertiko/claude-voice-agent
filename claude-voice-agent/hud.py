@@ -83,6 +83,8 @@ def _weather_field(text: str) -> str:
         return "minima"
     if (_has_word(text, "chance") or _has_word(text, "probabilidade")) and _has_word(text, "chuva"):
         return "chance"
+    if _has_word(text, "qualidade") and _has_word(text, "ar"):
+        return "ar"
     return ""
 
 

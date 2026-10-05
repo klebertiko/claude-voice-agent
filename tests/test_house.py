@@ -1623,6 +1623,78 @@ def test_note_search_stays_in_the_vault(tmp_path):
     assert voice_hit == "Nas notas, Senhor. revisar o projeto de voz."
 
 
+def test_air_names_the_city(tmp_path):
+    quote = {"index": 34}
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "geocoding" in url:
+            assert "recife" in url.lower() or "curitiba" in url.lower()
+            name = "Recife" if "recife" in url.lower() else "Curitiba"
+            return '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
+        assert "air-quality" in url
+        assert "european_aqi" in url
+        assert "temperature_2m" not in url
+        return '{"current":{"european_aqi":%s}}' % quote["index"]
+
+    path = tmp_path / "n.json"
+    assert _reply("qualidade do ar", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me fala a qualidade do ar", fetch, path) == "De qual lugar, Senhor."
+    assert seen == []
+    assert _reply("qualidade do ar em recife", fetch, path) == (
+        "Em Recife, qualidade do ar razoável, índice 34, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "air-quality" in seen[-1]
+    assert _reply("me fala a qualidade do ar em curitiba", fetch, path) == (
+        "Em Curitiba, qualidade do ar razoável, índice 34, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    quote["index"] = 0
+    assert _reply("qualidade do ar agora em recife", fetch, path) == (
+        "Em Recife, qualidade do ar boa, índice 0, Senhor."
+    )
+    quote["index"] = 101
+    assert _reply("qual a qualidade do ar em recife", fetch, path) == (
+        "Em Recife, qualidade do ar péssima, índice 101, Senhor."
+    )
+    before = len(seen)
+    assert _reply("qualidade do ar amanhã em recife", fetch, path) is None
+    assert len(seen) == before
+
+
+def test_air_follow_up_keeps_the_field(tmp_path, monkeypatch):
+    from claude_agent_voice.hud import make_reply_fn
+    from claude_agent_voice.personas import get_persona
+    from claude_agent_voice.settings import Settings
+
+    seen = []
+
+    def fake_weather(place, _fetch, day="", field=""):
+        seen.append((place, field, day))
+        return f"Em {place}, qualidade do ar boa, índice 12, Senhor."
+
+    monkeypatch.setattr("claude_agent_voice.house._weather", fake_weather)
+    reply = make_reply_fn(
+        Settings.from_env(
+            env={
+                "CLAUDE_VOICE_CODEX_CLI": "missing-codex",
+                "CLAUDE_VOICE_CURSOR_CLI": "missing-cursor",
+                "CLAUDE_VOICE_CLAUDE_CLI": "missing-claude",
+                "OLLAMA_HOST": "",
+                "CLAUDE_VOICE_OLLAMA_HOST": "",
+                "CLAUDE_VOICE_REMINDERS": str(tmp_path / "n.json"),
+            }
+        ),
+        get_persona("orion"),
+        lambda: WHEN,
+    )
+    assert reply("qualidade do ar", []) == "De qual lugar, Senhor."
+    assert reply("recife", []) == "Em recife, qualidade do ar boa, índice 12, Senhor."
+    assert seen == [("recife", "ar", "")]
+
+
 def test_forget_removes_only_the_newest(tmp_path):
     def fetch(_url):
         raise AssertionError("desfazer não usa rede")
