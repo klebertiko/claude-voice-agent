@@ -1146,9 +1146,8 @@ function drawPlate() {
     }
     const fill = item.star.id === picked ? ink.accent : ink.ink;
     const fillLum = fill === ink.accent ? toneLum(212, 196, 168) : toneLum(232, 238, 246);
-    let halo = !plate;
+    let worst = plate ? 99 : 8;
     if (plate) {
-      let worst = 99;
       for (let y = box.t + 1; y <= box.b - 1; y += 3) {
         for (let x = box.l + 1; x <= box.r - 1; x += 4) {
           const px = Math.floor(x * DPR) - plateX;
@@ -1161,10 +1160,9 @@ function drawPlate() {
           worst = Math.min(worst, (hi + 0.05) / (lo + 0.05));
         }
       }
-      halo = worst < 4.5;
     }
     paints.push({
-      lines, full, spot, halo,
+      item, box, contrast: worst, lines, full, spot, halo: worst < 4.5,
       alpha: item.star.id === picked ? 1 : quiet ? 0.66 : 0.92,
       fill,
       font: "400 14px " + ink.body,
@@ -1183,6 +1181,44 @@ function drawPlate() {
   for (const item of systems) {
     const held = kept && item.star.id !== "sys-busca" ? boxes.concat([kept]) : boxes;
     paintOne(item, held);
+  }
+  const usable = (spot) => spot.contrast >= 4.5 && spot.share >= 0.8 && spot.intrusion < 16 && !spot.self;
+  const applySeat = (paint, chosen) => {
+    const spot = chosen.opt;
+    const box = chosen.trial;
+    const lines = chosen.wrapped;
+    const index = boxes.indexOf(paint.box);
+    if (index >= 0) boxes[index] = box;
+    paint.box = box;
+    paint.spot = spot;
+    paint.lines = lines;
+    paint.contrast = chosen.contrast;
+    paint.halo = chosen.contrast < 4.5;
+    const row = namedOnScreen.find((entry) => entry.star.id === paint.item.star.id);
+    if (!row) return;
+    row.align = spot.align;
+    row.lx = spot.x;
+    row.ly = spot.y;
+    row.labelW = lines ? Math.max(ctx.measureText(lines[0]).width, ctx.measureText(lines[1]).width) : ctx.measureText(paint.full).width;
+  };
+  if (rect.width < WIDE) {
+    for (const paint of paints.filter((entry) => entry.contrast < 4.5)) {
+      const rest = boxes.filter((box) => box !== paint.box);
+      const direct = candidatesFor(paint.item, rest).pool.find(usable);
+      if (direct) { applySeat(paint, direct); continue; }
+      const open = candidatesFor(paint.item, []).pool.filter(usable);
+      for (const spot of open) {
+        const blockers = paints.filter((other) => other !== paint && boxesHit(spot.trial, other.box));
+        if (blockers.length !== 1) continue;
+        const blocker = blockers[0];
+        const held = boxes.filter((box) => box !== paint.box && box !== blocker.box).concat([spot.trial]);
+        const next = candidatesFor(blocker.item, held).pool.find(usable);
+        if (!next) continue;
+        applySeat(paint, spot);
+        applySeat(blocker, next);
+        break;
+      }
+    }
   }
   ctx.lineCap = "round";
   for (const stroke of strokes) {
