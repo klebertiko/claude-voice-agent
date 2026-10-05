@@ -802,7 +802,7 @@ def _place_of(norm: str) -> str:
 
 def _usable_topic(topic: str) -> str:
     topic = topic.strip(" .")
-    if topic in {"sobre", "de", "do", "da"}:
+    if topic in {"sobre", "de", "do", "da", "em", "no", "na"}:
         return ""
     return topic
 
@@ -835,6 +835,9 @@ def _topic_of(norm: str) -> str:
         "noticias de ", "noticia de ",
         "noticias do ", "noticia do ",
         "noticias da ", "noticia da ",
+        "noticias em ", "noticia em ",
+        "noticias no ", "noticia no ",
+        "noticias na ", "noticia na ",
         "o que esta acontecendo em ",
         "o que esta acontecendo no ",
         "o que esta acontecendo na ",
@@ -846,7 +849,7 @@ def _topic_of(norm: str) -> str:
     ):
         if norm.startswith(prefix):
             return _usable_topic(norm[len(prefix) :])
-    match = re.search(r"noticias?\s+(?:sobre|de|do|da)\s+(.+)$", norm)
+    match = re.search(r"noticias?\s+(?:sobre|de|do|da|em|no|na)\s+(.+)$", norm)
     if match:
         return _usable_topic(match.group(1))
     fresh = re.match(
@@ -887,7 +890,7 @@ def _topic_of(norm: str) -> str:
     )
     if fresh_bit:
         return _usable_topic(fresh_bit.group(1) or "") or "brasil"
-    bare = re.match(r"^noticias?\s+(?!sobre\s|de\s|do\s|da\s)(.+)$", norm)
+    bare = re.match(r"^noticias?\s+(?!sobre\s|de\s|do\s|da\s|em\s|no\s|na\s)(.+)$", norm)
     if bare:
         topic = _usable_topic(bare.group(1))
         if topic in {"ultimas", "nova", "novas", "brasil", "brasileira", "brasileiras"}:
