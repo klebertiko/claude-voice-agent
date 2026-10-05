@@ -188,7 +188,15 @@ _PAGE = r"""<!DOCTYPE html>
     #log { max-height: none; overflow: auto; }
   }
   @media (max-width: 640px) {
-    .strip, .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
+    .room {
+      grid-template-rows: auto auto minmax(0, 1fr) minmax(2.75rem, 3.5rem) auto auto;
+    }
+    .strip { padding: 12px 16px; }
+    .mark { width: 28px; height: 44px; }
+    .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
+    .telemetry { padding-top: 0; padding-bottom: 8px; }
+    .talk { padding-top: 4px; padding-bottom: 4px; }
+    .floor { padding-top: 4px; padding-bottom: 12px; }
     .meta { gap: 16px; }
     .well { min-height: 0; }
     .systems {
@@ -197,6 +205,7 @@ _PAGE = r"""<!DOCTYPE html>
       overflow: visible;
       gap: 0 16px;
     }
+    .systems button.fact { min-height: 36px; }
   }
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
 </style>
@@ -305,7 +314,7 @@ let drag = null;
 let dragMoved = 0;
 const orbitHint = "Arraste para orbitar. A roda aproxima.";
 const GROUPS = {
-  notas: { name: "Notas", rgb: "186, 92, 140", link: "236, 196, 214" },
+  notas: { name: "Notas", rgb: "214, 78, 112", link: "244, 196, 206" },
   sistemas: { name: "Sistemas", rgb: "64, 112, 196", link: "186, 214, 242" },
 };
 const SYSTEMS = [
@@ -359,13 +368,13 @@ function fitScene(rect) {
       sistemas: Object.assign(at(offset, 0), { radius: radiusPx / k, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
     };
   }
-  const room = Math.max(96, rect.height - 28);
-  const radiusPx = Math.max(32, Math.min(rect.width * 0.3, room * 0.2, (rect.width - 48) / 2, (room - 8) / 2.8));
-  const reach = Math.max(radiusPx * 0.7, rect.height / 2 - radiusPx - 22);
-  const offset = Math.min(rect.height * 0.2, reach);
+  const room = Math.max(120, rect.height - 8);
+  const radiusPx = Math.max(48, Math.min(rect.width * 0.36, room * 0.3, (rect.width - 40) / 2));
+  const reach = Math.max(radiusPx * 0.62, rect.height / 2 - radiusPx - 16);
+  const offset = Math.min(rect.height * 0.22, reach);
   return {
     notas: Object.assign(at(0, -offset), { radius: radiusPx / k, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
-    sistemas: Object.assign(at(0, offset), { radius: radiusPx / k, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
+    sistemas: Object.assign(at(0, offset), { radius: radiusPx * 0.74 / k, zScale: 0.45, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
   };
 }
 function ringPos(index, total, center, radius, tilt) {
@@ -433,8 +442,8 @@ function settle() {
     for (const pair of pairs) {
       const a = pair[0];
       const b = pair[1];
-      a.x += (b.x - a.x) * 0.045; a.y += (b.y - a.y) * 0.045; a.z += (b.z - a.z) * 0.045;
-      b.x += (a.x - b.x) * 0.045; b.y += (a.y - b.y) * 0.045; b.z += (a.z - b.z) * 0.045;
+      a.x += (b.x - a.x) * 0.018; a.y += (b.y - a.y) * 0.018; a.z += (b.z - a.z) * 0.018;
+      b.x += (a.x - b.x) * 0.018; b.y += (a.y - b.y) * 0.018; b.z += (a.z - b.z) * 0.018;
     }
     for (const node of nodes) {
       node.x += (node.hx - node.x) * 0.08;
@@ -452,10 +461,11 @@ function settle() {
   return rest;
 }
 function place(local, center) {
+  const zScale = center.zScale == null ? 1 : center.zScale;
   return {
     x: center.x + local.x * center.radius,
     y: center.y + local.y * center.radius,
-    z: (center.z || 0) + local.z * center.radius * DEPTH,
+    z: (center.z || 0) + local.z * center.radius * DEPTH * zScale,
   };
 }
 function buildWorld(fit) {
@@ -512,8 +522,9 @@ function project(p, cx, cy, scale) {
 }
 const glowCache = {};
 const nebulaCache = {};
-function nebulaSprite(rgb) {
-  const cached = nebulaCache[rgb];
+function nebulaSprite(rgb, strong) {
+  const key = strong ? rgb + ":s" : rgb;
+  const cached = nebulaCache[key];
   if (cached) return cached;
   const S = 384;
   const sprite = document.createElement("canvas");
@@ -523,22 +534,22 @@ function nebulaSprite(rgb) {
   const mid = S / 2;
   const rad = mid - 1;
   const disc = pen.createRadialGradient(mid, mid, 0, mid, mid, rad);
-  disc.addColorStop(0, "rgba(" + rgb + ",0.40)");
-  disc.addColorStop(0.42, "rgba(" + rgb + ",0.22)");
-  disc.addColorStop(0.78, "rgba(" + rgb + ",0.08)");
+  disc.addColorStop(0, "rgba(" + rgb + "," + (strong ? "0.62" : "0.40") + ")");
+  disc.addColorStop(0.42, "rgba(" + rgb + "," + (strong ? "0.38" : "0.22") + ")");
+  disc.addColorStop(0.78, "rgba(" + rgb + "," + (strong ? "0.16" : "0.08") + ")");
   disc.addColorStop(1, "rgba(" + rgb + ",0)");
   pen.fillStyle = disc;
   pen.beginPath();
   pen.arc(mid, mid, rad, 0, Math.PI * 2);
   pen.fill();
   const core = pen.createRadialGradient(mid, mid, 0, mid, mid, rad * 0.2);
-  core.addColorStop(0, "rgba(" + rgb + ",0.72)");
+  core.addColorStop(0, "rgba(" + rgb + "," + (strong ? "0.84" : "0.72") + ")");
   core.addColorStop(1, "rgba(" + rgb + ",0)");
   pen.fillStyle = core;
   pen.beginPath();
   pen.arc(mid, mid, rad * 0.2, 0, Math.PI * 2);
   pen.fill();
-  nebulaCache[rgb] = sprite;
+  nebulaCache[key] = sprite;
   return sprite;
 }
 function glowSprite(rgb) {
@@ -594,7 +605,7 @@ function labelSpots(x, y, cx0, cy0) {
   }
   return spots;
 }
-function paintDisc(center, tilt, rgb, yaw, pitch, cx, cy, scale) {
+function paintDisc(center, tilt, rgb, yaw, pitch, cx, cy, scale, strong) {
   const R = center.radius * 1.08;
   const lean = tilt;
   const origin = { x: center.x, y: center.y, z: center.z || 0 };
@@ -613,7 +624,7 @@ function paintDisc(center, tilt, rgb, yaw, pitch, cx, cy, scale) {
     (pv.x - pc.x) * DPR, (pv.y - pc.y) * DPR,
     pc.x * DPR, pc.y * DPR
   );
-  ctx.drawImage(nebulaSprite(rgb), -1, -1, 2, 2);
+  ctx.drawImage(nebulaSprite(rgb, strong), -1, -1, 2, 2);
   ctx.restore();
 }
 function drawPlate() {
@@ -636,8 +647,10 @@ function drawPlate() {
   }).sort((a, b) => b.p.z - a.p.z);
   let view = projectView(scale);
   if (rect.width < 700) {
-    const pad = 36;
-    for (let step = 0; step < 8; step++) {
+    const padX = 12;
+    const padTop = 14;
+    const padBottom = 14;
+    for (let step = 0; step < 6; step++) {
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
       for (const item of view) {
         minX = Math.min(minX, item.p.x);
@@ -646,14 +659,14 @@ function drawPlate() {
         maxY = Math.max(maxY, item.p.y);
       }
       const overflow = Math.max(
-        pad - (minY - rect.top),
-        pad - (rect.bottom - maxY),
-        pad - (minX - rect.left),
-        pad - (rect.right - maxX),
+        padTop - (minY - rect.top),
+        padBottom - (rect.bottom - maxY),
+        padX - (minX - rect.left),
+        padX - (rect.right - maxX),
         0
       );
       if (overflow < 2) break;
-      scale *= 0.88;
+      scale *= 0.92;
       view = projectView(scale);
     }
   }
@@ -674,14 +687,14 @@ function drawPlate() {
     centroids[key] = { x: sx, y: sy, z: sz, maxD, name: meta.name, rgb: meta.rgb };
   }
   const discs = [
-    { center: fit.notas, tilt: 0.95, rgb: GROUPS.notas.rgb },
-    { center: fit.sistemas, tilt: 0.9, rgb: GROUPS.sistemas.rgb },
+    { center: fit.notas, tilt: 0.95, rgb: GROUPS.notas.rgb, strong: true },
+    { center: fit.sistemas, tilt: 0.9, rgb: GROUPS.sistemas.rgb, strong: false },
   ].map((disc) => {
     const rot = rotate(disc.center, yaw, pitch);
     return { disc, z: rot.z };
   }).sort((a, b) => b.z - a.z);
   for (const item of discs) {
-    paintDisc(item.disc.center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale);
+    paintDisc(item.disc.center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong);
   }
   const byId = {};
   for (const item of view) byId[item.star.id] = item;
