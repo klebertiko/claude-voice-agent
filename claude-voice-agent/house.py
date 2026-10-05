@@ -475,8 +475,9 @@ def _heat_place(norm: str) -> str | None:
     match = re.match(
         r"^(?:(?:amanha|hoje|depois)\s+)?"
         r"(?:faz (?:calor|frio|sol)"
+        r"|tem (?:sol|calor|frio)"
         r"|(?:esta|ta)(?:\s+fazendo)?(?:\s+muito)?\s+(?:calor|quente|frio|sol|nublado)"
-        r"|vai (?:esfriar|esquentar)"
+        r"|vai (?:esfriar|esquentar|gear)"
         r"|vai fazer(?:\s+muito)?\s+(?:calor|frio|quente|sol))"
         r"(?:\s+(?:hoje|agora|la|muito|amanha|depois))?"
         r"(?:\s+(?:em|no|na)\s+(.+))?$",
@@ -513,7 +514,20 @@ def _rain_place(norm: str) -> str | None:
 def _graus_place(norm: str) -> str | None:
     """Cidade em «quantos graus faz em Recife». None se não for essa frase."""
     match = re.match(
-        r"^quantos graus(?:\s+(?:faz|esta|ta|sao|tem))?"
+        r"^quantos graus(?:\s+(?:faz|esta|ta|sao|tem))?(?:\s+fazendo)?"
+        r"(?:\s+(?:agora|hoje|la|muito|amanha|depois))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?$",
+        norm,
+    )
+    if not match:
+        return None
+    return _city_name(match.group(1) or "")
+
+
+def _quanto_place(norm: str) -> str | None:
+    """Cidade em «tá quanto em Recife». None se não for essa frase."""
+    match = re.match(
+        r"^(?:(?:ta|esta)\s+quanto|quanto\s+(?:ta|esta|faz))"
         r"(?:\s+(?:agora|hoje|la|muito|amanha|depois))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?$",
         norm,
@@ -548,6 +562,9 @@ def _place_of(norm: str) -> str:
     graus = _graus_place(norm)
     if graus is not None:
         return graus
+    quanto = _quanto_place(norm)
+    if quanto is not None:
+        return quanto
     day_city = re.search(
         r"\b(?:tempo|clima|previsao)\s+(?:para\s+)?(?:amanha|hoje|depois)\s+(?:em|no|na|de)\s+(.+)$",
         norm,
@@ -589,6 +606,12 @@ def _place_of(norm: str) -> str:
     forecast = re.search(r"\bprevisao\s+para\s+(.+)$", norm)
     if forecast:
         return _city_name(forecast.group(1))
+    if re.search(r"\b(?:tempo|clima|previsao|temperatura|graus)\b", norm):
+        anchored = re.search(r"\b(?:em|no|na)\s+(.+)$", norm)
+        if anchored:
+            place = _city_name(anchored.group(1))
+            if place and place not in {"tempo", "semana"}:
+                return place
     return _bare_sky_place(norm)
 
 
@@ -697,6 +720,7 @@ def _wants_weather(norm: str) -> bool:
         or _rain_place(norm) is not None
         or _later_place(norm) is not None
         or _graus_place(norm) is not None
+        or _quanto_place(norm) is not None
     ):
         return True
     if "como vai o tempo" in norm or "como vai o clima" in norm:
