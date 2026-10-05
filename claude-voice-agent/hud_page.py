@@ -173,7 +173,7 @@ _PAGE = r"""<!DOCTYPE html>
     .talk { grid-row: 4; min-height: 0; overflow: hidden; padding-top: 8px; padding-bottom: 8px; }
     #permit { grid-row: 5; }
     .floor { grid-row: 6; }
-    #log { max-height: 9rem; }
+    #log { max-height: 9.5rem; }
     .strip, #permit, .floor, .telemetry, .talk { padding-left: 24px; padding-right: 24px; }
   }
   @media (max-width: 959px) {
@@ -192,7 +192,7 @@ _PAGE = r"""<!DOCTYPE html>
   }
   @media (max-width: 640px) {
     .room {
-      grid-template-rows: auto minmax(0, 1fr) auto minmax(2.75rem, 3.5rem) auto auto;
+      grid-template-rows: auto minmax(0, 1fr) auto minmax(2.75rem, 4rem) auto auto;
     }
     .room:has(#note:not([hidden])) {
       grid-template-rows: auto minmax(0, 1fr) auto minmax(7.5rem, 9rem) auto auto;
