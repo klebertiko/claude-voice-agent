@@ -374,9 +374,9 @@ function fitScene(rect) {
   if (wide) {
     const radiusPx = Math.max(84, Math.min(rect.height * 0.34, rect.width * 0.2, (rect.height - 72) / 2));
     const reach = Math.max(radiusPx * 0.85, rect.width / 2 - radiusPx - 56);
-    const offset = Math.min(reach, radiusPx * 1.65);
+    const offset = Math.min(reach, radiusPx * 1.22);
     return {
-      notas: Object.assign(at(-offset, 0), { radius: radiusPx / k, zScale: 0.42, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
+      notas: Object.assign(at(-offset, 0), { radius: radiusPx * 1.18 / k, zScale: 0.42, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
       sistemas: Object.assign(at(offset, 0), { radius: radiusPx / k, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
     };
   }
