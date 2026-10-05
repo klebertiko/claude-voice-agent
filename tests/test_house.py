@@ -644,6 +644,19 @@ def test_news_asks_then_reads_the_topic(tmp_path):
     )
     assert "brasil" in seen[-1].lower()
     assert "hoje" not in seen[-1].lower()
+    assert _reply("notícias de agora", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=brasil")
+    assert "agora" not in seen[-1].lower()
+    assert _reply("notícia de agora", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=brasil")
+    assert _reply("notícias de hoje", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=hoje")
     assert _reply("o que houve hoje", fetch, tmp_path / "n.json") == (
         "Nas notícias, Senhor. Alpha sobe. Beta cai."
     )
