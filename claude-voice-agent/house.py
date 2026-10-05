@@ -1429,7 +1429,9 @@ def _uv_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:o\s+)?(?:indice\s+)?uv"
-        r"(?:\s+(?:agora|hoje|amanha))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        r"(?:\s+(?:de|para)\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|agora))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
     if not match:

@@ -740,6 +740,8 @@ def test_uv_names_the_city(tmp_path):
             )
         assert "uv_index_max" in url
         assert "temperature_2m" not in url
+        if "forecast_days=3" in url:
+            return '{"daily":{"uv_index_max":[11.2,9.4,7.2]}}'
         return '{"daily":{"uv_index_max":[11.2,9.4]}}'
 
     path = tmp_path / "n.json"
@@ -762,6 +764,19 @@ def test_uv_names_the_city(tmp_path):
         "Em Recife, índice UV de 11, Senhor."
     )
     assert "forecast_days=1" in seen[-1]
+    before = len(seen)
+    assert _reply("uv daqui a dois dias", fetch, path) == "De qual lugar, Senhor."
+    assert len(seen) == before
+    assert _reply("uv do projeto", fetch, path) is None
+    assert _reply("índice uv daqui a dois dias em recife", fetch, path) == (
+        "Depois de amanhã em Recife, índice UV de 7, Senhor."
+    )
+    assert "forecast_days=3" in seen[-1]
+    assert _reply("uv depois de amanhã em curitiba", fetch, path) == (
+        "Depois de amanhã em Curitiba, índice UV de 7, Senhor."
+    )
+    assert "forecast_days=3" in seen[-1]
+    assert "name=curitiba" in seen[-2]
 
 
 def test_pressure_names_the_city(tmp_path):
