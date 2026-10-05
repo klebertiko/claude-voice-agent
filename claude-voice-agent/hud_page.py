@@ -72,10 +72,10 @@ _PAGE = r"""<!DOCTYPE html>
     grid-template-rows: auto minmax(0, 1fr) auto auto;
   }
   .strip, .floor {
-    background: color-mix(in oklch, var(--color-paper) 28%, transparent);
+    background: transparent;
   }
   .talk, #permit {
-    background: color-mix(in oklch, var(--color-paper) 58%, transparent);
+    background: color-mix(in oklch, var(--color-void) 55%, transparent);
   }
   .strip {
     grid-column: 1 / -1;
@@ -85,8 +85,8 @@ _PAGE = r"""<!DOCTYPE html>
   }
   .brand { display: flex; align-items: baseline; gap: var(--space-sm); min-width: 0; }
   .brand strong {
-    font-family: var(--font-display); font-weight: 700; font-style: normal;
-    font-size: var(--text-lg); letter-spacing: 0.22em;
+    font-family: var(--font-display); font-weight: 600; font-style: normal;
+    font-size: var(--text-sm); letter-spacing: 0.28em;
   }
   #status { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-ring); letter-spacing: 0.14em; }
   body[data-state="listening"] #status, body[data-state="speaking"] #status { color: var(--color-accent); }
@@ -112,10 +112,8 @@ _PAGE = r"""<!DOCTYPE html>
   }
   .mark { position: relative; width: min(100%, 20rem); }
   .plate {
-    margin: var(--space-2xs) 0 0;
-    font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500;
-    font-style: normal; letter-spacing: 0.22em; text-transform: uppercase;
-    color: var(--color-ring);
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
   }
   #reactor {
     display: block; width: 100%; height: auto; aspect-ratio: 1;
@@ -133,25 +131,24 @@ _PAGE = r"""<!DOCTYPE html>
     font-weight: 500; font-style: normal; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-ink-2);
   }
   .systems {
-    margin: var(--space-sm) 0 0; width: min(100%, 20rem);
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.85rem 0.55rem;
+    margin: var(--space-md) 0 0; width: min(100%, 16rem);
+    display: flex; flex-direction: column; gap: 0.28rem;
   }
   .systems div {
-    display: flex; flex-direction: column; align-items: flex-start; gap: 0.12rem;
-    min-width: 0; padding: 0; border: 0;
+    display: flex; flex-direction: row; justify-content: space-between; align-items: baseline;
+    gap: var(--space-sm); min-width: 0; padding: 0; border: 0;
   }
-  .systems .span { grid-column: 1 / -1; }
+  .systems .span { }
   .systems dt {
-    font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.16em;
+    font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em;
     text-transform: uppercase; color: var(--color-ink-2); font-weight: 400;
   }
   .systems dd {
-    margin: 0; font-family: var(--font-display); font-weight: 600; font-style: normal;
-    font-size: 0.95rem; letter-spacing: 0.03em; color: var(--color-ring);
-    text-align: left; overflow-wrap: anywhere;
+    margin: 0; font-family: var(--font-mono); font-weight: 400; font-style: normal;
+    font-size: 0.75rem; letter-spacing: 0.04em; color: var(--color-ring);
+    text-align: right; overflow-wrap: anywhere;
   }
-  .systems dd.is-down { color: var(--color-ink-2); font-weight: 500; }
+  .systems dd.is-down { color: var(--color-ink-2); }
   #log { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--space-2xs); }
   #log p { margin: 0; line-height: 1.35; overflow-wrap: anywhere; min-width: 0; font-size: var(--text-md); }
   #log .empty, #log .meta { color: var(--color-ink-2); font-size: var(--text-sm); }
@@ -210,7 +207,7 @@ _PAGE = r"""<!DOCTYPE html>
     .telemetry, .well, .talk, .strip, #permit, .floor { grid-column: 1; grid-row: auto; }
     .telemetry, .talk { border: 0; }
     .mark { width: min(100%, 16rem); }
-    .systems { width: min(100%, 22rem); grid-template-columns: 1fr 1fr; }
+    .systems { width: min(100%, 18rem); }
     #log { max-height: 24vh; }
     .floor { flex-wrap: wrap; }
     #text { flex: 1 1 100%; }
@@ -235,10 +232,10 @@ _PAGE = r"""<!DOCTYPE html>
     </div>
     <p class="plate">reator</p>
     <dl class="systems">
-      <div><dt>codex</dt><dd id="brain-codex">ausente</dd></div>
-      <div><dt>cursor</dt><dd id="brain-cursor">ausente</dd></div>
-      <div><dt>claude</dt><dd id="brain-claude">ausente</dd></div>
-      <div><dt>cérebro</dt><dd id="brain">—</dd></div>
+      <div><dt>codex</dt><dd class="is-down" id="brain-codex">ausente</dd></div>
+      <div><dt>cursor</dt><dd class="is-down" id="brain-cursor">ausente</dd></div>
+      <div><dt>claude</dt><dd class="is-down" id="brain-claude">ausente</dd></div>
+      <div><dt>cérebro</dt><dd class="is-down" id="brain">ausente</dd></div>
       <div><dt>céu</dt><dd id="sky">0</dd></div>
       <div><dt>lembretes</dt><dd id="notes">0</dd></div>
       <div><dt>voz</dt><dd id="voice-name">george</dd></div>
@@ -430,18 +427,26 @@ function drawChest(now) {
     rctx.stroke();
   }
   rctx.strokeStyle = ink.plasma;
-  rctx.globalAlpha = 0.95;
-  rctx.lineWidth = Math.max(2.5, side * 0.02);
+  rctx.shadowColor = ink.plasma;
+  rctx.shadowBlur = side * 0.04;
+  rctx.globalAlpha = 0.9;
+  rctx.lineWidth = Math.max(1.2, side * 0.006);
   rctx.beginPath();
   rctx.arc(0, 0, R * 0.8, -2.15, 0.55);
   rctx.stroke();
+  rctx.shadowBlur = 0;
   rctx.strokeStyle = ink.plasmaHot;
-  rctx.globalAlpha = 0.75;
-  rctx.lineWidth = Math.max(1.4, side * 0.007);
+  rctx.globalAlpha = 0.55;
+  rctx.lineWidth = Math.max(1, side * 0.003);
   rctx.beginPath();
   rctx.arc(0, 0, R * 0.67, 1.15, 2.7);
   rctx.stroke();
-  const core = R * 0.07 * hot;
+  rctx.beginPath();
+  rctx.arc(0, 0, R * 0.42, 0, Math.PI * 2);
+  rctx.fillStyle = ink.void;
+  rctx.globalAlpha = 0.72;
+  rctx.fill();
+  const core = R * 0.045 * hot;
   const glow = rctx.createRadialGradient(0, 0, 0, 0, 0, core * 3);
   glow.addColorStop(0, ink.holoHot);
   glow.addColorStop(0.55, ink.holo);
@@ -463,7 +468,7 @@ function drawReactor(now) {
   const w = canvas.width / DPR, h = canvas.height / DPR;
   const rect = well.getBoundingClientRect();
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = ink.paper;
+  ctx.fillStyle = ink.void;
   ctx.fillRect(0, 0, w, h);
   if (rect.width < 40 || rect.height < 40) return;
   const cx = rect.left + rect.width / 2;
