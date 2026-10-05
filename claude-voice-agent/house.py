@@ -306,6 +306,21 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         if dew is None:
             return "Não alcancei o clima, Senhor."
         return f"Em {label}, ponto de orvalho de {_speak_graus(dew)}, Senhor."
+    if field == "semana":
+        url = (
+            "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_min,temperature_2m_max"
+            f"&forecast_days=7&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        daily = data.get("daily") or {}
+        lows = [float(item) for item in (daily.get("temperature_2m_min") or []) if item is not None]
+        highs = [float(item) for item in (daily.get("temperature_2m_max") or []) if item is not None]
+        if not lows or not highs:
+            return "Não alcancei o clima, Senhor."
+        low = int(round(min(lows)))
+        high = int(round(max(highs)))
+        span = _speak_graus(low) if low == high else f"de {_speak_span(low)} a {_speak_span(high)} graus"
+        return f"Em {label}, na semana, {span}, Senhor."
     if day == "amanha":
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max,weather_code"
@@ -394,12 +409,17 @@ def _wants_dollar(norm: str) -> bool:
     ))
 
 
+def _speak_span(graus: int) -> str:
+    """O número da faixa. O sinal vira «menos», para a voz não ler o hífen."""
+    if graus < 0:
+        return f"menos {abs(graus)}"
+    return str(graus)
+
+
 def _speak_graus(value: float) -> str:
     """Graus falados. Abaixo de zero entra o menos, para a voz não ler o sinal."""
     graus = int(round(float(value)))
-    if graus < 0:
-        return f"menos {abs(graus)} graus"
-    return f"{graus} graus"
+    return f"{_speak_span(graus)} graus"
 
 
 def _speak_visibility(meters: float) -> str:
@@ -1443,6 +1463,21 @@ def _air_place(norm: str) -> str | None:
     return _city_name(match.group(1) or "")
 
 
+def _week_place(norm: str) -> str | None:
+    """None quando não é o clima da semana. Vazio quando falta a cidade."""
+    match = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
+        r"(?:qual\s+(?:e\s+)?)?(?:(?:o|a)\s+)?"
+        r"(?:tempo|clima|previsao)(?:\s+do\s+tempo)?"
+        r"\s+(?:para\s+(?:a\s+)?|da\s+|de\s+)?semana(?:\s+que\s+vem)?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if not match:
+        return None
+    return _city_name(match.group(1) or "")
+
+
 def _how_city(norm: str) -> str | None:
     """Cidade em «como está Recife». None se a frase não for o tempo da cidade."""
     match = re.fullmatch(
@@ -1804,6 +1839,11 @@ def house_reply(
                 return "De qual lugar, Senhor."
             day = "amanha" if re.search(r"\bamanha\b", norm) else ""
             return _weather(dew_place, fetch, day=day, field="orvalho")
+        week_place = _week_place(norm)
+        if week_place is not None:
+            if not week_place:
+                return "De qual lugar, Senhor."
+            return _weather(week_place, fetch, field="semana")
         how_place = _how_city(norm)
         if how_place is not None:
             day = "amanha" if re.search(r"\bamanha\b", norm) else ""

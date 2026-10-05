@@ -56,6 +56,45 @@ def test_weather_asks_for_the_place(tmp_path):
     assert _reply("vai chover à noite", fetch, path) == "De qual lugar, Senhor."
 
 
+def test_week_names_the_span(tmp_path):
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "geocoding" in url:
+            assert "recife" in url.lower() or "curitiba" in url.lower()
+            name = "Recife" if "recife" in url.lower() else "Curitiba"
+            return '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
+        assert "forecast_days=7" in url
+        assert "temperature_2m_min" in url
+        assert "weather_code" not in url
+        return (
+            '{"daily":{"temperature_2m_min":[18,16,-1.6,14],'
+            '"temperature_2m_max":[29,27,24,22.2]}}'
+        )
+
+    path = tmp_path / "n.json"
+    assert _reply("clima para a semana", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("tempo da semana", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("previsão para a semana que vem", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("tempo para pensar", fetch, path) is None
+    assert _reply("tempo para amanhã", fetch, path) == "De qual lugar, Senhor."
+    assert seen == []
+    assert _reply("clima para a semana em recife", fetch, path) == (
+        "Em Recife, na semana, de menos 2 a 29 graus, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "semana" not in seen[-2]
+    assert "forecast_days=7" in seen[-1]
+    assert _reply("me fala o tempo da semana em curitiba", fetch, path) == (
+        "Em Curitiba, na semana, de menos 2 a 29 graus, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    assert _reply("previsão do tempo para a semana em recife", fetch, path) == (
+        "Em Recife, na semana, de menos 2 a 29 graus, Senhor."
+    )
+
+
 def test_weather_names_the_city(tmp_path):
     def fetch(url):
         if "geocoding" in url:
@@ -75,6 +114,12 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
         if "geocoding" in url:
             assert any(city in url.lower() for city in ("paulo", "curitiba", "rio", "recife"))
             return '{"results":[{"latitude":-23.5,"longitude":-46.6,"name":"São Paulo"}]}'
+        if "temperature_2m_min" in url:
+            assert "forecast_days=7" in url
+            return (
+                '{"daily":{"temperature_2m_min":[18,16,15,14,17,18,19],'
+                '"temperature_2m_max":[27,26,24,22,25,28,29]}}'
+            )
         if "daily=" in url:
             return '{"daily":{"temperature_2m_max":[20,27],"weather_code":[1,3]}}'
         return '{"current":{"temperature_2m":22,"weather_code":1}}'
@@ -296,11 +341,11 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
     )
     assert "name=curitiba" in seen[-2]
     assert _reply("clima para a semana em curitiba", fetch, path) == (
-        "Em São Paulo, 22 graus, quase limpo, Senhor."
+        "Em São Paulo, na semana, de 14 a 29 graus, Senhor."
     )
     assert "name=curitiba" in seen[-2]
     assert "semana" not in seen[-2]
-    assert "daily=" not in seen[-1]
+    assert "forecast_days=7" in seen[-1]
     assert _reply("vai dar chuva em curitiba", fetch, path) == (
         "Em São Paulo, 22 graus, quase limpo, Senhor."
     )
@@ -2057,6 +2102,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
         if field == "chance":
             when = "Amanhã em" if day == "amanha" else "Em"
             return f"{when} {place}, chance de chuva de 40 por cento, Senhor."
+        if field == "semana":
+            return f"Em {place}, na semana, de 14 a 29 graus, Senhor."
         if field == "maxima":
             when = "Amanhã em" if day == "amanha" else "Em"
             return f"{when} {place}, máxima de 31 graus, Senhor."
@@ -2146,6 +2193,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert reply("Curitiba", []) == (
         "Amanhã em Curitiba, chance de chuva de 40 por cento, Senhor."
     )
+    assert reply("clima para a semana", []) == "De qual lugar, Senhor."
+    assert reply("Curitiba", []) == "Em Curitiba, na semana, de 14 a 29 graus, Senhor."
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):
