@@ -2,7 +2,13 @@
 
 import pytest
 
-from claude_agent_voice.personas import DEFAULT_PERSONA, PERSONAS, Persona, get_persona
+from claude_agent_voice.personas import (
+    DEFAULT_PERSONA,
+    PERSONAS,
+    Persona,
+    get_persona,
+    spoken_voice,
+)
 
 
 def test_registry_has_lilith_and_orion():
@@ -16,8 +22,9 @@ def test_orion_preset_is_kokoro_masculino_ptbr():
     assert g.name == "Orion"
     assert g.gender == "masculino"
     assert g.tts_engine == "kokoro"
-    assert g.voice == "bm_george"
-    assert g.speech_rate == 1.32
+    assert g.voice == "bm_daniel*0.7+bm_lewis*0.3"
+    assert g.speech_rate == 1.2
+    assert spoken_voice(g.voice) == "daniel"
     assert "orion" in g.wake_words
     assert g.form_of_address == "Senhor"
 

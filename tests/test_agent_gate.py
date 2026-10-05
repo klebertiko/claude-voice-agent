@@ -76,8 +76,8 @@ def test_make_tts_orion_is_kokoro_british_blend():
     t = make_tts(s, get_persona("orion"))
     assert isinstance(t, KokoroTTS)
     assert t.sample_rate == 24000
-    assert t._voice == "bm_george"
-    assert t._speed == 1.32
+    assert t._voice == "bm_daniel*0.7+bm_lewis*0.3"
+    assert t._speed == 1.2
 
 
 def test_make_tts_lilith_is_kokoro():

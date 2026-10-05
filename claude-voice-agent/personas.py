@@ -50,19 +50,25 @@ LILITH = Persona(
     wake_words=("lilith", "lilit", "lili", "lilis", "lilith,"),
 )
 
-# bm_george puro. A mistura com pm_santa em 0.84 ficava lenta e opaca.
-# 1.32 ainda passa no Whisper small float32 (beam 5): nome, 15 horas e 5
-# minutos, e "Posso executar isto, Senhor". A 1.40 o nome se perde.
+# Daniel carrega a frase; Lewis só clareia. George puro embaçava "Não fiz".
+# A 1.2 o Whisper small float32 (beam 5) ainda ouve o nome, as 15 horas e 5
+# minutos, a permissão e "Não fiz, Senhor". A 1.24 a recusa vira "senhora".
 ORION = Persona(
     key="orion",
     name="Orion",
     gender="masculino",
     tts_engine="kokoro",
-    voice="bm_george",
+    voice="bm_daniel*0.7+bm_lewis*0.3",
     # variantes que o Whisper costuma ouvir no lugar de "Orion".
     wake_words=("orion", "oriom", "orian", "orions", "oreon"),
-    speech_rate=1.32,
+    speech_rate=1.2,
 )
+
+
+def spoken_voice(spec: str) -> str:
+    """Nome falado da voz dominante. ``bm_daniel*0.7+bm_lewis*0.3`` vira daniel."""
+    head = spec.split("+", 1)[0].split("*", 1)[0].strip()
+    return head.rsplit("_", 1)[-1] or head
 
 PERSONAS: dict[str, Persona] = {p.key: p for p in (LILITH, ORION)}
 

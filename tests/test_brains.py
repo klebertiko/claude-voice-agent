@@ -115,7 +115,7 @@ def test_choice_does_not_fall_through(tmp_path):
     assert reply("conte uma coisa", []) == "Codex não está neste computador, Senhor."
     choice["id"] = "claude"
     assert reply("conte uma coisa", []) == "Pelo Claude, Senhor."
-    assert "1.32" in reply("qual o ritmo", [])
+    assert reply("qual o ritmo", []) == "O ritmo é 1.2, Senhor."
 
 
 def test_reply_fn_uses_the_subscription_before_the_fallback(tmp_path):

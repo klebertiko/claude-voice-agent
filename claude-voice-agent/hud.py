@@ -20,7 +20,7 @@ from .brains import subscription_reply
 from .house import continue_house, house_reply
 from .llm_ollama import ask_ollama, probe_ollama
 from .noise import is_noise_transcript
-from .personas import Persona
+from .personas import Persona, spoken_voice
 from .speech import strip_for_speech
 from .wake import WakeGate
 
@@ -177,8 +177,7 @@ def _panel_fact(cleaned: str, persona: Persona) -> str | None:
     if norm in {"qual o fuso", "o fuso"}:
         return "O fuso é Brasília, Senhor."
     if norm in {"qual a voz", "a voz"}:
-        voice = persona.voice.rsplit("_", 1)[-1]
-        return f"A voz é {voice}, Senhor."
+        return f"A voz é {spoken_voice(persona.voice)}, Senhor."
     return None
 
 
