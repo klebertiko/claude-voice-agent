@@ -310,7 +310,57 @@ def _bare_sky_place(norm: str) -> str:
     return place
 
 
+_VAGUE_PLACE = {"cidade", "lugar", "ai", "la", "aqui", "hoje", "agora", "amanha", "mim"}
+
+
+def _city_name(place: str) -> str:
+    """Tira hoje, agora e um lugar vago. «curitiba hoje» fica «curitiba»."""
+    place = (place or "").strip(" .")
+    place = re.sub(r"^(?:hoje|agora|la|muito)\s+", "", place)
+    place = re.sub(r"\s+(?:hoje|agora|amanha)$", "", place).strip()
+    if not place or place in _VAGUE_PLACE:
+        return ""
+    return place
+
+
+def _heat_place(norm: str) -> str | None:
+    """Cidade numa frase de calor ou frio. None se não for essa frase."""
+    match = re.match(
+        r"^(?:faz calor"
+        r"|(?:esta|ta)(?:\s+fazendo)?(?:\s+muito)?\s+(?:calor|quente|frio)"
+        r"|vai fazer(?:\s+muito)?\s+(?:calor|frio|quente))"
+        r"(?:\s+(?:hoje|agora|la|muito))?"
+        r"(?:\s+(?:em|no|na)\s+(.+))?$",
+        norm,
+    )
+    if match:
+        return _city_name(match.group(1) or "")
+    bare = re.match(r"^(?:calor|frio)\s+(?:em|no|na)\s+(.+)$", norm)
+    if bare:
+        return _city_name(bare.group(1))
+    return None
+
+
+def _rain_place(norm: str) -> str | None:
+    """Cidade numa frase de chuva. None se não for essa frase."""
+    match = re.match(
+        r"^(?:vai chover|(?:esta|ta)\s+chovendo|chove)"
+        r"(?:\s+(?:hoje|agora|la|muito))?"
+        r"(?:\s+(?:em|no|na)\s+(.+))?$",
+        norm,
+    )
+    if not match:
+        return None
+    return _city_name(match.group(1) or "")
+
+
 def _place_of(norm: str) -> str:
+    hot = _heat_place(norm)
+    if hot is not None:
+        return hot
+    wet = _rain_place(norm)
+    if wet is not None:
+        return wet
     for prefix in (
         "tempo em ", "clima em ", "previsao em ", "previsao para ",
         "clima de ", "tempo de ", "clima do ", "tempo do ", "clima da ", "tempo da ",
@@ -318,20 +368,17 @@ def _place_of(norm: str) -> str:
     ):
         if norm.startswith(prefix):
             return norm[len(prefix) :].strip(" .")
-    match = re.search(r"\b(?:tempo|clima|previsao)\s+(?:em|no|na|de)\s+(.+)$", norm)
+    match = re.search(
+        r"\b(?:tempo|clima|previsao)\s+(?:la\s+)?(?:em|no|na|de)\s+(.+)$",
+        norm,
+    )
     if match:
-        place = match.group(1).strip(" .")
-        if place and place not in {"hoje", "agora", "amanha", "aqui", "tempo"}:
+        place = _city_name(match.group(1))
+        if place and place not in {"tempo"}:
             return place
-    heat = re.search(r"\btemperatura\s+em\s+(.+)$", norm)
+    heat = re.search(r"\btemperatura\s+(?:em|no|na|de|do|da)\s+(.+)$", norm)
     if heat:
-        return heat.group(1).strip(" .")
-    rain = re.match(r"^vai chover\s+em\s+(.+)$", norm)
-    if rain:
-        return rain.group(1).strip(" .")
-    wet = re.match(r"^(?:esta|ta)\s+chovendo\s+em\s+(.+)$", norm)
-    if wet:
-        return wet.group(1).strip(" .")
+        return _city_name(heat.group(1))
     if "previsao" in norm:
         later = re.search(r"\bpara\s+(.+)$", norm)
         if later:
@@ -415,15 +462,13 @@ def continue_house(
 def _wants_weather(norm: str) -> bool:
     if "faz tempo" in norm:
         return False
+    if _heat_place(norm) is not None or _rain_place(norm) is not None:
+        return True
     if _place_of(norm):
         return True
     if norm.startswith(("tempo em ", "clima em ", "clima ", "previsao ")):
         return True
     if "qual a temperatura" in norm or "qual e a temperatura" in norm or norm.startswith("temperatura"):
-        return True
-    if re.match(r"^vai chover(?:\s+em\s+\S.*)?$", norm):
-        return True
-    if re.match(r"^(?:esta|ta)\s+chovendo(?:\s+em\s+\S.*)?$", norm):
         return True
     if norm.startswith("tempo ") and _bare_sky_place(norm):
         return True

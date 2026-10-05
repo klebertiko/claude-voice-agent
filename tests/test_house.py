@@ -16,8 +16,15 @@ def test_weather_asks_for_the_place(tmp_path):
     def fetch(_url):
         raise AssertionError("sem lugar, não busca o clima")
 
-    assert _reply("que tempo faz", fetch, tmp_path / "n.json") == "De qual lugar, Senhor."
-    assert _reply("qual o tempo", fetch, tmp_path / "n.json") == "De qual lugar, Senhor."
+    path = tmp_path / "n.json"
+    assert _reply("que tempo faz", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("qual o tempo", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("faz calor", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("está quente", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("chove", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("vai chover hoje", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("está chovendo agora", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("temperatura da cidade", fetch, path) == "De qual lugar, Senhor."
 
 
 def test_weather_names_the_city(tmp_path):
@@ -96,6 +103,48 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
         "Em São Paulo, 22 graus, quase limpo, Senhor."
     )
     assert "curitiba" in seen[-2]
+    assert _reply("faz calor em recife", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "recife" in seen[-2]
+    assert _reply("está quente no rio", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "rio" in seen[-2]
+    assert _reply("chove em curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "curitiba" in seen[-2]
+    assert _reply("vai chover hoje em curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "curitiba" in seen[-2]
+    assert "hoje" not in seen[-2]
+    assert _reply("está chovendo agora em curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "curitiba" in seen[-2]
+    assert "agora" not in seen[-2]
+    assert _reply("chove em curitiba hoje", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    assert _reply("temperatura de são paulo", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "paulo" in seen[-2]
+    assert _reply("qual a temperatura de recife", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "recife" in seen[-2]
+    assert _reply("temperatura no rio", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "rio" in seen[-2]
+    assert _reply("qual o tempo lá em recife", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "name=recife" in seen[-2]
 
 
 def test_unrelated_tempo_is_not_weather(tmp_path):
