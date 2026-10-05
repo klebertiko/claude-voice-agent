@@ -1064,10 +1064,6 @@ function trimCloud(marks, rect, boxes, stars) {
       const box = boxes[b];
       ctx.rect(box.l - 6, box.t - 6, (box.r - box.l) + 12, (box.b - box.t) + 12);
     }
-    for (let s = 0; s < stars.length; s++) {
-      ctx.moveTo(stars[s].p.x + 22, stars[s].p.y);
-      ctx.arc(stars[s].p.x, stars[s].p.y, 22, 0, Math.PI * 2);
-    }
     if (other) {
       const pc = other.mark.pc;
       const ux = other.mark.pu.x - pc.x;
@@ -1169,6 +1165,52 @@ function paintLanes(marks, rect, boxes, stars) {
     ctx.restore();
   }
   ctx.restore();
+}
+function repaintOuterStars(marks, stars, focusId, neigh) {
+  const spriteAt = (mark, x, y) => {
+    const ux = mark.pu.x - mark.pc.x;
+    const uy = mark.pu.y - mark.pc.y;
+    const vx = mark.pv.x - mark.pc.x;
+    const vy = mark.pv.y - mark.pc.y;
+    const det = ux * vy - vx * uy;
+    if (Math.abs(det) < 1e-4) return null;
+    const dx = x - mark.pc.x;
+    const dy = y - mark.pc.y;
+    return { sx: (dx * vy - vx * dy) / det, sy: (ux * dy - uy * dx) / det };
+  };
+  for (let i = 0; i < stars.length; i++) {
+    const item = stars[i];
+    let cloud = null;
+    for (let n = 0; n < marks.length; n++) {
+      if (marks[n].kind === item.star.kind) cloud = marks[n];
+    }
+    if (!cloud) continue;
+    const at = spriteAt(cloud.mark, item.p.x, item.p.y);
+    if (!at) continue;
+    const ang = Math.atan2(at.sy, at.sx);
+    if (Math.hypot(at.sx, at.sy) <= hemEdge(ang, cloud.phase) + 0.02) continue;
+    const chosen = item.star.id === picked;
+    const depthScale = Math.max(0.55, Math.min(1.45, item.p.persp / (FOCAL / CAMERA)));
+    const pulse = chosen ? 1 + level * 0.65 : 1;
+    const dim = item.star.kind === "nota" && noteQuery && !noteHit(item.star);
+    const aside = focusId && !neigh.has(item.star.id);
+    const rgb = chosen ? "212, 196, 168" : item.star.kind === "nota" ? GROUPS.notas.rgb : GROUPS.sistemas.rgb;
+    const presence = (dim ? 0.16 : aside ? 0.55 : 1) * Math.max(0.42, Math.min(1, depthScale));
+    const size = (item.star.kind === "sistema" ? 40 : 32) * depthScale * pulse;
+    ctx.save();
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = presence * 0.72;
+    ctx.drawImage(glowSprite(rgb), item.p.x - size / 2, item.p.y - size / 2, size, size);
+    ctx.restore();
+    const point = (item.star.kind === "sistema" ? 2.15 : 1.85) * depthScale * pulse;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = presence;
+    ctx.fillStyle = chosen ? ink.accent : ink.ink;
+    ctx.beginPath();
+    ctx.arc(item.p.x, item.p.y, point, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 function drawPlate() {
   const w = canvas.width / DPR, h = canvas.height / DPR;
@@ -1771,6 +1813,7 @@ function drawPlate() {
   }
   trimCloud(discMarks, rect, boxes, view);
   paintLanes(discMarks, rect, boxes, view);
+  repaintOuterStars(discMarks, view, focusId, neigh);
   ctx.lineCap = "round";
   for (const stroke of strokes) {
     const gaps = boxes.map((box) => ({ l: box.l - 4, r: box.r + 4, t: box.t - 4, b: box.b + 4 }));
