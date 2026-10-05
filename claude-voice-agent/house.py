@@ -1023,11 +1023,12 @@ def _sun_place(norm: str) -> tuple[str, str] | None:
 def _extreme_place(norm: str) -> tuple[str, str] | None:
     """(«maxima» ou «minima», cidade). None quando não é o extremo."""
     match = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?(?:temperatura\s+)?"
         r"(maxima|minima)"
-        r"(?:\s+de\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
         r"(?:\s+(?:amanha|hoje|agora))?"
-        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
+        r"(?:\s+(?:em|no|na|de|para)\s+(.+))?",
         norm,
     )
     if not match:

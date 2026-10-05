@@ -540,6 +540,19 @@ def test_extreme_names_the_city(tmp_path):
     assert _reply("mínima amanhã em curitiba", fetch, path) == (
         "Amanhã em Curitiba, mínima de 16 graus, Senhor."
     )
+    assert _reply("me fala a máxima em recife", fetch, path) == (
+        "Em Recife, máxima de 32 graus, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "forecast_days=1" in seen[-1]
+    assert _reply("máxima para amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, máxima de 29 graus, Senhor."
+    )
+    assert "forecast_days=2" in seen[-1]
+    assert "amanha" not in seen[-2]
+    before = len(seen)
+    assert _reply("me fala a máxima", fetch, path) == "De qual lugar, Senhor."
+    assert len(seen) == before
 
 
 def test_unrelated_tempo_is_not_weather(tmp_path):
@@ -1310,6 +1323,10 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert reply("Recife", []) == "Em Recife, 19 graus, nublado, Senhor."
     assert reply("mínima amanhã", []) == "De qual lugar, Senhor."
     assert reply("Curitiba", []) == "Amanhã em Curitiba, mínima de 18 graus, Senhor."
+    assert reply("me fala a máxima", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Em Recife, máxima de 31 graus, Senhor."
+    assert reply("máxima para amanhã", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Amanhã em Recife, máxima de 31 graus, Senhor."
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):
