@@ -20,6 +20,9 @@ def test_weather_defaults_to_sao_paulo(tmp_path):
     assert _reply("que tempo faz", fetch, tmp_path / "n.json") == (
         "Em São Paulo, 23 graus, quase limpo, Senhor."
     )
+    assert _reply("qual o tempo", fetch, tmp_path / "n.json") == (
+        "Em São Paulo, 23 graus, quase limpo, Senhor."
+    )
 
 
 def test_weather_names_the_city(tmp_path):

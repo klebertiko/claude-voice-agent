@@ -146,13 +146,22 @@ def _list_notes(path: Path) -> str:
 
 
 def _wants_weather(norm: str) -> bool:
+    if "faz tempo" in norm:
+        return False
     if norm.startswith(("tempo em ", "clima em ", "clima ", "previsao ")):
         return True
-    if norm in {"clima", "tempo", "previsao", "o tempo", "o clima", "tempo agora"}:
+    if norm in {
+        "clima", "tempo", "previsao", "o tempo", "o clima", "tempo agora",
+        "qual o tempo", "qual e o tempo",
+    }:
         return True
-    if "que tempo" in norm or "previsao" in norm:
+    if "que tempo" in norm or "previsao" in norm or "qual o tempo" in norm:
         return True
-    return "como esta o tempo" in norm or "como esta o clima" in norm
+    return (
+        "como esta o tempo" in norm
+        or "como esta o clima" in norm
+        or "como ta o tempo" in norm
+    )
 
 
 def _whatsapp(text: str) -> str:
