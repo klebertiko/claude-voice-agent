@@ -119,7 +119,9 @@ _PAGE = r"""<!DOCTYPE html>
   #note { display: flex; flex-direction: column; gap: 8px; max-width: 72ch; }
   #note[hidden] { display: none; }
   #note-text { font-size: var(--text-body); line-height: 1.5; }
-  #note-links { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  #note-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+  #note-links .k { font-size: var(--text-support); line-height: 1.2; color: var(--color-ink-2); }
+  #note-links .act { color: var(--color-accent); }
   #log {
     flex: 1; min-height: 0; max-height: 11rem; overflow: auto;
     display: flex; flex-direction: column; max-width: 72ch;
@@ -1364,7 +1366,14 @@ function openNote(star) {
   noteEl.hidden = false;
   noteText.textContent = star.text || star.label;
   noteLinks.replaceChildren();
-  for (const other of linksOf(star.id)) {
+  const linked = linksOf(star.id);
+  if (linked.length) {
+    const cap = document.createElement("span");
+    cap.className = "k";
+    cap.textContent = "ligada a";
+    noteLinks.appendChild(cap);
+  }
+  for (const other of linked) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "act";
