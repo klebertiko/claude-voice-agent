@@ -499,6 +499,47 @@ function project(p, cx, cy, scale) {
   return { x: cx + p.x * persp * scale, y: cy - p.y * persp * scale, persp, z: p.z };
 }
 const glowCache = {};
+const nebulaCache = {};
+function nebulaSprite(rgb) {
+  const cached = nebulaCache[rgb];
+  if (cached) return cached;
+  const S = 384;
+  const sprite = document.createElement("canvas");
+  sprite.width = S;
+  sprite.height = S;
+  const pen = sprite.getContext("2d");
+  const mid = S / 2;
+  const rad = mid - 1;
+  const disc = pen.createRadialGradient(mid, mid, 0, mid, mid, rad);
+  disc.addColorStop(0, "rgba(" + rgb + ",0.36)");
+  disc.addColorStop(0.55, "rgba(" + rgb + ",0.16)");
+  disc.addColorStop(1, "rgba(" + rgb + ",0)");
+  pen.fillStyle = disc;
+  pen.beginPath();
+  pen.arc(mid, mid, rad, 0, Math.PI * 2);
+  pen.fill();
+  pen.save();
+  pen.translate(mid, mid);
+  pen.scale(1, 0.16);
+  const dust = pen.createRadialGradient(0, 0, rad * 0.12, 0, 0, rad * 0.8);
+  dust.addColorStop(0, "rgba(7, 13, 22, 0.34)");
+  dust.addColorStop(0.65, "rgba(7, 13, 22, 0.12)");
+  dust.addColorStop(1, "rgba(7, 13, 22, 0)");
+  pen.fillStyle = dust;
+  pen.beginPath();
+  pen.arc(0, 0, rad * 0.8, 0, Math.PI * 2);
+  pen.fill();
+  pen.restore();
+  const core = pen.createRadialGradient(mid, mid, 0, mid, mid, rad * 0.2);
+  core.addColorStop(0, "rgba(" + rgb + ",0.72)");
+  core.addColorStop(1, "rgba(" + rgb + ",0)");
+  pen.fillStyle = core;
+  pen.beginPath();
+  pen.arc(mid, mid, rad * 0.2, 0, Math.PI * 2);
+  pen.fill();
+  nebulaCache[rgb] = sprite;
+  return sprite;
+}
 function glowSprite(rgb) {
   const cached = glowCache[rgb];
   if (cached) return cached;
@@ -553,33 +594,13 @@ function labelSpots(x, y, cx0, cy0) {
   return spots;
 }
 function paintNebula(cloud) {
-  const rad = Math.max(96, cloud.maxD * 1.75);
+  const rad = Math.max(cloud.span || 96, cloud.maxD * 1.2);
+  const sprite = nebulaSprite(cloud.rgb);
   ctx.save();
   ctx.translate(cloud.x, cloud.y);
   ctx.rotate(cloud.angle || 0);
   ctx.scale(1, 0.74);
-  const disc = ctx.createRadialGradient(0, 0, 0, 0, 0, rad);
-  disc.addColorStop(0, "rgba(" + cloud.rgb + ",0.28)");
-  disc.addColorStop(0.5, "rgba(" + cloud.rgb + ",0.14)");
-  disc.addColorStop(1, "rgba(" + cloud.rgb + ",0)");
-  ctx.fillStyle = disc;
-  ctx.beginPath();
-  ctx.arc(0, 0, rad, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.save();
-  ctx.scale(1.05, 0.11);
-  ctx.fillStyle = "rgba(7, 13, 22, 0.72)";
-  ctx.beginPath();
-  ctx.arc(0, 0, rad * 0.78, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-  const core = ctx.createRadialGradient(0, 0, 0, 0, 0, rad * 0.22);
-  core.addColorStop(0, "rgba(" + cloud.rgb + ",0.7)");
-  core.addColorStop(1, "rgba(" + cloud.rgb + ",0)");
-  ctx.fillStyle = core;
-  ctx.beginPath();
-  ctx.arc(0, 0, rad * 0.22, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.drawImage(sprite, -rad, -rad, rad * 2, rad * 2);
   ctx.restore();
 }
 function drawPlate() {
@@ -622,7 +643,8 @@ function drawPlate() {
     }
     const angle = 0.5 * Math.atan2(2 * sxy, sxx - syy);
     const meta = key === "nota" ? fit.notas : fit.sistemas;
-    centroids[key] = { x: sx, y: sy, z: sz, maxD, angle, name: meta.name, rgb: meta.rgb };
+    const span = meta.radius * (FOCAL / CAMERA) * scale;
+    centroids[key] = { x: sx, y: sy, z: sz, maxD, angle, name: meta.name, rgb: meta.rgb, span };
   }
   const clouds = Object.values(centroids).sort((a, b) => b.z - a.z);
   for (const cloud of clouds) paintNebula(cloud);
@@ -1023,7 +1045,12 @@ well.addEventListener("pointerdown", (ev) => {
   wake();
 });
 well.addEventListener("pointermove", (ev) => {
-  if (!drag) { pointStar(ev, false); wake(); return; }
+  if (!drag) {
+    const before = hovered;
+    pointStar(ev, false);
+    if (hovered !== before) wake();
+    return;
+  }
   const dx = ev.clientX - drag.x;
   const dy = ev.clientY - drag.y;
   dragMoved = Math.max(dragMoved, Math.hypot(dx, dy));
