@@ -164,7 +164,7 @@ _PAGE = r"""<!DOCTYPE html>
     .room {
       height: 100vh; min-height: 0;
       grid-template-columns: 1fr;
-      grid-template-rows: auto auto minmax(0, 1fr) minmax(7rem, 11rem) auto auto;
+      grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
     }
     .strip, .telemetry, .well, .talk, #permit, .floor { grid-column: 1; }
     .strip { grid-row: 1; }
@@ -173,7 +173,7 @@ _PAGE = r"""<!DOCTYPE html>
     .talk { grid-row: 4; min-height: 0; overflow: hidden; padding-top: 8px; padding-bottom: 8px; }
     #permit { grid-row: 5; }
     .floor { grid-row: 6; }
-    #log { max-height: none; }
+    #log { max-height: 9rem; }
     .strip, #permit, .floor, .telemetry, .talk { padding-left: 24px; padding-right: 24px; }
   }
   @media (max-width: 959px) {
@@ -1045,12 +1045,13 @@ function addLine(cls, message) {
   if (cls === "user") p.dataset.speaker = "Senhor";
   if (cls === "agent") p.dataset.speaker = "Orion";
   (logLines || logEl).appendChild(p);
-  requestAnimationFrame(() => { logEl.scrollTop = logEl.scrollHeight; });
+  requestAnimationFrame(() => { logEl.scrollTop = logEl.scrollHeight; wake(); });
 }
 function showPermit(id, command) {
   permitId = id || "";
   permitCmd.textContent = command || "";
   permitEl.hidden = !permitId;
+  wake();
 }
 async function refreshBrain() {
   try {
