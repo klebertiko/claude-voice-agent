@@ -842,7 +842,7 @@ def _usable_topic(topic: str) -> str:
 def _topic_of(norm: str) -> str:
     bulletin = re.fullmatch(
         r"(?:(?:me\s+)?(?:da|fala|diz|conta)\s+)?(?:o\s+)?plantao"
-        r"(?:\s+(?:de|das|dos|sobre)\s+(.+))?",
+        r"(?:\s+(?:de|da|do|das|dos|sobre|a\s+respeito\s+(?:de|do|da))\s+(.+))?",
         norm,
     )
     if bulletin:
@@ -1429,7 +1429,7 @@ def house_reply(
             or "manchete" in norm
             or re.match(
                 r"^(?:(?:me\s+)?(?:da|fala|diz|conta)\s+)?(?:o\s+)?plantao"
-                r"(?:\s+(?:de|das|dos|sobre)\s+\S.*)?$",
+                r"(?:\s+(?:de|da|do|das|dos|sobre|a\s+respeito\s+(?:de|do|da))\s+\S.*)?$",
                 norm,
             )
             or norm in {"o que esta acontecendo", "o que aconteceu"}

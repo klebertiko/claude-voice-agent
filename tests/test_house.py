@@ -688,6 +688,23 @@ def test_news_asks_then_reads_the_topic(tmp_path):
         "Nas notícias, Senhor. Alpha sobe. Beta cai."
     )
     assert seen[-1].endswith("q=economia")
+    assert _reply("plantão da economia", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=economia")
+    assert _reply("o plantão da economia", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=economia")
+    assert _reply("plantão do esporte", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=esporte")
+    assert _reply("plantão a respeito de tecnologia", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=tecnologia")
+    assert "respeito" not in seen[-1].lower()
     assert _reply("plantão sobre tecnologia", fetch, tmp_path / "n.json") == (
         "Nas notícias, Senhor. Alpha sobe. Beta cai."
     )
