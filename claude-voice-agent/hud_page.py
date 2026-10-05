@@ -1024,17 +1024,17 @@ function drawPlate() {
     const nearerFirst = a.star.kind === "sistema";
     return (nearerFirst ? distOf(a) - distOf(b) : distOf(b) - distOf(a)) || (b.p.persp - a.p.persp);
   });
-  for (const item of queue) {
+  const paintOne = (item, held) => {
     const focus = item.star.id === picked || item.star.id === hovered;
     const quiet = focusId && !neigh.has(item.star.id) && !focus;
-    const seated = candidatesFor(item, boxes);
+    const seated = candidatesFor(item, held);
     const { options, width, full } = seated;
     let chosen = seated.pool[0] || null;
     if (!chosen && item.star.id === picked) {
       const opt = options[0];
       chosen = { opt, trial: labelBox(opt.x, opt.y, opt.align, width), wrapped: null };
     }
-    if (!chosen) continue;
+    if (!chosen) return;
     const spot = chosen.opt;
     const box = chosen.trial;
     const lines = chosen.wrapped;
@@ -1052,6 +1052,20 @@ function drawPlate() {
       fill: item.star.id === picked ? ink.accent : ink.ink,
       font: "400 14px " + ink.body,
     });
+  };
+  const notes = queue.filter((item) => item.star.kind !== "sistema");
+  const systems = queue.filter((item) => item.star.kind === "sistema");
+  for (const item of notes) paintOne(item, boxes);
+  let kept = null;
+  if (rect.width < 700) {
+    const busca = systems.find((item) => item.star.id === "sys-busca");
+    const seated = busca && candidatesFor(busca, boxes);
+    const best = seated && seated.pool[0];
+    if (best && best.share >= 0.85 && best.intrusion < 8) kept = best.trial;
+  }
+  for (const item of systems) {
+    const held = kept && item.star.id !== "sys-busca" ? boxes.concat([kept]) : boxes;
+    paintOne(item, held);
   }
   ctx.lineCap = "round";
   for (const stroke of strokes) {
