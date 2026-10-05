@@ -173,6 +173,21 @@ def _note_text(note: str) -> str:
 
 
 _REMEMBER_PREFIXES = (
+    "guarda isso nas notas ",
+    "guarda isso na nota ",
+    "adiciona nas notas ",
+    "adiciona na nota ",
+    "registra nas notas ",
+    "registra na nota ",
+    "escreve nas notas ",
+    "escreve na nota ",
+    "bota nas notas ",
+    "bota na nota ",
+    "poe nas notas ",
+    "poe na nota ",
+    "cria uma nota ",
+    "cria um lembrete ",
+    "novo lembrete ",
     "guarda nas notas ",
     "guarda na nota ",
     "salva nas notas ",
@@ -182,6 +197,7 @@ _REMEMBER_PREFIXES = (
     "coloca nas notas ",
     "coloca na nota ",
     "nao me deixa esquecer de ",
+    "nao me deixa esquecer ",
     "nao esquece de ",
     "esquece de ",
     "me lembre de ",
@@ -252,6 +268,8 @@ def _note_subject(norm: str) -> str | None:
         "nas notas", "tem nota", "tem nota sobre", "tem alguma nota",
         "alguma nota", "uma nota", "tem recado", "cade a nota", "cade o lembrete",
         "onde anotei", "onde eu anotei",
+        "onde esta a nota", "onde esta o lembrete", "onde esta o recado",
+        "onde ficou a nota", "onde ficou o lembrete", "onde ficou o recado",
         "tem alguma coisa nas notas", "tem algo nas notas",
         "nas minhas notas", "nas minhas notas tem",
         "o que anotei sobre", "o que eu anotei sobre",
@@ -311,6 +329,13 @@ def _note_subject(norm: str) -> str | None:
     )
     if placed:
         return _clean_subject(placed.group(1))
+    where = re.match(
+        r"^onde\s+(?:esta|ficou)(?:\s+(?:a|o))?\s+(?:nota|lembrete|recado)"
+        r"(?:\s+(?:do|da|de|sobre))?(?:\s+(.*))?$",
+        norm,
+    )
+    if where:
+        return _clean_subject(where.group(1) or "")
     lost = re.match(
         r"^cade(?:\s+(?:a|o))?\s+(?:nota|lembrete|recado)"
         r"(?:\s+(?:do|da|de|sobre))?(?:\s+(.*))?$",
@@ -829,6 +854,14 @@ def house_reply(
             "me lembre", "me lembra", "me lembre de", "me lembra de",
             "esquece de", "nao esquece de", "nao me deixa esquecer de",
             "guarda nas notas", "guarda na nota",
+            "guarda isso nas notas", "guarda isso na nota",
+            "adiciona nas notas", "adiciona na nota",
+            "registra nas notas", "registra na nota",
+            "escreve nas notas", "escreve na nota",
+            "bota nas notas", "bota na nota",
+            "poe nas notas", "poe na nota",
+            "cria uma nota", "cria um lembrete", "novo lembrete",
+            "nao me deixa esquecer",
             "salva nas notas", "salva na nota", "salva uma nota", "salva a nota",
             "coloca nas notas", "coloca na nota",
         }:
@@ -845,6 +878,10 @@ def house_reply(
             "le minhas notas", "leia minhas notas",
             "le os lembretes", "leia os lembretes", "ler os lembretes",
             "meus recados",
+            "quais sao minhas notas", "quais sao as notas",
+            "lista minhas notas", "lista as notas",
+            "listar minhas notas", "listar as notas",
+            "liste minhas notas", "liste as notas",
         }:
             return _list_notes(reminders_path)
         if _wants_weather(norm):

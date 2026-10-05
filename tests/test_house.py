@@ -396,6 +396,26 @@ def test_reminder_roundtrip(tmp_path):
     assert "que preciso" not in saved
     assert _reply("anota que", fetch, path) == "O que devo anotar, Senhor?"
     assert _reply("anota isso", fetch, path) == "O que devo anotar, Senhor?"
+    assert _reply("adiciona nas notas comprar pão", fetch, path) == "Anotado, Senhor."
+    saved = path.read_text(encoding="utf-8")
+    assert '"text": "comprar pão"' in saved
+    assert "nas notas comprar" not in saved
+    assert _reply("cria uma nota ligar amanhã", fetch, path) == "Anotado, Senhor."
+    saved = path.read_text(encoding="utf-8")
+    assert '"text": "ligar amanhã"' in saved
+    assert "uma nota" not in saved
+    assert _reply("não me deixa esquecer comprar pão", fetch, path) == "Anotado, Senhor."
+    saved = path.read_text(encoding="utf-8")
+    assert '"text": "comprar pão"' in saved
+    assert "esquecer" not in saved
+    assert _reply("cria uma nota", fetch, path) == "O que devo anotar, Senhor?"
+    assert _reply("adiciona nas notas", fetch, path) == "O que devo anotar, Senhor?"
+    assert _reply("novo lembrete", fetch, path) == "O que devo anotar, Senhor?"
+    assert _reply("adiciona sal", fetch, path) is None
+    assert _reply("cria uma imagem", fetch, path) is None
+    assert _reply("bota o livro na mesa", fetch, path) is None
+    assert _reply("quais são minhas notas", fetch, path).startswith("Lembretes, Senhor.")
+    assert _reply("lista as notas", fetch, path).startswith("Lembretes, Senhor.")
     assert "pagar a luz" in _reply("quais são os lembretes", fetch, path)
     assert _reply("o que eu tenho anotado", fetch, path).startswith("Lembretes, Senhor.")
     assert _reply("mostra minhas notas", fetch, path).startswith("Lembretes, Senhor.")
@@ -415,6 +435,7 @@ def test_note_query_is_only_the_search():
     assert note_query_of("pesquise nas notas o projeto", "Nas notas, Senhor. entregar.") == "projeto"
     assert note_query_of("buscar o projeto nas notas", "Nas notas, Senhor. entregar.") == "projeto"
     assert note_query_of("o que eu anotei sobre projeto", "Nas notas, Senhor. entregar.") == "projeto"
+    assert note_query_of("onde está a nota do projeto", "Nas notas, Senhor. entregar.") == "projeto"
     assert note_query_of(
         "tem alguma coisa sobre projeto nas notas", "Nas notas, Senhor. entregar."
     ) == "projeto"
@@ -501,6 +522,13 @@ def test_note_search_stays_in_the_vault(tmp_path):
     assert _reply("onde anotei o projeto", fetch, path) == (
         "Nas notas, Senhor. entregar o projeto na sexta."
     )
+    assert _reply("onde está a nota do projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("onde ficou a nota da voz", fetch, voice) == (
+        "Nas notas, Senhor. revisar o projeto de voz."
+    )
+    assert _reply("onde está a nota", fetch, path) == "O que devo buscar nas notas, Senhor?"
     assert _reply("tem recado sobre projeto", fetch, path) == (
         "Nas notas, Senhor. entregar o projeto na sexta."
     )
