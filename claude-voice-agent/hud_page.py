@@ -910,9 +910,11 @@ function drawPlate() {
     const near = Object.assign({}, center, {
       z: (center.z || 0) - Math.sin(lean) * center.radius * DEPTH * zScale * forward,
     });
-    // Nessa largura o lóbulo dos sistemas deixa "Cérebro" abaixo do contraste.
+    // O lóbulo dos sistemas clareia "Cérebro" entre 768 e 870.
     const calmSystems = !item.disc.strong && rect.width >= 768 && rect.width <= 800;
-    ctx.globalAlpha = quietNotes ? 0.36 : (item.disc.strong ? 0.62 : (calmSystems ? 0.56 : 0.75));
+    const midSystems = !item.disc.strong && rect.width > 800 && rect.width <= 870;
+    const sysLobe = calmSystems ? 0.56 : midSystems ? 0.28 : 0.75;
+    ctx.globalAlpha = quietNotes ? 0.36 : (item.disc.strong ? 0.62 : sysLobe);
     paintDisc(near, lean, item.disc.rgb, yaw, pitch, cx, cy, scale, true, lobe);
   }
   ctx.restore();
