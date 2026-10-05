@@ -1095,6 +1095,28 @@ function mark(btn, state) {
   btn.dataset.state = state;
   setTimeout(() => { if (btn.dataset.state === state) delete btn.dataset.state; }, 900);
 }
+function settleLog() {
+  if (!logEl || !logLines) return;
+  const probe = logLines.querySelector("p");
+  if (!probe) return;
+  const line = parseFloat(getComputedStyle(probe).lineHeight);
+  if (!line) return;
+  logLines.style.paddingBottom = "0px";
+  logEl.scrollTop = logEl.scrollHeight;
+  const box = logEl.getBoundingClientRect();
+  let pad = 0;
+  for (const p of logLines.querySelectorAll("p")) {
+    const r = p.getBoundingClientRect();
+    if (r.top >= box.top - 0.5 || r.bottom <= box.top + 0.5) continue;
+    const phase = (box.top - r.top) % line;
+    if (phase > 0.75 && phase < line - 0.75) pad = line - phase;
+    break;
+  }
+  if (pad > 0 && line + pad <= logEl.clientHeight) {
+    logLines.style.paddingBottom = pad + "px";
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+}
 function addLine(cls, message) {
   if (emptyEl) emptyEl.remove();
   const p = document.createElement("p");
@@ -1103,7 +1125,7 @@ function addLine(cls, message) {
   if (cls === "user") p.dataset.speaker = "Senhor";
   if (cls === "agent") p.dataset.speaker = "Orion";
   (logLines || logEl).appendChild(p);
-  requestAnimationFrame(() => { logEl.scrollTop = logEl.scrollHeight; wake(); });
+  requestAnimationFrame(() => { settleLog(); wake(); });
 }
 function showPermit(id, command) {
   permitId = id || "";
@@ -1187,6 +1209,7 @@ function openNote(star) {
     btn.addEventListener("click", () => focusStar(other.id));
     noteLinks.appendChild(btn);
   }
+  requestAnimationFrame(settleLog);
 }
 function focusStar(id) {
   const star = memory.find((item) => item.id === id);
@@ -1528,7 +1551,7 @@ async function stopMic(ev) {
 micBtn.addEventListener("pointerdown", startMic);
 micBtn.addEventListener("pointerup", stopMic);
 micBtn.addEventListener("pointerleave", stopMic);
-addEventListener("resize", () => { resize(); wake(); });
+addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); });
 resize();
 tickClock();
 setInterval(tickClock, 1000);
