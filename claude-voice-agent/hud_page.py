@@ -51,7 +51,7 @@ _PAGE = r"""<!DOCTYPE html>
   }
   #log, #text, #permit-cmd { user-select: text; }
   .strip {
-    display: flex; align-items: baseline; justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between;
     gap: 24px; padding: 24px;
     background: var(--color-bg);
   }
@@ -60,7 +60,7 @@ _PAGE = r"""<!DOCTYPE html>
     font-family: var(--font-body); font-weight: 600; font-size: var(--text-body);
     line-height: 1.25; letter-spacing: 0;
   }
-  .belt { width: 22px; height: 14px; flex: none; }
+  .mark { width: 22px; height: 36px; flex: none; }
   .meta { display: flex; align-items: baseline; gap: 24px; }
   #status { font-size: var(--text-body); color: var(--color-ink-2); }
   body[data-state="listening"] #status,
@@ -188,7 +188,7 @@ _PAGE = r"""<!DOCTYPE html>
 <canvas id="field" aria-label="constelação"></canvas>
 <div class="room">
   <header class="strip">
-    <h1><svg class="belt" viewBox="0 0 22 14" aria-hidden="true"><circle cx="3" cy="11" r="1.35" fill="currentColor"/><circle cx="11" cy="7" r="1.55" fill="currentColor"/><circle cx="19" cy="3" r="1.35" fill="currentColor"/></svg>__NAME__</h1>
+    <h1><svg class="mark" viewBox="0 0 40 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 L7 18 L13 30 L8 54"/><path d="M20 6 L33 16 L27 34 L33 58"/><path d="M13 30 L20 32 L27 34"/><path d="M20 32 L20 42"/></g><g fill="currentColor"><circle cx="20" cy="6" r="2.1"/><circle cx="7" cy="18" r="2.1"/><circle cx="33" cy="16" r="2.1"/><circle cx="13" cy="30" r="2.3"/><circle cx="20" cy="32" r="2.5"/><circle cx="27" cy="34" r="2.3"/><circle cx="20" cy="42" r="1.7"/><circle cx="8" cy="54" r="2.1"/><circle cx="33" cy="58" r="2.4"/></g></svg>__NAME__</h1>
     <div class="meta">
       <p id="status">pronto</p>
       <p id="clock">00:00:00</p>
