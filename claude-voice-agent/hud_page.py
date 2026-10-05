@@ -174,12 +174,23 @@ _PAGE = r"""<!DOCTYPE html>
     .strip, #permit, .floor, .telemetry, .talk { padding-left: 24px; padding-right: 24px; }
   }
   @media (max-width: 959px) {
-    #log { max-height: none; overflow: visible; }
+    body { overflow: hidden; }
+    .room {
+      height: 100vh; min-height: 0;
+      grid-template-rows: auto auto minmax(0, 1fr) minmax(4.5rem, 7rem) auto auto;
+    }
+    .strip { grid-row: 1; }
+    .telemetry { grid-row: 2; padding-top: 0; padding-bottom: 8px; }
+    .well { grid-row: 3; min-height: 0; }
+    .talk { grid-row: 4; min-height: 0; overflow: hidden; padding-top: 8px; padding-bottom: 8px; }
+    #permit { grid-row: 5; }
+    .floor { grid-row: 6; }
+    #log { max-height: none; overflow: auto; }
   }
   @media (max-width: 640px) {
     .strip, .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
     .meta { gap: 16px; }
-    .well { min-height: 62vh; }
+    .well { min-height: 0; }
     .systems {
       display: grid;
       grid-template-columns: 1fr 1fr;
