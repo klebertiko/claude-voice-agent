@@ -1002,6 +1002,7 @@ def continue_house(
 def _humidity_place(norm: str) -> str | None:
     """None quando não é umidade. Vazio quando falta a cidade."""
     match = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?umidade(?:\s+do\s+ar)?"
         r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
@@ -1021,6 +1022,7 @@ def _humidity_place(norm: str) -> str | None:
 def _feels_place(norm: str) -> str | None:
     """None quando não é sensação térmica. Vazio quando falta a cidade."""
     match = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?sensacao\s+termica"
         r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
@@ -1036,6 +1038,7 @@ _SUN_TAIL = r"(?:\s+(?:amanha|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?"
 def _sun_place(norm: str) -> tuple[str, str] | None:
     """(nascer ou por, cidade). None quando a fala não é o sol."""
     rise = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:amanha\s+)?(?:(?:que horas|quando)\s+)?(?:o\s+)?"
         r"(?:nascer\s+do\s+sol|sol\s+nasce|nasce\s+o\s+sol)"
         + _SUN_TAIL,
@@ -1044,6 +1047,7 @@ def _sun_place(norm: str) -> tuple[str, str] | None:
     if rise:
         return "nascer", _city_name(rise.group(1) or "")
     sets = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:amanha\s+)?(?:(?:que horas|quando)\s+)?(?:o\s+)?"
         r"(?:por\s+do\s+sol|sol\s+se\s+poe|se\s+poe\s+o\s+sol)"
         + _SUN_TAIL,
@@ -1073,6 +1077,7 @@ def _extreme_place(norm: str) -> tuple[str, str] | None:
 def _pressure_place(norm: str) -> str | None:
     """None quando não é pressão. Vazio quando falta a cidade."""
     match = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?pressao(?:\s+atmosferica)?"
         r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
@@ -1085,6 +1090,7 @@ def _pressure_place(norm: str) -> str | None:
 def _uv_place(norm: str) -> str | None:
     """None quando não é o índice UV. Vazio quando falta a cidade."""
     match = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:o\s+)?(?:indice\s+)?uv"
         r"(?:\s+(?:agora|hoje|amanha))?(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
@@ -1097,6 +1103,7 @@ def _uv_place(norm: str) -> str | None:
 def _wind_place(norm: str) -> str | None:
     """None quando não é vento. Vazio quando falta a cidade."""
     match = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:(?:o|a)\s+)?(?:velocidade\s+do\s+)?vento"
         r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,

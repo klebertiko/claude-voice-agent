@@ -327,6 +327,7 @@ def test_humidity_names_the_city(tmp_path):
     path = tmp_path / "n.json"
     assert _reply("umidade", fetch, path) == "De qual lugar, Senhor."
     assert _reply("tá úmido", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me fala a umidade", fetch, path) == "De qual lugar, Senhor."
     assert seen == []
     assert _reply("umidade em recife", fetch, path) == (
         "Em Recife, umidade de 80 por cento, Senhor."
@@ -335,6 +336,9 @@ def test_humidity_names_the_city(tmp_path):
         "Em Curitiba, umidade de 80 por cento, Senhor."
     )
     assert _reply("tá úmido em recife", fetch, path) == (
+        "Em Recife, umidade de 80 por cento, Senhor."
+    )
+    assert _reply("me fala a umidade em recife", fetch, path) == (
         "Em Recife, umidade de 80 por cento, Senhor."
     )
     assert "graus" not in _reply("umidade em recife", fetch, path)
@@ -358,11 +362,15 @@ def test_feels_like_names_the_city(tmp_path):
 
     path = tmp_path / "n.json"
     assert _reply("sensação térmica", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me fala a sensação térmica", fetch, path) == "De qual lugar, Senhor."
     assert seen == []
     assert _reply("sensação térmica em curitiba", fetch, path) == (
         "Em Curitiba, sensação de 14 graus, Senhor."
     )
     assert _reply("qual a sensação térmica em recife", fetch, path) == (
+        "Em Recife, sensação de 14 graus, Senhor."
+    )
+    assert _reply("me fala a sensação térmica em recife", fetch, path) == (
         "Em Recife, sensação de 14 graus, Senhor."
     )
 
@@ -387,6 +395,7 @@ def test_wind_names_the_city(tmp_path):
     path = tmp_path / "n.json"
     assert _reply("vento", fetch, path) == "De qual lugar, Senhor."
     assert _reply("tá ventando", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me diz o vento", fetch, path) == "De qual lugar, Senhor."
     assert seen == []
     assert _reply("vento em recife", fetch, path) == (
         "Em Recife, vento de 18 quilômetros por hora, Senhor."
@@ -396,6 +405,9 @@ def test_wind_names_the_city(tmp_path):
     )
     assert _reply("tá ventando em recife", fetch, path) == (
         "Em Recife, vento de 18 quilômetros por hora, Senhor."
+    )
+    assert _reply("me diz o vento em curitiba", fetch, path) == (
+        "Em Curitiba, vento de 18 quilômetros por hora, Senhor."
     )
 
 
@@ -419,6 +431,7 @@ def test_sun_names_the_city(tmp_path):
     path = tmp_path / "n.json"
     assert _reply("nascer do sol", fetch, path) == "De qual lugar, Senhor."
     assert _reply("pôr do sol", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me fala o nascer do sol", fetch, path) == "De qual lugar, Senhor."
     assert seen == []
     assert _reply("nascer do sol em recife", fetch, path) == (
         "Em Recife, o sol nasce às 5 horas e 12 minutos, Senhor."
@@ -439,6 +452,10 @@ def test_sun_names_the_city(tmp_path):
     assert _reply("que horas o sol se põe em curitiba", fetch, path) == (
         "Em Curitiba, o sol se põe às 17 horas e 40 minutos, Senhor."
     )
+    assert _reply("me fala o nascer do sol em recife", fetch, path) == (
+        "Em Recife, o sol nasce às 5 horas e 12 minutos, Senhor."
+    )
+    assert "daily=sunrise" in seen[-1]
 
 
 def test_uv_names_the_city(tmp_path):
@@ -459,6 +476,7 @@ def test_uv_names_the_city(tmp_path):
     path = tmp_path / "n.json"
     assert _reply("índice uv", fetch, path) == "De qual lugar, Senhor."
     assert _reply("uv", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me diz o uv", fetch, path) == "De qual lugar, Senhor."
     assert seen == []
     assert _reply("índice uv em recife", fetch, path) == (
         "Em Recife, índice UV de 11, Senhor."
@@ -471,6 +489,10 @@ def test_uv_names_the_city(tmp_path):
         "Amanhã em Recife, índice UV de 9, Senhor."
     )
     assert "forecast_days=2" in seen[-1]
+    assert _reply("me diz o uv em recife", fetch, path) == (
+        "Em Recife, índice UV de 11, Senhor."
+    )
+    assert "forecast_days=1" in seen[-1]
 
 
 def test_pressure_names_the_city(tmp_path):
@@ -491,12 +513,16 @@ def test_pressure_names_the_city(tmp_path):
     path = tmp_path / "n.json"
     assert _reply("pressão", fetch, path) == "De qual lugar, Senhor."
     assert _reply("pressão atmosférica", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me conta a pressão", fetch, path) == "De qual lugar, Senhor."
     assert seen == []
     assert _reply("pressão em recife", fetch, path) == (
         "Em Recife, pressão de 1013 milibares, Senhor."
     )
     assert _reply("qual a pressão atmosférica em curitiba", fetch, path) == (
         "Em Curitiba, pressão de 1013 milibares, Senhor."
+    )
+    assert _reply("me conta a pressão em recife", fetch, path) == (
+        "Em Recife, pressão de 1013 milibares, Senhor."
     )
 
 
