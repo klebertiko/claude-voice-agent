@@ -40,7 +40,7 @@ def test_unrelated_tempo_is_not_weather(tmp_path):
 
 def test_news_asks_then_reads_the_topic(tmp_path):
     rss = (
-        '<?xml version="1.0"?><rss><channel><title>Google News</title>'
+        '<?xml version="1.0"?><rss><channel><title>economia - Google Notícias</title>'
         "<item><title>Alpha sobe</title></item>"
         "<item><title>Beta cai</title></item></channel></rss>"
     )

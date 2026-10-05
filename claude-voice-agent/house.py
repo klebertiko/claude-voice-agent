@@ -103,9 +103,10 @@ def _news(topic: str, fetch) -> str:
     raw = fetch(url)
     root = ET.fromstring(raw)
     titles = []
-    for node in root.iter("title"):
-        text = " ".join((node.text or "").split())
-        if not text or text.lower().startswith("google news"):
+    for item in root.iter("item"):
+        node = item.find("title")
+        text = " ".join(((node.text if node is not None else "") or "").split())
+        if not text or "google not" in text.lower():
             continue
         titles.append(text)
         if len(titles) == 2:
