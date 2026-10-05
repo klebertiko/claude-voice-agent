@@ -1787,15 +1787,25 @@ function ensureAnalyser() {
 async function playWav(b64) {
   if (!b64) return;
   ensureAnalyser();
-  if (audioCtx.state === "suspended") await audioCtx.resume();
+  if (audioCtx.state === "suspended") {
+    await Promise.race([
+      audioCtx.resume(),
+      new Promise((resolve) => setTimeout(resolve, 400)),
+    ]);
+  }
   const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   const url = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
   player.src = url;
   setState("speaking");
-  await player.play();
-  await new Promise((resolve) => { player.onended = resolve; });
-  URL.revokeObjectURL(url);
-  setState("idle");
+  try {
+    await player.play();
+    await new Promise((resolve) => { player.onended = resolve; });
+  } catch (err) {
+    /* O texto já está na tela. Sem gesto de som o painel volta a ficar pronto. */
+  } finally {
+    URL.revokeObjectURL(url);
+    if (document.body.dataset.state === "speaking") setState("idle");
+  }
 }
 async function post(url, body) {
   const res = await fetch(url, {
