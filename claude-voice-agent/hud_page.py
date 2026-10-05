@@ -264,6 +264,7 @@ _PAGE = r"""<!DOCTYPE html>
     .systems { flex-flow: row nowrap; overflow-x: auto; }
     .systems .band { display: contents; }
     .systems .fact[data-brain] { order: 9; }
+    .systems .fact[data-brain][aria-pressed="true"] { order: 0; }
     .systems .fact:has(#notes) { order: 1; }
     .systems .fact:has(#date) { order: 2; }
     .systems .fact[data-voice] { order: 3; }
@@ -1502,6 +1503,7 @@ async function refreshBrain() {
     for (const btn of document.querySelectorAll(".fact[data-brain]")) {
       btn.setAttribute("aria-pressed", btn.dataset.brain === choice ? "true" : "false");
     }
+    revealChoice();
     if (picked && String(picked).indexOf("sys-") === 0) {
       readSky(systemText[picked] || skyRead.textContent);
     }
@@ -1614,6 +1616,7 @@ async function chooseBrain(id) {
     for (const btn of document.querySelectorAll(".fact[data-brain]")) {
       btn.setAttribute("aria-pressed", btn.dataset.brain === data.choice ? "true" : "false");
     }
+    revealChoice();
     if (data.reply) {
       addLine("agent", data.reply);
       readSky(data.reply);
@@ -1937,6 +1940,22 @@ micBtn.addEventListener("pointerdown", startMic);
 micBtn.addEventListener("pointerup", stopMic);
 micBtn.addEventListener("pointerleave", stopMic);
 const systemsEl = document.querySelector(".systems");
+let shownChoice = null;
+function revealChoice() {
+  requestAnimationFrame(() => {
+    const chosen = document.querySelector('.fact[data-brain][aria-pressed="true"]');
+    const id = chosen ? chosen.dataset.brain : "";
+    if (id !== shownChoice && chosen && systemsEl) {
+      const row = chosen.getBoundingClientRect();
+      const scroller = systemsEl.getBoundingClientRect();
+      if (row.left < scroller.left - 1 || row.right > scroller.right + 1) {
+        systemsEl.scrollLeft += row.left - scroller.left;
+      }
+    }
+    shownChoice = id;
+    markMore();
+  });
+}
 function markMore() {
   if (!systemsEl) return;
   const more = systemsEl.scrollWidth - systemsEl.clientWidth - systemsEl.scrollLeft > 8;
