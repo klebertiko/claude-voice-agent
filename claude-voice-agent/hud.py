@@ -8,7 +8,6 @@ para a voz ainda poder ser ouvida.
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 import unicodedata
 from dataclasses import dataclass, field
@@ -16,7 +15,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from .actions import local_command
-from .llm_claude_cli import render_prompt
+from .brains import subscription_reply
+from .house import house_reply
 from .llm_ollama import ask_ollama, probe_ollama
 from .noise import is_noise_transcript
 from .personas import Persona
@@ -92,37 +92,6 @@ def _speak_date(moment: datetime) -> str:
     return f"Hoje é {weekday}, {moment.day} de {month}, Senhor."
 
 
-def ask_claude(
-    cli: str,
-    model: str | None,
-    persona: Persona,
-    cleaned: str,
-    history: list[tuple[str, str]],
-    *,
-    timeout_s: float = 45.0,
-) -> str:
-    """Uma chamada bloqueante ao ``claude -p``. Levanta se o CLI falhar."""
-    user = cleaned or "(o usuário chamou você pelo nome)"
-    turns = [("system", persona.system_prompt()), *history, ("user", user)]
-    prompt, system = render_prompt(turns, assistant_label=persona.name)
-    args = [cli, "-p", prompt, "--output-format", "text"]
-    if system:
-        args += ["--append-system-prompt", system]
-    if model:
-        args += ["--model", model]
-    proc = subprocess.run(
-        args,
-        capture_output=True,
-        timeout=timeout_s,
-        check=False,
-    )
-    text = proc.stdout.decode("utf-8", "replace").strip()
-    if proc.returncode != 0 and not text:
-        err = proc.stderr.decode("utf-8", "replace").strip() or "sem saída"
-        raise RuntimeError(f"claude -p retornou {proc.returncode}: {err}")
-    return text
-
-
 @dataclass
 class HudSession:
     persona: Persona
@@ -185,13 +154,11 @@ def take_turn(
 
 
 def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now):
-    """Ordem local, depois Ollama, depois o CLI, depois a fala de reserva.
+    """Ordem local, depois as assinaturas, depois o Ollama, depois a reserva.
 
-    Hora, data, nome e ``execute …`` não dependem de rede. O resto tenta o
-    Ollama em ``settings.ollama_host`` e só então o ``claude``.
+    Hora, data, nome e ``execute …`` não dependem de rede. O resto tenta
+    Codex, Cursor e Claude, e só então o Ollama.
     """
-    cli = settings.claude_cli
-    model = settings.llm_model
     host = settings.ollama_host
     preferred = settings.ollama_model
 
@@ -199,9 +166,19 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now):
         cmd = local_command(cleaned)
         if cmd:
             return f"ACAO: {cmd}"
-        local = spoken_fallback(cleaned, persona.name, moment_fn())
+        moment = moment_fn()
+        housed = house_reply(cleaned, moment, reminders_path=settings.reminders_path)
+        if housed:
+            return housed
+        local = spoken_fallback(cleaned, persona.name, moment)
         if not local.startswith("Entendido, Senhor. Ainda não"):
             return local
+        try:
+            spoken = subscription_reply(settings, persona, history, cleaned)
+            if spoken:
+                return spoken
+        except (OSError, subprocess.TimeoutExpired):
+            pass
         if host:
             try:
                 info = probe_ollama(host)
@@ -211,14 +188,6 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now):
                     if text:
                         return text
             except (OSError, TimeoutError, json.JSONDecodeError, ValueError):
-                pass
-        if shutil.which(cli):
-            try:
-                text = ask_claude(cli, model, persona, cleaned, history)
-                spoken = strip_for_speech(text)
-                if spoken:
-                    return spoken
-            except (OSError, subprocess.TimeoutExpired, RuntimeError):
                 pass
         return local
 

@@ -24,7 +24,11 @@ _PAGE = r"""<!DOCTYPE html>
     --color-rule: oklch(0.42 0.04 230);
     --color-accent: oklch(0.82 0.13 85);
     --color-ring: oklch(0.82 0.08 220);
-    --color-core: oklch(0.96 0.03 200);
+    --color-core: oklch(0.97 0.04 200);
+    --color-copper: oklch(0.55 0.11 68);
+    --color-copper-2: oklch(0.78 0.12 82);
+    --color-plasma: oklch(0.88 0.1 205);
+    --color-void: oklch(0.07 0.03 265);
     --color-focus: oklch(0.86 0.08 220);
     --color-ok: oklch(0.8 0.1 165);
     --color-bad: oklch(0.7 0.15 25);
@@ -74,7 +78,17 @@ _PAGE = r"""<!DOCTYPE html>
   #clock { margin: 0; font-family: var(--font-mono); font-size: var(--text-md); color: var(--color-ring); font-variant-numeric: tabular-nums; }
   .telemetry { grid-column: 1; grid-row: 2; border-right: 1px solid var(--color-rule); padding: var(--space-sm) var(--space-md); }
   .talk { grid-column: 3; grid-row: 2; border-left: 1px solid var(--color-rule); display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: var(--space-sm) var(--space-md); }
-  .well { grid-column: 2; grid-row: 2; min-width: 0; min-height: 12rem; }
+  .well {
+    grid-column: 2; grid-row: 2; position: relative; min-width: 0; min-height: 16rem;
+    cursor: grab; touch-action: none;
+  }
+  .well:active { cursor: grabbing; }
+  #sky-read {
+    position: absolute; left: var(--space-sm); right: var(--space-sm); bottom: var(--space-sm);
+    margin: 0; pointer-events: none; text-align: center;
+    font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.06em;
+    color: var(--color-core);
+  }
   h2 {
     margin: 0 0 var(--space-sm); font-family: var(--font-mono); font-size: var(--text-xs);
     font-weight: 500; font-style: normal; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-ink-2);
@@ -153,7 +167,7 @@ _PAGE = r"""<!DOCTYPE html>
 </style>
 </head>
 <body data-state="idle" data-name="__NAME__" data-load="0">
-<canvas id="field" aria-label="reator"></canvas>
+<canvas id="field" aria-label="reator e constelação"></canvas>
 <div class="room">
   <header class="strip">
     <div class="brand">
@@ -166,15 +180,20 @@ _PAGE = r"""<!DOCTYPE html>
     <h2>Casa</h2>
     <dl class="systems">
       <div><dt>cérebro</dt><dd id="brain">—</dd></div>
+      <div><dt>codex</dt><dd id="brain-codex">ausente</dd></div>
+      <div><dt>cursor</dt><dd id="brain-cursor">ausente</dd></div>
+      <div><dt>claude</dt><dd id="brain-claude">ausente</dd></div>
       <div><dt>carga</dt><dd id="load">—</dd></div>
-      <div><dt>voz</dt><dd>george</dd></div>
+      <div><dt>voz</dt><dd id="voice-name">george</dd></div>
       <div><dt>ritmo</dt><dd>1.08</dd></div>
+      <div><dt>céu</dt><dd id="sky">0</dd></div>
+      <div><dt>lembretes</dt><dd id="notes">0</dd></div>
       <div><dt>fuso</dt><dd>Brasília</dd></div>
       <div><dt>sessão</dt><dd id="sess">à espera do nome</dd></div>
       <div><dt>data</dt><dd id="date">—</dd></div>
     </dl>
   </aside>
-  <div class="well"></div>
+  <div class="well"><p id="sky-read">Arraste o céu.</p></div>
   <section class="talk">
     <h2>Conversa</h2>
     <div id="log" aria-live="polite"><p class="empty" id="empty">Diga, Senhor.</p></div>
@@ -222,8 +241,92 @@ const tok = (name) => css.getPropertyValue(name).trim();
 const ink = {
   paper: tok("--color-paper"), paper2: tok("--color-paper-2"), ink2: tok("--color-ink-2"),
   ring: tok("--color-ring"), accent: tok("--color-accent"), core: tok("--color-core"), mono: tok("--font-mono"),
+  copper: tok("--color-copper"), copper2: tok("--color-copper-2"), plasma: tok("--color-plasma"), void: tok("--color-void"),
 };
+const well = document.querySelector(".well");
+const skyRead = document.getElementById("sky-read");
 let permitId = "";
+let memory = [];
+let memoryLinks = [];
+let namedOnScreen = [];
+let picked = "";
+let yawUser = 0;
+let pitchUser = 0.36;
+let zoom = 1;
+let drag = null;
+let dragMoved = 0;
+const ambient = [];
+const nebulas = [
+  { x: -1.3, y: 0.35, z: 0.2, r: 1.15, rgb: "96, 64, 210" },
+  { x: 1.45, y: -0.15, z: -0.35, r: 1.25, rgb: "32, 150, 196" },
+  { x: 0.15, y: 0.55, z: 1.2, r: 0.85, rgb: "196, 122, 48" },
+  { x: -0.55, y: -0.45, z: -1.15, r: 1.0, rgb: "64, 48, 150" },
+  { x: 0.8, y: 0.1, z: 0.7, r: 0.7, rgb: "70, 120, 190" },
+];
+(function buildAmbient() {
+  let seed = 2166136261;
+  const rnd = () => {
+    seed = Math.imul(seed ^ 0x9e3779b9, 16777619) >>> 0;
+    return seed / 4294967295;
+  };
+  for (let i = 0; i < 780; i++) {
+    const arm = i % 4;
+    const along = rnd();
+    const theta = along * Math.PI * 5.4 + arm * (Math.PI / 2);
+    const rad = 0.25 + Math.pow(along, 0.72) * 2.35;
+    const jitter = (rnd() - 0.5) * 0.16;
+    ambient.push({
+      x: Math.cos(theta) * rad + jitter,
+      y: (rnd() - 0.5) * 0.16 * rad,
+      z: Math.sin(theta) * rad + (rnd() - 0.5) * 0.12,
+      s: rnd() < 0.07 ? 2.1 : 0.7 + rnd() * 0.6,
+      warm: rnd() < 0.18,
+    });
+  }
+  for (let i = 0; i < 160; i++) {
+    const theta = rnd() * Math.PI * 2;
+    const phi = Math.acos(2 * rnd() - 1);
+    const rad = 1.8 + rnd() * 1.5;
+    ambient.push({
+      x: rad * Math.sin(phi) * Math.cos(theta),
+      y: rad * Math.cos(phi) * 0.42,
+      z: rad * Math.sin(phi) * Math.sin(theta),
+      s: 0.45 + rnd() * 0.4,
+      warm: rnd() < 0.1,
+    });
+  }
+})();
+function hash01(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967295;
+}
+function placeNamed(star, index) {
+  const spin = hash01(star.id + "a") * Math.PI * 2;
+  const arm = index % 3;
+  const theta = spin * 0.4 + arm * (Math.PI * 2 / 3) + index * 0.72;
+  const radius = 1.75 + hash01(star.id + "r") * 0.75;
+  return {
+    x: Math.cos(theta) * radius,
+    y: (hash01(star.id + "y") - 0.5) * 0.62,
+    z: Math.sin(theta) * radius * 0.78,
+  };
+}
+function rotate(p, yaw, pitch) {
+  const cy = Math.cos(yaw), sy = Math.sin(yaw);
+  const x1 = p.x * cy - p.z * sy;
+  const z1 = p.x * sy + p.z * cy;
+  const cp = Math.cos(pitch), sp = Math.sin(pitch);
+  return { x: x1, y: p.y * cp - z1 * sp, z: p.y * sp + z1 * cp };
+}
+function project(p, cx, cy, scale) {
+  const z = p.z + 4.15 / zoom;
+  const persp = 2.55 / Math.max(0.35, z);
+  return { x: cx + p.x * persp * scale, y: cy + p.y * persp * scale, persp, z: p.z };
+}
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -233,109 +336,266 @@ function resize() {
   canvas.style.height = h + "px";
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
-function ring(cx, cy, r, start, span, width, color) {
+function sector(r0, r1, a0, a1) {
   ctx.beginPath();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = width;
-  ctx.arc(cx, cy, r, start, start + span);
-  ctx.stroke();
+  ctx.arc(0, 0, r1, a0, a1);
+  ctx.arc(0, 0, r0, a1, a0, true);
+  ctx.closePath();
 }
-function drawReactor(now) {
-  const w = canvas.width / DPR, h = canvas.height / DPR;
-  const rect = document.querySelector(".well").getBoundingClientRect();
-  if (rect.width < 40 || rect.height < 40) {
-    ctx.fillStyle = ink.paper;
-    ctx.fillRect(0, 0, w, h);
-    return;
-  }
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  const R = Math.min(rect.width, rect.height) * 0.4;
+function drawArc(cx, cy, R, now) {
   const state = document.body.dataset.state;
-  const spin = reduce ? 0.4 : now / 1000;
-  const dir = state === "listening" ? -1 : 1;
-  const pace = state === "thinking" ? 1.1 : state === "speaking" ? 0.55 : 0.22;
-  ctx.fillStyle = ink.paper;
-  ctx.fillRect(0, 0, w, h);
-  const bloom = ctx.createRadialGradient(cx, cy, R * 0.05, cx, cy, R * 1.8);
-  bloom.addColorStop(0, ink.paper2);
-  bloom.addColorStop(1, ink.paper);
-  ctx.fillStyle = bloom;
-  ctx.fillRect(0, 0, w, h);
-  ctx.beginPath();
-  ctx.arc(cx, cy, R * 1.18, 0, Math.PI * 2);
-  ctx.fillStyle = ink.paper2;
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = ink.ring;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(cx, cy, R * 0.42, 0, Math.PI * 2);
-  ctx.fillStyle = ink.paper;
-  ctx.fill();
+  const beat = reduce ? 1 : 0.86 + 0.14 * Math.sin(now / 340);
+  const hot = beat + (state === "speaking" ? level * 0.35 : state === "thinking" ? 0.12 : 0);
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.strokeStyle = ink.ring;
-  ctx.globalAlpha = 0.55;
+  ctx.beginPath();
+  ctx.arc(0, 0, R, 0, Math.PI * 2);
+  const metal = ctx.createRadialGradient(-R * 0.25, -R * 0.3, R * 0.1, 0, 0, R);
+  metal.addColorStop(0, ink.copper2);
+  metal.addColorStop(0.45, ink.copper);
+  metal.addColorStop(1, "oklch(0.32 0.06 60)");
+  ctx.fillStyle = metal;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(0, 0, R * 0.9, 0, Math.PI * 2);
+  ctx.fillStyle = "oklch(0.1 0.02 250)";
+  ctx.fill();
+  ctx.strokeStyle = ink.copper2;
+  ctx.globalAlpha = 0.85;
+  ctx.lineWidth = Math.max(2, R * 0.018);
+  ctx.beginPath();
+  ctx.arc(0, 0, R * 0.96, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, R * 0.9, 0, Math.PI * 2);
+  ctx.lineWidth = Math.max(1, R * 0.008);
+  ctx.stroke();
+  const count = 10;
+  const pitch = (Math.PI * 2) / count;
+  const span = pitch * 0.58;
+  for (let i = 0; i < count; i++) {
+    const a = -Math.PI / 2 + i * pitch;
+    const glow = reduce ? 1 : 0.78 + 0.22 * (0.5 + 0.5 * Math.sin(now / 460 - i * 0.55));
+    sector(R * 0.5, R * 0.8, a - span / 2, a + span / 2);
+    ctx.globalAlpha = Math.min(1, 0.72 + glow * 0.28);
+    ctx.fillStyle = ink.plasma;
+    ctx.fill();
+    ctx.globalAlpha = 0.95;
+    ctx.strokeStyle = ink.core;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.beginPath();
+  ctx.arc(0, 0, R * 0.44, 0, Math.PI * 2);
+  ctx.fillStyle = "oklch(0.08 0.02 255)";
+  ctx.fill();
+  ctx.strokeStyle = ink.copper2;
+  ctx.lineWidth = Math.max(1.5, R * 0.012);
+  ctx.stroke();
+  ctx.beginPath();
+  const tr = R * 0.23;
+  for (let i = 0; i < 3; i++) {
+    const a = -Math.PI / 2 + i * (Math.PI * 2 / 3);
+    const x = Math.cos(a) * tr;
+    const y = Math.sin(a) * tr;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = ink.core;
+  ctx.lineWidth = Math.max(2, R * 0.016);
+  ctx.stroke();
+  const coreR = R * (0.055 + (state === "speaking" ? level * 0.03 : 0)) * hot;
+  const bloom = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 0.34 * hot);
+  bloom.addColorStop(0, ink.core);
+  bloom.addColorStop(0.25, ink.plasma);
+  bloom.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = bloom;
+  ctx.beginPath();
+  ctx.arc(0, 0, R * 0.34 * hot, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#f7fbff";
+  ctx.beginPath();
+  ctx.arc(0, 0, coreR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 0.45;
+  ctx.strokeStyle = "rgba(255,255,255,0.85)";
+  ctx.lineWidth = Math.max(2, R * 0.02);
+  ctx.beginPath();
+  ctx.arc(0, 0, R * 0.93, -2.5, -0.7);
+  ctx.stroke();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+function drawGlobe(cx, cy, radius, now) {
+  const spin = reduce ? 0.2 : now / 8000;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(spin);
+  ctx.strokeStyle = "rgba(150, 214, 230, 0.42)";
   ctx.lineWidth = 1;
-  for (let i = 0; i < 144; i++) {
-    const a = (i / 144) * Math.PI * 2;
-    const inner = R * 1.05;
-    const outer = i % 12 === 0 ? R * 1.2 : i % 3 === 0 ? R * 1.14 : R * 1.09;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  for (let i = 1; i <= 4; i++) {
+    const frac = i / 5;
     ctx.beginPath();
-    ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
-    ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
+    ctx.ellipse(0, 0, radius * frac, radius, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, 0, radius, radius * frac, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
   ctx.restore();
-  const base = spin * pace * dir;
-  ctx.globalAlpha = 0.95;
-  for (let s = 0; s < 6; s++) ring(cx, cy, R, base + s * (Math.PI / 3), Math.PI / 6, 14, ink.ring);
-  ctx.globalAlpha = 0.75;
-  for (let s = 0; s < 3; s++) ring(cx, cy, R * 0.78, -base * 1.4 + s * (Math.PI * 2 / 3), Math.PI / 2.2, 8, ink.ring);
-  ctx.globalAlpha = 0.45;
-  ring(cx, cy, R * 0.62, base * 0.5, Math.PI * 1.7, 1, ink.ring);
-  const load = state === "thinking" ? 0.78 : state === "listening" ? 0.55 : state === "speaking" ? 0.42 + level * 0.5 : 0.3;
-  ctx.globalAlpha = 1;
-  ring(cx, cy, R * 0.5, -Math.PI / 2, Math.PI * 2 * load, 4, ink.accent);
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.rotate(base * 0.25);
+  ctx.setLineDash([11, 9]);
+  ctx.strokeStyle = "rgba(198, 236, 246, 0.7)";
+  ctx.lineWidth = 1.25;
   ctx.beginPath();
-  for (let i = 0; i < 3; i++) {
-    const a = -Math.PI / 2 + i * (Math.PI * 2 / 3);
-    const x = Math.cos(a) * R * 0.28, y = Math.sin(a) * R * 0.28;
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.globalAlpha = 0.22;
-  ctx.fillStyle = ink.core;
-  ctx.fill();
-  ctx.globalAlpha = 1;
-  ctx.strokeStyle = ink.core;
-  ctx.lineWidth = 2;
+  ctx.arc(0, 0, radius * 1.08, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.lineDashOffset = reduce ? 0 : -now / 80;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius * 1.18, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
   ctx.restore();
-  const coreR = R * (0.08 + (state === "speaking" ? level * 0.04 : 0));
-  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 5);
-  core.addColorStop(0, ink.core);
-  core.addColorStop(0.35, ink.ring);
-  core.addColorStop(1, ink.paper);
-  ctx.globalAlpha = 0.9;
-  ctx.fillStyle = core;
+  ctx.globalAlpha = 0.28;
+  ctx.strokeStyle = "rgba(190, 232, 242, 0.9)";
   ctx.beginPath();
-  ctx.arc(cx, cy, coreR * 5, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(cx - radius * 1.28, cy);
+  ctx.lineTo(cx + radius * 1.28, cy);
+  ctx.stroke();
   ctx.globalAlpha = 1;
-  ctx.fillStyle = ink.core;
+}
+function drawBrackets(rect) {
+  const inset = 16;
+  const arm = Math.min(36, rect.width * 0.05);
+  const x0 = rect.left + inset;
+  const y0 = rect.top + inset;
+  const x1 = rect.right - inset;
+  const y1 = rect.bottom - inset;
+  ctx.strokeStyle = "rgba(176, 226, 238, 0.75)";
+  ctx.lineWidth = 1.5;
+  const corners = [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]];
+  for (const [x, y, sx, sy] of corners) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + arm * sy);
+    ctx.lineTo(x, y);
+    ctx.lineTo(x + arm * sx, y);
+    ctx.stroke();
+  }
+}
+function drawReactor(now) {
+  const w = canvas.width / DPR, h = canvas.height / DPR;
+  const rect = well.getBoundingClientRect();
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = ink.paper;
+  ctx.fillRect(0, 0, w, h);
+  if (rect.width < 40 || rect.height < 40) return;
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const minSide = Math.min(rect.width, rect.height);
+  const R = minSide * 0.22;
+  const globe = minSide * 0.36;
+  const scale = minSide * 0.3;
+  const yaw = (reduce ? 0.8 : now / 14000) + yawUser;
+  const pitch = pitchUser;
+  ctx.save();
   ctx.beginPath();
-  ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = ink.ink2;
-  ctx.font = "500 13px " + ink.mono;
+  ctx.rect(rect.left, rect.top, rect.width, rect.height);
+  ctx.clip();
+  const voidGrad = ctx.createRadialGradient(cx, cy, globe * 0.15, cx, cy, minSide * 0.72);
+  voidGrad.addColorStop(0, "oklch(0.14 0.04 255)");
+  voidGrad.addColorStop(1, ink.void);
+  ctx.fillStyle = voidGrad;
+  ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
+  for (const cloud of nebulas) {
+    const p = project(rotate(cloud, yaw, pitch), cx, cy, scale);
+    const rad = Math.max(8, cloud.r * p.persp * scale);
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad);
+    g.addColorStop(0, "rgba(" + cloud.rgb + ",0.34)");
+    g.addColorStop(0.55, "rgba(" + cloud.rgb + ",0.12)");
+    g.addColorStop(1, "rgba(" + cloud.rgb + ",0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const dust = ambient.map((star) => {
+    const p = project(rotate(star, yaw, pitch), cx, cy, scale);
+    return { p, s: star.s, warm: star.warm };
+  }).sort((a, b) => b.p.z - a.p.z);
+  for (const star of dust) {
+    const alpha = Math.max(0.15, Math.min(0.95, star.p.persp * 0.85));
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = star.warm ? "rgb(255, 214, 170)" : "rgb(196, 220, 255)";
+    ctx.beginPath();
+    ctx.arc(star.p.x, star.p.y, Math.max(0.4, star.s * star.p.persp), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const placed = memory.map((star, index) => {
+    const p = project(rotate(placeNamed(star, index), yaw, pitch), cx, cy, scale);
+    return { star, p };
+  });
+  ctx.lineWidth = 1;
+  for (const link of memoryLinks) {
+    const a = placed.find((item) => item.star.id === link.a);
+    const b = placed.find((item) => item.star.id === link.b);
+    if (!a || !b) continue;
+    ctx.globalAlpha = 0.45;
+    ctx.strokeStyle = ink.plasma;
+    ctx.beginPath();
+    ctx.moveTo(a.p.x, a.p.y);
+    ctx.lineTo(b.p.x, b.p.y);
+    ctx.stroke();
+  }
+  namedOnScreen = [];
+  for (const item of placed) {
+    const outside = Math.hypot(item.p.x - cx, item.p.y - cy) > R * 0.92;
+    namedOnScreen.push({ star: item.star, x: item.p.x, y: item.p.y, outside });
+    if (!outside) continue;
+    const glow = ctx.createRadialGradient(item.p.x, item.p.y, 0, item.p.x, item.p.y, 16 * item.p.persp);
+    glow.addColorStop(0, "rgba(230, 246, 255, 0.95)");
+    glow.addColorStop(1, "rgba(80, 170, 220, 0)");
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(item.p.x, item.p.y, 16 * item.p.persp, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = item.star.id === picked ? ink.accent : "#f4fbff";
+    ctx.beginPath();
+    ctx.arc(item.p.x, item.p.y, Math.max(1.6, 2.4 * item.p.persp), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  drawGlobe(cx, cy, globe, now);
+  drawArc(cx, cy, R, now);
+  drawBrackets(rect);
+  ctx.font = "500 12px " + ink.mono;
   ctx.textAlign = "center";
-  ctx.fillText((labels[state] || state).toUpperCase(), cx, cy + R * 1.02);
+  ctx.textBaseline = "bottom";
+  for (const item of namedOnScreen) {
+    if (!item.outside) continue;
+    if (memory.length > 8 && item.star.id !== picked) continue;
+    ctx.globalAlpha = item.star.id === picked ? 1 : 0.8;
+    ctx.fillStyle = ink.core;
+    ctx.fillText(item.star.label, item.x, item.y - 10);
+  }
+  ctx.restore();
   ctx.globalAlpha = 1;
+}
+function starAt(x, y) {
+  let best = null;
+  let bestD = 28;
+  for (const item of namedOnScreen) {
+    if (!item.outside) continue;
+    const d = Math.hypot(item.x - x, item.y - y);
+    if (d < bestD) { best = item; bestD = d; }
+  }
+  return best;
 }
 let level = 0;
 const timeBuf = new Uint8Array(256);
@@ -400,10 +660,64 @@ async function refreshBrain() {
       loadEl.textContent = String(data.load[0]);
       document.body.dataset.load = String(data.load[0]);
     }
+    if (typeof data.notes === "number") {
+      const notesEl = document.getElementById("notes");
+      if (notesEl) notesEl.textContent = String(data.notes);
+    }
+    for (const brain of data.brains || []) {
+      const el = document.getElementById("brain-" + brain.id);
+      if (el) el.textContent = brain.up ? "pronto" : "ausente";
+    }
+    refreshSky();
   } catch (err) {
     brainEl.textContent = "ausente";
   }
 }
+async function refreshSky() {
+  try {
+    const data = await (await fetch("/api/sky")).json();
+    memory = data.stars || [];
+    memoryLinks = data.links || [];
+    const el = document.getElementById("sky");
+    if (el) el.textContent = String(memory.length);
+  } catch (err) { /* o céu fica como está */ }
+}
+function pointStar(ev, choose) {
+  const hit = starAt(ev.clientX, ev.clientY);
+  if (!hit) {
+    if (choose) {
+      picked = "";
+      skyRead.textContent = "Arraste o céu.";
+    }
+    return;
+  }
+  if (choose) picked = hit.star.id;
+  skyRead.textContent = hit.star.text;
+}
+well.addEventListener("pointerdown", (ev) => {
+  drag = { x: ev.clientX, y: ev.clientY, yaw: yawUser, pitch: pitchUser };
+  dragMoved = 0;
+  well.setPointerCapture(ev.pointerId);
+});
+well.addEventListener("pointermove", (ev) => {
+  if (!drag) { pointStar(ev, false); return; }
+  const dx = ev.clientX - drag.x;
+  const dy = ev.clientY - drag.y;
+  dragMoved = Math.max(dragMoved, Math.hypot(dx, dy));
+  yawUser = drag.yaw + dx * 0.005;
+  pitchUser = Math.max(-0.7, Math.min(0.7, drag.pitch + dy * 0.004));
+});
+well.addEventListener("pointerup", (ev) => {
+  if (drag && dragMoved < 6) pointStar(ev, true);
+  drag = null;
+});
+well.addEventListener("pointerleave", () => {
+  if (!drag && !picked) skyRead.textContent = "Arraste o céu.";
+});
+well.addEventListener("wheel", (ev) => {
+  ev.preventDefault();
+  zoom = Math.max(0.7, Math.min(1.8, zoom * (ev.deltaY > 0 ? 0.94 : 1.06)));
+}, { passive: false });
 let audioCtx, analyser;
 function ensureAnalyser() {
   if (analyser) return;

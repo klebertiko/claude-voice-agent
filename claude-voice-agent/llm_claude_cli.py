@@ -131,3 +131,59 @@ class ClaudeCliStream(llm.LLMStream):
                 delta=llm.ChoiceDelta(role="assistant", content=strip_for_speech(text)),
             )
         )
+
+
+class SubscriptionCliLLM(llm.LLM):
+    """Codex, Cursor e Claude, na ordem da assinatura. Sem chave de API."""
+
+    def __init__(self, *, settings, persona) -> None:
+        super().__init__()
+        self._settings = settings
+        self._persona = persona
+
+    def chat(
+        self,
+        *,
+        chat_ctx: llm.ChatContext,
+        tools=None,
+        conn_options: APIConnectOptions = DEFAULT_API_CONNECT_OPTIONS,
+        parallel_tool_calls: NotGivenOr[bool] = NOT_GIVEN,
+        tool_choice: NotGivenOr[object] = NOT_GIVEN,
+        extra_kwargs: NotGivenOr[dict] = NOT_GIVEN,
+    ) -> "SubscriptionCliStream":
+        return SubscriptionCliStream(
+            self, chat_ctx=chat_ctx, tools=tools or [], conn_options=conn_options
+        )
+
+
+class SubscriptionCliStream(llm.LLMStream):
+    async def _run(self) -> None:
+        from .brains import subscription_reply
+
+        brain: SubscriptionCliLLM = self._llm  # type: ignore[assignment]
+        history: list[tuple[str, str]] = []
+        cleaned = ""
+        for role, text in _extract_turns(self._chat_ctx):
+            if role == "system" or not text:
+                continue
+            if role == "user":
+                if cleaned:
+                    history.append(("user", cleaned))
+                cleaned = text
+            else:
+                history.append((role, text))
+        text = await asyncio.to_thread(
+            subscription_reply,
+            brain._settings,
+            brain._persona,
+            history,
+            cleaned,
+        )
+        if not text:
+            raise APIConnectionError("nenhuma assinatura respondeu")
+        self._event_ch.send_nowait(
+            llm.ChatChunk(
+                id=utils.shortuuid(),
+                delta=llm.ChoiceDelta(role="assistant", content=text),
+            )
+        )

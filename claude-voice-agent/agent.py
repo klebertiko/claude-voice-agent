@@ -1,18 +1,17 @@
 """claude-voice-agent — agente de voz LiveKit (console-first, local).
 
-Pipeline: mic -> silero VAD -> Whisper (STT) -> [wake-gate] -> Claude (LLM) ->
-kokoro (TTS) -> alto-falante. Rode local, sem servidor:
+Pipeline: mic -> silero VAD -> Whisper (STT) -> [wake-gate] -> assinatura
+(Codex, Cursor ou Claude) -> kokoro (TTS) -> alto-falante. Rode local:
 
     uv run python -m claude_agent_voice.agent console
 
-O cérebro (Claude) é OPCIONAL: sem ``ANTHROPIC_API_KEY`` o agente ainda te ouve
-e fala (greeting + eco de teste), o que prova voz+ouvido. Com a chave, ele pensa.
+O cérebro é o CLI já logado na assinatura. Sem esses binários o agente ainda
+ouve e fala.
 """
 
 from __future__ import annotations
 
 import logging
-import shutil
 import sys
 import time
 from collections.abc import Callable
@@ -163,7 +162,7 @@ class ClaudeAgentVoice(Agent):
 
 
 def build_session(settings: Settings, vad) -> AgentSession:
-    """Monta a AgentSession. Cérebro = Claude via subscription (CLI `claude -p`)."""
+    """Monta a AgentSession. Cérebro = Codex, Cursor ou Claude, pela assinatura."""
     persona = get_persona(settings.persona)
     whisper = WhisperSTT(
         model=settings.whisper_model,
@@ -176,23 +175,17 @@ def build_session(settings: Settings, vad) -> AgentSession:
         "vad": vad,
         "tts": make_tts(settings, persona),
     }
-    if shutil.which(settings.claude_cli):
-        from .llm_claude_cli import ClaudeCliLLM
+    from .brains import probe_subscriptions
 
-        kwargs["llm"] = ClaudeCliLLM(
-            fallback_system=persona.system_prompt(),
-            model=settings.llm_model,
-            cli=settings.claude_cli,
-            label=persona.name,
-        )
-        logger.info(
-            "cérebro Claude via subscription (%s -p) — persona %s",
-            settings.claude_cli,
-            persona.name,
-        )
+    brains = [row["label"] for row in probe_subscriptions(settings) if row["up"]]
+    if brains:
+        from .llm_claude_cli import SubscriptionCliLLM
+
+        kwargs["llm"] = SubscriptionCliLLM(settings=settings, persona=persona)
+        logger.info("cérebro por assinatura (%s) — persona %s", ", ".join(brains), persona.name)
     else:
         logger.warning(
-            "CLI '%s' ausente: o agente ouve e fala, mas não pensa", settings.claude_cli
+            "Codex, Cursor e Claude ausentes: o agente ouve e fala, mas não pensa"
         )
     kwargs.update(interruption_kwargs(settings))
     return AgentSession(**kwargs)

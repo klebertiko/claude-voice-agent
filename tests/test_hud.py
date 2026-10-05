@@ -119,6 +119,11 @@ def test_page_has_microphone_and_no_camera():
     assert "permitir" in page
     assert "recusar" in page
     assert "reator" in page.lower()
+    assert "constelação" in page
+    assert 'id="sky"' in page
+    assert 'id="brain-codex"' in page
+    assert 'id="brain-cursor"' in page
+    assert 'id="brain-claude"' in page
 
 
 def test_wav_bytes_header():

@@ -22,12 +22,14 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from .actions import DENY_SPOKEN, PERMIT_SPOKEN, extract_proposal, run_command, speak_result
+from .brains import probe_subscriptions
 from .agent import greeting, make_tts
 from .hud import HudSession, make_reply_fn, take_turn
 from .hud_page import render_page
 from .personas import get_persona
 from .llm_ollama import probe_ollama
 from .settings import Settings
+from .sky import memory_sky
 from .stt_whisper import WhisperSTT, to_mono16k
 from .tts_kokoro import pcm16_bytes
 from .wake import WakeGate
@@ -59,6 +61,7 @@ class VoiceHud:
         now=None,
         workdir: Path | None = None,
         probe_fn=None,
+        reminders_path: Path | None = None,
     ) -> None:
         self.session = session
         self.reply_fn = reply_fn
@@ -71,6 +74,9 @@ class VoiceHud:
         self._lock = threading.Lock()
         self._greet_n = 0
         self._permits: dict[str, str] = {}
+        self.reminders_path = reminders_path or (
+            Path.home() / ".cache" / "claude-voice" / "reminders.json"
+        )
         self._status_at = 0.0
         self._status_cache: dict | None = None
 
@@ -137,15 +143,28 @@ class VoiceHud:
             load = [round(n, 2) for n in os.getloadavg()]
         except OSError:
             load = []
+        notes = 0
+        try:
+            raw = json.loads(Path(self.reminders_path).read_text(encoding="utf-8"))
+            if isinstance(raw, list):
+                notes = len(raw)
+        except (OSError, json.JSONDecodeError, TypeError):
+            notes = 0
+        brains = list(info.get("brains") or [])
         payload = {
             "up": bool(info.get("up")),
             "model": info.get("model"),
             "models": list(info.get("models") or []),
+            "brains": brains,
             "load": load,
+            "notes": notes,
         }
         self._status_cache = payload
         self._status_at = now
         return payload
+
+    def sky_payload(self) -> dict:
+        return memory_sky(Path(self.reminders_path))
 
     def warm(self) -> None:
         """Carrega o modelo de voz sem gastar a primeira saudação do dia."""
@@ -218,6 +237,12 @@ def create_hud(settings: Settings | None = None) -> VoiceHud:
         info = probe_ollama(host) if host else {"up": False, "model": None, "models": []}
         if info.get("up") and preferred:
             info["model"] = preferred
+        brains = probe_subscriptions(settings)
+        info["brains"] = brains
+        live = next((row["label"] for row in brains if row.get("up")), None)
+        if live:
+            info["up"] = True
+            info["model"] = live
         return info
 
     stt = WhisperSTT(
@@ -233,6 +258,7 @@ def create_hud(settings: Settings | None = None) -> VoiceHud:
         transcribe_fn=_default_transcribe(stt),
         clock=time.monotonic,
         probe_fn=probe,
+        reminders_path=settings.reminders_path,
     )
 
 
@@ -263,6 +289,10 @@ def _handler(hud: VoiceHud, page: str):
             path = self.path.split("?", 1)[0]
             if path == "/api/status":
                 body = json.dumps(hud.status_payload()).encode("utf-8")
+                self._send(200, body, "application/json")
+                return
+            if path == "/api/sky":
+                body = json.dumps(hud.sky_payload()).encode("utf-8")
                 self._send(200, body, "application/json")
                 return
             if path != "/":

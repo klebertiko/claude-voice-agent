@@ -2,13 +2,14 @@
 
 Voz conversacional estilo JARVIS, em português do Brasil. Você fala, ela ouve,
 pensa e — com a sua permissão — age no computador. A persona padrão é o
-**Orion** (kokoro `bm_george`, fonemas pt-BR, ritmo 1.08). A Lilith continua
-disponível (`pf_dora`).
+**Orion** (kokoro, fonemas pt-BR). A Lilith continua disponível (`pf_dora`).
 
 **Pipeline:** mic ou texto → **faster-whisper** (STT, pt-BR) → wake-gate →
-**Ollama local** (ou o CLI `claude`, se o Ollama não responder) → **kokoro**
-(TTS). Uma ordem (`execute …`, ou uma linha `ACAO:` do modelo) aparece no
-painel e só corre depois de permitir.
+assinatura **Codex** (ChatGPT), **Cursor** ou **Claude** (o CLI já logado, sem
+chave de API) → **Ollama** se nenhum CLI responder → **kokoro** (TTS). Clima,
+notícias, lembrete e busca falam direto. Uma ordem (`execute …`, WhatsApp ou
+uma linha `ACAO:`) aparece no painel e só corre depois de permitir. O céu no
+centro são as notas, em 3D.
 
 ## Rodar
 
@@ -19,8 +20,10 @@ uv run python -m claude_agent_voice.web
 ```
 
 Abre em http://127.0.0.1:8765. Escreva ou fale **"Orion, ..."**. O microfone
-pede só áudio. O cérebro é o Ollama em `127.0.0.1:11434`. Sem ele, e sem o
-CLI `claude`, ainda fala hora, data, o nome, e pede permissão para `execute …`.
+pede só áudio. O cérebro é o primeiro CLI logado entre `codex`, `cursor-agent`
+e `claude`. Sem eles, tenta o Ollama em `127.0.0.1:11434`. Sem nenhum, ainda
+fala hora, data, o nome, clima se a rede responder, e pede permissão para
+`execute …`.
 
 Console, sem painel:
 
@@ -43,9 +46,11 @@ voz+ouvido), mas não pensa.
 
 | Var | Default | O quê |
 |---|---|---|
-| `OLLAMA_HOST` | `http://127.0.0.1:11434` | Ollama local, tentado antes do CLI |
+| `OLLAMA_HOST` | `http://127.0.0.1:11434` | Ollama local, depois das assinaturas |
 | `OLLAMA_MODEL` | primeiro instalado | modelo do Ollama |
-| `CLAUDE_VOICE_CLAUDE_CLI` | `claude` | binário do CLI, se o Ollama não responder |
+| `CLAUDE_VOICE_CODEX_CLI` | `codex` | assinatura ChatGPT / Codex, só leitura |
+| `CLAUDE_VOICE_CURSOR_CLI` | `cursor-agent` | assinatura do Cursor, sem `--force` |
+| `CLAUDE_VOICE_CLAUDE_CLI` | `claude` | assinatura Claude, `claude -p` |
 | `CLAUDE_VOICE_LLM_MODEL` | (default do CLI) | modelo do cérebro (`--model`) |
 | `CLAUDE_VOICE_VOICE` | `pf_dora` | voz kokoro |
 | `CLAUDE_VOICE_WHISPER_MODEL` | `small` | modelo faster-whisper |

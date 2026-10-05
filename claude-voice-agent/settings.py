@@ -36,12 +36,16 @@ class Settings:
     whisper_device: str = "cpu"
     whisper_compute: str = "int8"
     whisper_lang: str = "pt"
-    # Cérebro (Claude via subscription — CLI `claude -p`, sem API key)
+    # Cérebros por assinatura, nesta ordem: Codex (ChatGPT), Cursor, Claude.
+    # Nenhum usa chave de API. O CLI precisa estar no PATH e já logado.
     llm_model: str | None = None  # None => modelo default do CLI/assinatura
+    codex_cli: str = "codex"
+    cursor_cli: str = "cursor-agent"
     claude_cli: str = "claude"
     # Cérebro local. Ollama na máquina; vazio em ollama_model = o primeiro instalado.
     ollama_host: str = "http://127.0.0.1:11434"
     ollama_model: str = ""
+    reminders_path: Path = _CACHE / "reminders.json"
     # Wake-word
     require_wake: bool = True
     wake_window_s: float = 30.0
@@ -93,6 +97,8 @@ class Settings:
             whisper_compute=e.get("CLAUDE_VOICE_WHISPER_COMPUTE", cls.whisper_compute),
             whisper_lang=e.get("CLAUDE_VOICE_WHISPER_LANG", cls.whisper_lang),
             llm_model=e.get("CLAUDE_VOICE_LLM_MODEL") or None,
+            codex_cli=e.get("CLAUDE_VOICE_CODEX_CLI", cls.codex_cli),
+            cursor_cli=e.get("CLAUDE_VOICE_CURSOR_CLI", cls.cursor_cli),
             claude_cli=e.get("CLAUDE_VOICE_CLAUDE_CLI", cls.claude_cli),
             ollama_host=e.get("OLLAMA_HOST")
             or e.get("CLAUDE_VOICE_OLLAMA_HOST")
@@ -100,6 +106,9 @@ class Settings:
             ollama_model=e.get("OLLAMA_MODEL")
             or e.get("CLAUDE_VOICE_OLLAMA_MODEL")
             or cls.ollama_model,
+            reminders_path=Path(
+                e.get("CLAUDE_VOICE_REMINDERS", str(cls.reminders_path))
+            ),
             require_wake=_bool("CLAUDE_VOICE_REQUIRE_WAKE", cls.require_wake),
             wake_window_s=float(e.get("CLAUDE_VOICE_WAKE_WINDOW_S", cls.wake_window_s)),
             vad_threshold=float(e.get("CLAUDE_VOICE_VAD_THRESHOLD", cls.vad_threshold)),
