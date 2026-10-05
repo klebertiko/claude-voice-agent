@@ -138,7 +138,12 @@ def _note_text(note: str) -> str:
     while raw:
         plain = _plain(raw)
         dropped = False
-        for filler in ("ai ", "por favor ", "por gentileza ", "para mim ", "pra mim "):
+        if plain in {"ai", "isso", "por favor", "por gentileza", "para mim", "pra mim", "o seguinte"}:
+            return ""
+        for filler in (
+            "ai ", "isso ", "por favor ", "por gentileza ",
+            "para mim ", "pra mim ", "o seguinte ", "amanha de ",
+        ):
             if plain.startswith(filler):
                 words = len(filler.split())
                 raw = " ".join(raw.split()[words:]).strip(" .")
@@ -147,6 +152,32 @@ def _note_text(note: str) -> str:
         if not dropped:
             break
     return raw
+
+
+_REMEMBER_PREFIXES = (
+    "nao me deixa esquecer de ",
+    "nao esquece de ",
+    "esquece de ",
+    "me lembre de ",
+    "me lembra de ",
+    "me lembre ",
+    "me lembra ",
+    "lembrete ",
+    "lembra de ",
+    "lembra ",
+    "anote ",
+    "anota ",
+)
+
+
+def _remember_body(text: str) -> str:
+    """O que anotar, sem o verbo. Os acentos do resto ficam."""
+    norm = _plain(text)
+    words = (text or "").strip().split()
+    for prefix in _REMEMBER_PREFIXES:
+        if norm.startswith(prefix):
+            return " ".join(words[len(prefix.split()) :])
+    return ""
 
 
 def _remember(note: str, path: Path, moment: datetime) -> str:
@@ -282,6 +313,7 @@ def _usable_topic(topic: str) -> str:
 
 
 def _topic_of(norm: str) -> str:
+    norm = norm.replace("novidades", "noticias").replace("novidade", "noticia")
     for prefix in (
         "noticias sobre ", "noticia sobre ",
         "noticias de ", "noticia de ",
@@ -381,7 +413,7 @@ _SEARCH_COMMAND = re.compile(
 _QUERY_FILLERS = (
     "sobre ", "pelo ", "pela ", "para ", "pra mim ", "pra ", "por ",
     "o ", "a ", "os ", "as ", "um ", "uma ",
-    "de ", "do ", "da ", "no ", "na ", "me ", "mim ", "ai ",
+    "de ", "do ", "da ", "no google ", "no ", "na ", "me ", "mim ", "ai ",
 )
 
 
@@ -467,18 +499,12 @@ def house_reply(
         if norm in {
             "anote", "anota", "lembrete", "lembra", "lembra de",
             "me lembre", "me lembra", "me lembre de", "me lembra de",
+            "esquece de", "nao esquece de", "nao me deixa esquecer de",
         }:
             return "O que devo anotar, Senhor?"
-        if re.match(
-            r"^(?:lembrete|me lembre(?: de)?|me lembra(?: de)?|lembra(?: de)?|anote|anota)\s+\S",
-            norm,
-        ):
-            match = re.search(
-                r"(?:me lembre(?: de)?|me lembra(?: de)?|lembrete|lembra(?: de)?|anote|anota)\s+(.+)$",
-                text.strip(),
-                flags=re.IGNORECASE,
-            )
-            return _remember(match.group(1) if match else "", reminders_path, moment)
+        body = _remember_body(text)
+        if body:
+            return _remember(body, reminders_path, moment)
         if norm in {
             "quais lembretes", "meus lembretes", "o que anotei", "o que eu anotei",
             "quais sao os lembretes", "quais os lembretes",
@@ -490,7 +516,12 @@ def house_reply(
             if not place:
                 return "De qual lugar, Senhor."
             return _weather(place, fetch)
-        if "noticia" in norm or norm == "o que esta acontecendo" or norm.startswith("o que esta acontecendo "):
+        if (
+            "noticia" in norm
+            or "novidade" in norm
+            or norm == "o que esta acontecendo"
+            or norm.startswith("o que esta acontecendo ")
+        ):
             topic = _topic_of(norm)
             if not topic:
                 return "Sobre o que, Senhor."

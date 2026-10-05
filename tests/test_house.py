@@ -115,7 +115,12 @@ def test_news_asks_then_reads_the_topic(tmp_path):
     assert "brasil" in seen[-1].lower()
     before = len(seen)
     assert _reply("notícias sobre", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
+    assert _reply("quais as novidades", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
     assert len(seen) == before
+    assert _reply("novidades sobre tecnologia", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert "tecnologia" in seen[-1]
 
 
 def test_search_speaks_the_abstract(tmp_path):
@@ -140,6 +145,7 @@ def test_search_speaks_the_abstract(tmp_path):
         "pesquisa pra mim o café",
         "quero que pesquise café",
         "dá uma pesquisada no café",
+        "pesquisa no google café",
     ):
         assert _reply(said, fetch, path) == "O café é uma bebida, Senhor."
     assert all("q=cafe" in url and "sobre" not in url for url in seen)
@@ -181,6 +187,12 @@ def test_reminder_roundtrip(tmp_path):
     saved = path.read_text(encoding="utf-8")
     assert '"text": "comprar pão"' in saved
     assert "pra mim" not in saved
+    assert _reply("anota isso comprar pão", fetch, path) == "Anotado, Senhor."
+    assert _reply("não me deixa esquecer de ligar amanhã", fetch, path) == "Anotado, Senhor."
+    saved = path.read_text(encoding="utf-8")
+    assert '"text": "ligar amanhã"' in saved
+    assert "esquecer" not in saved
+    assert _reply("anota isso", fetch, path) == "O que devo anotar, Senhor?"
     assert "pagar a luz" in _reply("quais são os lembretes", fetch, path)
     assert _reply("liste os arquivos", fetch, path) is None
 
