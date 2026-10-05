@@ -83,20 +83,20 @@ _PAGE = r"""<!DOCTYPE html>
     background: var(--color-bg);
   }
   .systems {
-    margin: 0; display: flex; flex-flow: row nowrap; gap: 8px 16px; overflow-x: auto;
+    margin: 0; display: flex; flex-flow: row nowrap; gap: 6px; overflow-x: auto;
     scrollbar-width: thin; scrollbar-color: rgba(232, 238, 246, 0.35) transparent;
   }
   .systems div, .systems button.fact {
     display: flex; justify-content: flex-start; align-items: baseline;
-    gap: 8px; min-width: 0; min-height: 44px;
+    gap: 8px; min-width: 0; min-height: 44px; flex: none; white-space: nowrap;
     margin: 0; padding: 0; border: 0; background: transparent;
     font: inherit; color: inherit; cursor: pointer; text-align: left;
   }
   .systems button.fact[aria-pressed="true"] { color: var(--color-accent); }
-  .systems .k, .systems dt { font-size: var(--text-body); font-weight: 400; color: var(--color-ink-2); }
+  .systems .k, .systems dt { font-size: var(--text-body); font-weight: 400; color: var(--color-ink-2); white-space: nowrap; }
   .systems .v, .systems dd {
-    margin: 0; font-size: var(--text-body); line-height: 1.5; text-align: left;
-    font-variant-numeric: tabular-nums; color: var(--color-ink); overflow-wrap: anywhere;
+    margin: 0; font-size: var(--text-body); line-height: 1.5; text-align: left; white-space: nowrap;
+    font-variant-numeric: tabular-nums; color: var(--color-ink); overflow-wrap: normal;
   }
   .systems .is-down { color: var(--color-ink-2); }
   .talk { display: flex; flex-direction: column; gap: 16px; }
