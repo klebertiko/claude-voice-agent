@@ -60,7 +60,7 @@ _PAGE = r"""<!DOCTYPE html>
     font-family: var(--font-body); font-weight: 600; font-size: 1.75rem;
     line-height: 1; letter-spacing: 0.04em; white-space: nowrap;
   }
-  .mark { width: 40px; height: 40px; flex: none; color: var(--color-accent); }
+  .mark { width: 48px; height: 48px; flex: none; color: var(--color-accent); }
   .meta { display: flex; align-items: baseline; gap: 24px; }
   #status { font-size: var(--text-body); color: var(--color-ink-2); }
   body[data-state="listening"] #status,
@@ -274,7 +274,7 @@ _PAGE = r"""<!DOCTYPE html>
     }
     #note:not([hidden]) #note-links::-webkit-scrollbar { height: 0; display: none; }
     .strip { padding: 12px 16px; }
-    .mark { width: 32px; height: 32px; }
+    .mark { width: 40px; height: 40px; }
     .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
     .well { grid-row: 2; min-height: 0; }
     .telemetry { grid-row: 3; padding-top: 4px; padding-bottom: 4px; }
