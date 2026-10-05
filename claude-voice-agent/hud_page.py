@@ -563,6 +563,32 @@ function nebulaSprite(rgb, strong) {
   nebulaCache[key] = sprite;
   return sprite;
 }
+const dust = [];
+(function seedDust() {
+  let s = 2166136261;
+  for (let i = 0; i < 36; i++) {
+    s = Math.imul(s ^ (s >>> 16), 2246822519) >>> 0;
+    const u = (s % 10000) / 10000;
+    s = Math.imul(s ^ (s >>> 13), 3266489917) >>> 0;
+    const v = (s % 10000) / 10000;
+    const mag = 0.35 + ((s >>> 8) % 100) / 140;
+    dust.push({ u, v, mag });
+  }
+})();
+function paintDust(rect) {
+  if (rect.width < 700) return;
+  ctx.save();
+  ctx.fillStyle = ink.ink;
+  for (const star of dust) {
+    const x = rect.left + 28 + star.u * Math.max(0, rect.width - 56);
+    const y = rect.top + 24 + star.v * Math.max(0, rect.height - 48);
+    ctx.globalAlpha = 0.16 + star.mag * 0.22;
+    ctx.beginPath();
+    ctx.arc(x, y, star.mag > 0.9 ? 1.25 : 0.75, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
 function glowSprite(rgb) {
   const cached = glowCache[rgb];
   if (cached) return cached;
@@ -733,6 +759,7 @@ function drawPlate() {
   ctx.beginPath();
   ctx.rect(rect.left, rect.top, rect.width, rect.height);
   ctx.clip();
+  paintDust(rect);
   const centroids = {};
   for (const key of ["nota", "sistema"]) {
     const pts = view.filter((item) => item.star.kind === key);
