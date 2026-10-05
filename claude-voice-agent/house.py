@@ -1093,8 +1093,11 @@ def _humidity_place(norm: str) -> str | None:
     if match:
         return _city_name(match.group(1) or "")
     damp = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:(?:esta|ta)\s+)?(?:muito\s+)?umido"
-        r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
     if damp:
@@ -1215,8 +1218,11 @@ def _wind_place(norm: str) -> str | None:
     if match:
         return _city_name(match.group(1) or "")
     blowing = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:(?:esta|ta)\s+)?ventando"
-        r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
     if blowing:

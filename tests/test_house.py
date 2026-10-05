@@ -382,6 +382,8 @@ def test_humidity_names_the_city(tmp_path):
     assert _reply("tá úmido", fetch, path) == "De qual lugar, Senhor."
     assert _reply("me fala a umidade", fetch, path) == "De qual lugar, Senhor."
     assert _reply("umidade amanhã", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("tá úmido amanhã", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me fala tá úmido", fetch, path) == "De qual lugar, Senhor."
     assert seen == []
     assert _reply("umidade em recife", fetch, path) == (
         "Em Recife, umidade de 80 por cento, Senhor."
@@ -395,6 +397,9 @@ def test_humidity_names_the_city(tmp_path):
     assert _reply("me fala a umidade em recife", fetch, path) == (
         "Em Recife, umidade de 80 por cento, Senhor."
     )
+    assert _reply("me fala tá úmido em recife", fetch, path) == (
+        "Em Recife, umidade de 80 por cento, Senhor."
+    )
     assert "daily=" not in seen[-1]
     assert _reply("umidade amanhã em recife", fetch, path) == (
         "Amanhã em Recife, umidade de 64 por cento, Senhor."
@@ -405,6 +410,12 @@ def test_humidity_names_the_city(tmp_path):
     assert _reply("umidade para amanhã em recife", fetch, path) == (
         "Amanhã em Recife, umidade de 64 por cento, Senhor."
     )
+    assert _reply("tá úmido amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, umidade de 64 por cento, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "amanha" not in seen[-2]
+    assert "relative_humidity_2m_mean" in seen[-1]
     assert "graus" not in _reply("umidade em recife", fetch, path)
 
 
@@ -481,6 +492,8 @@ def test_wind_names_the_city(tmp_path):
     assert _reply("tá ventando", fetch, path) == "De qual lugar, Senhor."
     assert _reply("me diz o vento", fetch, path) == "De qual lugar, Senhor."
     assert _reply("vento para amanhã", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("tá ventando amanhã", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me fala tá ventando", fetch, path) == "De qual lugar, Senhor."
     assert seen == []
     assert _reply("vento em recife", fetch, path) == (
         "Em Recife, vento de 18 quilômetros por hora, Senhor."
@@ -494,6 +507,9 @@ def test_wind_names_the_city(tmp_path):
     assert _reply("me diz o vento em curitiba", fetch, path) == (
         "Em Curitiba, vento de 18 quilômetros por hora, Senhor."
     )
+    assert _reply("me fala tá ventando em recife", fetch, path) == (
+        "Em Recife, vento de 18 quilômetros por hora, Senhor."
+    )
     assert "daily=" not in seen[-1]
     assert _reply("vento amanhã em curitiba", fetch, path) == (
         "Amanhã em Curitiba, vento de 12 quilômetros por hora, Senhor."
@@ -501,6 +517,12 @@ def test_wind_names_the_city(tmp_path):
     assert "name=curitiba" in seen[-2]
     assert "wind_speed_10m_mean" in seen[-1]
     assert "forecast_days=2" in seen[-1]
+    assert _reply("tá ventando amanhã em curitiba", fetch, path) == (
+        "Amanhã em Curitiba, vento de 12 quilômetros por hora, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    assert "amanha" not in seen[-2]
+    assert "wind_speed_10m_mean" in seen[-1]
 
 
 def test_sun_names_the_city(tmp_path):
