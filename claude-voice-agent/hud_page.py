@@ -658,23 +658,24 @@ function drawPlate() {
     const inside = item.p.x >= rect.left + 4 && item.p.x <= rect.right - 4 && item.p.y >= rect.top + 8 && item.p.y <= rect.bottom - 28;
     const chosen = item.star.id === picked;
     const near = item.p.persp;
+    const depthScale = Math.max(0.55, Math.min(1.45, near / (FOCAL / CAMERA)));
     const pulse = chosen ? 1 + level * 0.65 : 1;
     const dim = item.star.kind === "nota" && noteQuery && !noteHit(item.star);
     const aside = focusId && !neigh.has(item.star.id);
     const rgb = chosen ? "212, 196, 168" : item.star.kind === "nota" ? GROUPS.notas.rgb : GROUPS.sistemas.rgb;
-    ctx.globalAlpha = (dim ? 0.16 : aside ? 0.2 : 1) * Math.max(0.45, Math.min(1, 0.35 + near * 0.6));
-    const size = (item.star.kind === "sistema" ? 42 : 34) * Math.max(0.75, near) * pulse;
+    ctx.globalAlpha = (dim ? 0.16 : aside ? 0.2 : 1) * Math.max(0.42, Math.min(1, depthScale));
+    const size = (item.star.kind === "sistema" ? 46 : 38) * depthScale * pulse;
     const sprite = glowSprite(rgb);
     ctx.drawImage(sprite, item.p.x - size / 2, item.p.y - size / 2, size, size);
     ctx.fillStyle = chosen ? ink.accent : ink.ink;
     ctx.beginPath();
-    ctx.arc(item.p.x, item.p.y, (item.star.kind === "sistema" ? 3.1 : 2.8) * pulse, 0, Math.PI * 2);
+    ctx.arc(item.p.x, item.p.y, (item.star.kind === "sistema" ? 3.2 : 2.7) * depthScale * pulse, 0, Math.PI * 2);
     ctx.fill();
     if (item.star.kind === "sistema") {
       ctx.strokeStyle = chosen ? ink.accent : ink.ink;
       ctx.lineWidth = 1.35;
       ctx.beginPath();
-      ctx.arc(item.p.x, item.p.y, Math.max(7, 11 * near) * pulse, 0, Math.PI * 2);
+      ctx.arc(item.p.x, item.p.y, 10 * depthScale * pulse, 0, Math.PI * 2);
       ctx.stroke();
     }
     namedOnScreen.push({
