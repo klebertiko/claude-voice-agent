@@ -763,8 +763,10 @@ def _heat_place(norm: str) -> str | None:
 def _rain_place(norm: str) -> str | None:
     """Cidade numa frase de chuva, garoa ou trovoada. None se não for essa frase."""
     match = re.match(
-        r"^(?:(?:amanha|hoje|depois)\s+)?"
-        r"(?:vai chover|(?:esta|ta)\s+(?:chovendo|garoando)|chove|garoa"
+        r"^(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
+        r"(?:sera\s+que\s+)?"
+        r"(?:(?:amanha|hoje|depois)\s+)?"
+        r"(?:(?:se\s+)?vai chover|(?:esta|ta)\s+(?:chovendo|garoando)|chove|garoa"
         r"|vai dar(?:\s+uma)?\s+chuva|risco de chuva|pode chover)"
         + _SKY_WHEN
         + r"(?:\s+(?:em|no|na)\s+(.+))?$",
