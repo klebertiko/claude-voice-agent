@@ -754,6 +754,7 @@ function boxHitsSegment(box, seg) {
   }
   return false;
 }
+let liftSeats = false;
 function labelSpots(x, y, cx0, cy0) {
   const spots = [
     { x: x + 14, y, align: "left" },
@@ -796,6 +797,14 @@ function labelSpots(x, y, cx0, cy0) {
     { x: x + 52, y, align: "left" },
     { x: x - 52, y, align: "right" }
   );
+  if (liftSeats) {
+    spots.push(
+      { x, y: y - 40, align: "center" },
+      { x, y: y + 40, align: "center" },
+      { x, y: y - 44, align: "center" },
+      { x, y: y + 44, align: "center" }
+    );
+  }
   return spots;
 }
 function paintDisc(center, tilt, rgb, yaw, pitch, cx, cy, scale, strong, reach) {
@@ -1316,6 +1325,31 @@ function drawPlate() {
         claimed.add(blocker.item.star.id);
         break;
       }
+    }
+  }
+  if (rect.width >= WIDE) {
+    liftSeats = true;
+    try {
+      for (const paint of paints.filter((entry) => entry.contrast < 4.5)) {
+        const rest = boxes.filter((box) => box !== paint.box);
+        const pool = candidatesFor(paint.item, rest).pool.filter((spot) => {
+          if (!usable(spot)) return false;
+          const box = spot.trial;
+          const x = (box.l + box.r) / 2;
+          const y = (box.t + box.b) / 2;
+          const own = Math.hypot(paint.item.p.x - x, paint.item.p.y - y);
+          let other = Infinity;
+          for (const node of view) {
+            if (node.star.id === paint.item.star.id) continue;
+            other = Math.min(other, Math.hypot(node.p.x - x, node.p.y - y));
+          }
+          return own + 8 < other && spot.contrast > paint.contrast + 0.2;
+        });
+        pool.sort((a, b) => b.contrast - a.contrast);
+        if (pool[0]) applySeat(paint, pool[0]);
+      }
+    } finally {
+      liftSeats = false;
     }
   }
   ctx.lineCap = "round";
