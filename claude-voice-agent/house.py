@@ -883,7 +883,7 @@ def _topic_of(norm: str) -> str:
     bare = re.match(r"^noticias?\s+(?!sobre\s|de\s|do\s|da\s)(.+)$", norm)
     if bare:
         topic = _usable_topic(bare.group(1))
-        if topic in {"ultimas", "nova", "novas"}:
+        if topic in {"ultimas", "nova", "novas", "brasil", "brasileira", "brasileiras"}:
             return "brasil"
         return topic
     happening = re.match(r"^o que (?:esta acontecendo|aconteceu)\s+(.+)$", norm)
