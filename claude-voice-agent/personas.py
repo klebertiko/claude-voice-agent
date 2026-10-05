@@ -50,8 +50,9 @@ LILITH = Persona(
     wake_words=("lilith", "lilit", "lili", "lilis", "lilith,"),
 )
 
-# bm_george puro, no ritmo nativo. A mistura com pm_santa em 0.84 ficava lenta
-# e opaca. A 1.08 o george diz "Boa noite, Senhor" e "São 15 horas e 5 minutos".
+# bm_george puro. A mistura com pm_santa em 0.84 ficava lenta e opaca.
+# 1.32 ainda passa no Whisper small float32 (beam 5): nome, 15 horas e 5
+# minutos, e "Posso executar isto, Senhor". A 1.40 o nome se perde.
 ORION = Persona(
     key="orion",
     name="Orion",
@@ -60,7 +61,7 @@ ORION = Persona(
     voice="bm_george",
     # variantes que o Whisper costuma ouvir no lugar de "Orion".
     wake_words=("orion", "oriom", "orian", "orions", "oreon"),
-    speech_rate=1.08,
+    speech_rate=1.32,
 )
 
 PERSONAS: dict[str, Persona] = {p.key: p for p in (LILITH, ORION)}

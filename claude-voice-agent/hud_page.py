@@ -204,7 +204,7 @@ _PAGE = r"""<!DOCTYPE html>
       <button type="button" class="fact" data-ask="quais lembretes"><span class="k">Céu</span><span class="v" id="sky">0</span></button>
       <button type="button" class="fact" data-ask="quais lembretes"><span class="k">Lembretes</span><span class="v" id="notes">0</span></button>
       <button type="button" class="fact" data-voice="1"><span class="k">Voz</span><span class="v" id="voice-name">george</span></button>
-      <button type="button" class="fact" data-ask="qual o ritmo"><span class="k">Ritmo</span><span class="v">1.08</span></button>
+      <button type="button" class="fact" data-ask="qual o ritmo"><span class="k">Ritmo</span><span class="v">1.32</span></button>
       <button type="button" class="fact" data-ask="qual a carga"><span class="k">Carga</span><span class="v" id="load">—</span></button>
       <button type="button" class="fact" data-ask="qual o fuso"><span class="k">Fuso</span><span class="v">Brasília</span></button>
       <button type="button" class="fact" data-ask="qual a data"><span class="k">Data</span><span class="v" id="date">—</span></button>
@@ -317,7 +317,7 @@ const systemText = {
   "sys-noticias": "Sobre o que, Senhor?",
   "sys-busca": "Busca na web.",
   "sys-lembretes": "Notas deste céu.",
-  "sys-voz": "Voz george, ritmo 1.08.",
+  "sys-voz": "Voz george, ritmo 1.32.",
 };
 function sceneScale(rect) {
   return Math.max(1, Math.min(rect.width, rect.height) * 0.92);

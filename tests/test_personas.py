@@ -17,7 +17,7 @@ def test_orion_preset_is_kokoro_masculino_ptbr():
     assert g.gender == "masculino"
     assert g.tts_engine == "kokoro"
     assert g.voice == "bm_george"
-    assert g.speech_rate == 1.08
+    assert g.speech_rate == 1.32
     assert "orion" in g.wake_words
     assert g.form_of_address == "Senhor"
 
