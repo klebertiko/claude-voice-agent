@@ -1160,6 +1160,8 @@ function drawPlate() {
     if (!a || !b) continue;
     const hot = picked && (a.star.id === picked || b.star.id === picked);
     const aside = focusId && !neigh.has(a.star.id) && !neigh.has(b.star.id);
+    const missed = (star) => star.kind === "nota" && noteQuery && !noteHit(star);
+    const quietLink = missed(a.star) || missed(b.star);
     const dx = b.p.x - a.p.x;
     const dy = b.p.y - a.p.y;
     const len = Math.hypot(dx, dy) || 1;
@@ -1171,7 +1173,7 @@ function drawPlate() {
     const tone = a.star.kind === b.star.kind
       ? "rgb(" + (a.star.kind === "nota" ? GROUPS.notas.link : GROUPS.sistemas.link) + ")"
       : "rgb(232, 220, 196)";
-    const alpha = (hot ? 1 : aside ? 0.45 : 1) * depth;
+    const alpha = (hot ? 1 : aside ? 0.45 : 1) * depth * (quietLink ? 0.16 : 1);
     const x1 = a.p.x + ux * pad;
     const y1 = a.p.y + uy * pad;
     const x2 = b.p.x - ux * pad;
