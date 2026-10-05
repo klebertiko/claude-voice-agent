@@ -180,8 +180,8 @@ _PAGE = r"""<!DOCTYPE html>
   .act[data-state="success"] { color: var(--color-ok); }
   #send, #allow { color: var(--color-accent); font-weight: 600; }
   #mic[data-hot="1"] { color: var(--color-bad); }
-  @media (min-width: 1400px) {
-    .systems { justify-content: space-between; gap: 16px; }
+  @media (min-width: 960px) {
+    .systems { justify-content: space-between; gap: 6px; }
   }
   @media (min-width: 960px) {
     body { overflow: hidden; }
