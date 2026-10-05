@@ -346,6 +346,78 @@ _PAGE = r"""<!DOCTYPE html>
     .strip { padding-top: 12px; padding-bottom: 12px; }
     .floor { padding-bottom: 12px; }
   }
+  /* Numa janela baixa, a nota e a permissão não roubam o céu. */
+  @media (min-width: 641px) and (max-height: 699px) {
+    #note:not([hidden]) {
+      position: fixed;
+      z-index: 5;
+      left: 0;
+      right: 0;
+      bottom: var(--note-bottom, 65px);
+      height: 52px;
+      margin: 0;
+      padding: 4px 24px;
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      gap: 16px;
+      overflow: hidden;
+      background: var(--color-bg);
+      max-width: none;
+    }
+    #note:not([hidden]) #note-text {
+      flex: 1 1 auto;
+      min-width: 8rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.25;
+    }
+    #note:not([hidden]) #note-links {
+      flex: 0 1 auto;
+      max-width: 62%;
+      min-width: 0;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    #note:not([hidden]) #note-links::-webkit-scrollbar { height: 0; display: none; }
+    #note:not([hidden]) #note-links .k,
+    #note:not([hidden]) #note-links .act { flex: none; }
+    #note:not([hidden]) #note-links .act { overflow: hidden; text-overflow: ellipsis; }
+    #note:not([hidden]) #note-links.has-more {
+      mask-image: linear-gradient(90deg, transparent 0, transparent var(--link-clip-left, 0px), #000 var(--link-clip-left, 0px), #000 var(--link-clip, 100%), transparent var(--link-clip, 100%));
+    }
+    #permit:not([hidden]) {
+      position: fixed;
+      z-index: 6;
+      left: 0;
+      right: 0;
+      bottom: var(--permit-bottom, 0px);
+      height: var(--permit-height, 65px);
+      margin: 0;
+      padding: 0 24px;
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      gap: 16px;
+      overflow: hidden;
+      background: var(--color-bg);
+      max-width: none;
+    }
+    #permit:not([hidden]) p { flex: none; }
+    #permit:not([hidden]) #permit-cmd {
+      flex: 1 1 0;
+      min-width: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      text-overflow: clip;
+      white-space: nowrap;
+      scrollbar-width: none;
+    }
+    #permit:not([hidden]) #permit-cmd::-webkit-scrollbar { height: 0; display: none; }
+    #permit:not([hidden]) .act { flex: none; min-width: 44px; }
+  }
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
   @media (max-width: 1399px) {
     .systems { flex-flow: row nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; --clip: 100%; }
@@ -1854,7 +1926,7 @@ function openNote(star) {
 }
 function seatLinks() {
   if (!noteLinks || !noteEl || noteEl.hidden) return;
-  if (!window.matchMedia("(max-width: 640px)").matches) {
+  if (!window.matchMedia("(max-width: 640px), (min-width: 641px) and (max-height: 699px)").matches) {
     noteLinks.classList.remove("has-more");
     noteLinks.style.removeProperty("--link-clip");
     noteLinks.style.removeProperty("--link-clip-left");
