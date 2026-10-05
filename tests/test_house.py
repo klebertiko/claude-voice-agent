@@ -1147,6 +1147,11 @@ def test_note_search_stays_in_the_vault(tmp_path):
     assert _reply("tem quantas notas", fetch, latest) == "São 2 notas, Senhor."
     assert _reply("tem quantos lembretes", fetch, latest) == "São 2 notas, Senhor."
     assert _reply("tem quantos recados", fetch, empty) == "Nada anotado, Senhor."
+    assert _reply("me diz quantas notas", fetch, latest) == "São 2 notas, Senhor."
+    assert _reply("me fala quantas notas eu tenho", fetch, latest) == "São 2 notas, Senhor."
+    assert _reply("tem quantos lembretes eu tenho", fetch, latest) == "São 2 notas, Senhor."
+    assert _reply("me conta quantos recados", fetch, empty) == "Nada anotado, Senhor."
+    assert "quantas" not in latest.read_text(encoding="utf-8")
     assert _reply("quantas notas", fetch, empty) == "Nada anotado, Senhor."
     assert _reply("mostra a primeira nota", fetch, empty) == "Nada anotado, Senhor."
     one = tmp_path / "one.json"
