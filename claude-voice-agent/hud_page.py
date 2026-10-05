@@ -384,8 +384,9 @@ function fitScene(rect) {
   const radiusPx = Math.max(48, Math.min(rect.width * 0.36, room * 0.34, (rect.width - 40) / 2));
   const reach = Math.max(radiusPx * 0.70, rect.height / 2 - radiusPx - 16);
   const offset = Math.min(rect.height * 0.24, reach);
+  const up = rect.height < 280 ? offset * 0.45 : offset;
   return {
-    notas: Object.assign(at(0, -offset), { radius: radiusPx / k, zScale: 0.36, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
+    notas: Object.assign(at(0, -up), { radius: radiusPx / k, zScale: 0.36, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
     sistemas: Object.assign(at(0, offset * 0.55), { radius: radiusPx * 0.62 / k, zScale: 0.18, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
   };
 }
@@ -403,7 +404,7 @@ function ringPos(index, total, center, radius, tilt) {
 function notePos(index, total, center) {
   const n = Math.max(total, 1);
   const ring = n === 1 ? 0 : center.radius * 0.72;
-  return ringPos(index, n, center, ring, 1.22);
+  return ringPos(index, n, center, ring, 0.88);
 }
 function systemPos(star, center) {
   if (star.id === "sys-cerebro") return { x: center.x, y: center.y, z: center.z || 0 };
@@ -747,7 +748,7 @@ function drawPlate() {
     centroids[key] = { x: sx, y: sy, z: sz, maxD, name: meta.name, rgb: meta.rgb };
   }
   const discs = [
-    { center: fit.notas, tilt: 1.22, rgb: GROUPS.notas.rgb, strong: true },
+    { center: fit.notas, tilt: 0.88, rgb: GROUPS.notas.rgb, strong: true },
     { center: fit.sistemas, tilt: 0.9, rgb: GROUPS.sistemas.rgb, strong: false },
   ].map((disc) => {
     const rot = rotate(disc.center, yaw, pitch);
