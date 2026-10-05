@@ -667,6 +667,13 @@ def _usable_topic(topic: str) -> str:
 
 
 def _topic_of(norm: str) -> str:
+    headlines = re.fullmatch(
+        r"(?:(?:quais|me\s+(?:da|fala|diz|conta|passa))\s+(?:as|os)\s+)?"
+        r"(?:as\s+)?manchetes?(?:\s+(?:sobre|de|do|da)\s+(.+))?",
+        norm,
+    )
+    if headlines:
+        return _usable_topic(headlines.group(1) or "") or "brasil"
     norm = norm.replace("novidades", "noticias").replace("novidade", "noticia")
     for prefix in (
         "noticias sobre ", "noticia sobre ",
@@ -1038,6 +1045,7 @@ def house_reply(
         if (
             "noticia" in norm
             or "novidade" in norm
+            or "manchete" in norm
             or norm in {"o que esta acontecendo", "o que aconteceu"}
             or norm.startswith(("o que esta acontecendo ", "o que aconteceu "))
             or re.match(
