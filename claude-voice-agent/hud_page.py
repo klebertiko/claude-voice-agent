@@ -1699,6 +1699,25 @@ function drawPlate() {
       paintLabel(paint.full, paint.spot.x, paint.spot.y, paint.halo);
     }
   }
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rect.left, rect.top, rect.width, rect.height);
+  for (const box of boxes) {
+    ctx.rect(box.l - 10, box.t - 10, box.r - box.l + 20, box.b - box.t + 20);
+  }
+  ctx.clip("evenodd");
+  ctx.globalCompositeOperation = "lighter";
+  for (const item of discs) {
+    const center = item.disc.center;
+    const reach = reachFor(item);
+    const lobe = Object.assign({}, center, {
+      x: center.x - center.radius * 0.36,
+      y: center.y + center.radius * 0.22,
+    });
+    ctx.globalAlpha = item.disc.strong ? 0.72 : 0.48;
+    paintDisc(lobe, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, reach * 0.48);
+  }
+  ctx.restore();
   ctx.restore();
   ctx.globalAlpha = 1;
   ctx.setLineDash([]);
