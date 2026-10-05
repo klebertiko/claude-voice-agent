@@ -966,21 +966,6 @@ function drawPlate() {
       font: "400 14px " + ink.body,
     });
   }
-  ctx.font = "600 14px " + ink.body;
-  ctx.textAlign = "center";
-  for (const cloud of Object.values(centroids)) {
-    const y = cloud.y - Math.max(36, cloud.maxD) - 10;
-    if (y < rect.top + 12 || y > rect.bottom - 36) continue;
-    const width = ctx.measureText(cloud.name).width;
-    const box = labelBox(cloud.x, y, "center", width);
-    if (box.l < rect.left + 4 || box.r > rect.right - 4) continue;
-    if (boxes.some((held) => boxesHit(box, held))) continue;
-    boxes.push(box);
-    paints.push({
-      lines: null, full: cloud.name, spot: { x: cloud.x, y, align: "center" },
-      alpha: 0.82, fill: ink.ink2, font: "600 14px " + ink.body,
-    });
-  }
   ctx.lineCap = "round";
   for (const stroke of strokes) {
     const gaps = boxes.map((box) => ({ l: box.l - 4, r: box.r + 4, t: box.t - 4, b: box.b + 4 }));
