@@ -1635,6 +1635,21 @@ function drawPlate() {
       liftSeats = false;
     }
   }
+  for (let pass = 0; pass < 4; pass++) {
+    let moved = false;
+    for (const paint of paints) {
+      const rest = boxes.filter((box) => box !== paint.box);
+      if (!rest.some((box) => boxesHit(paint.box, box))) continue;
+      const pool = candidatesFor(paint.item, rest).pool.filter((spot) => (
+        !spot.self && spot.contrast >= 4.5 && spot.intrusion < 16
+      ));
+      if (!pool[0]) continue;
+      applySeat(paint, pool[0]);
+      moved = true;
+      break;
+    }
+    if (!moved) break;
+  }
   ctx.lineCap = "round";
   for (const stroke of strokes) {
     const gaps = boxes.map((box) => ({ l: box.l - 4, r: box.r + 4, t: box.t - 4, b: box.b + 4 }));
