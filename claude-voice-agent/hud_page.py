@@ -245,6 +245,15 @@ _PAGE = r"""<!DOCTYPE html>
     .systems { flex-flow: row nowrap; overflow-x: auto; }
     .systems button.fact { flex: none; }
   }
+  @media (max-width: 640px) and (max-height: 700px) {
+    .room:has(#empty):not(:has(#note:not([hidden]))) {
+      grid-template-rows: auto minmax(0, 1fr) auto 0 auto auto;
+    }
+    .room:has(#empty):not(:has(#note:not([hidden]))) .talk {
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+  }
   @media (max-height: 780px) and (min-width: 641px) {
     #log, .room:has(#note:not([hidden])) #log { max-height: 3.5rem; }
   }
