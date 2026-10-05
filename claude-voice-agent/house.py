@@ -827,7 +827,7 @@ def _usable_topic(topic: str) -> str:
 def _topic_of(norm: str) -> str:
     headlines = re.fullmatch(
         r"(?:(?:quais|me\s+(?:da|fala|diz|conta|passa))\s+(?:as|os)\s+)?"
-        r"(?:as\s+)?manchetes?(?:\s+(?:sobre|de|do|da)\s+(.+))?",
+        r"(?:as\s+)?manchetes?(?:\s+(?:sobre|de|do|da|em|no|na)\s+(.+))?",
         norm,
     )
     if headlines:
