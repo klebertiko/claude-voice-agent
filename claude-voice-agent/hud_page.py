@@ -726,7 +726,7 @@ function drawPlate() {
     const depth = Math.max(0.45, Math.min(1, ((a.p.persp + b.p.persp) / 2) / 0.62));
     const tone = a.star.kind === b.star.kind
       ? "rgb(" + (a.star.kind === "nota" ? GROUPS.notas.link : GROUPS.sistemas.link) + ")"
-      : ink.ink;
+      : "rgb(232, 220, 196)";
     const alpha = (hot ? 1 : aside ? 0.22 : 1) * depth;
     ctx.setLineDash(hot ? [5, 6] : [8, 10]);
     ctx.beginPath();
