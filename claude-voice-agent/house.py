@@ -675,6 +675,13 @@ def _topic_of(norm: str) -> str:
     if headlines:
         return _usable_topic(headlines.group(1) or "") or "brasil"
     norm = norm.replace("novidades", "noticias").replace("novidade", "noticia")
+    brief = re.fullmatch(
+        r"(?:me\s+da\s+(?:(?:um|o)\s+)?)?resumo\s+(?:das|de|dos)\s+noticias"
+        r"(?:\s+(?:sobre|de|do|da)\s+(.+))?",
+        norm,
+    )
+    if brief:
+        return _usable_topic(brief.group(1) or "") or "brasil"
     for prefix in (
         "noticias sobre ", "noticia sobre ",
         "noticias de ", "noticia de ",
