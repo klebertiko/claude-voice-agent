@@ -649,9 +649,12 @@ function drawPlate() {
     const ux = dx / len;
     const uy = dy / len;
     const depth = Math.max(0.45, Math.min(1, ((a.p.persp + b.p.persp) / 2) / 0.62));
-    ctx.strokeStyle = hot ? ink.accent : ink.ink;
+    const tone = a.star.kind === b.star.kind
+      ? "rgb(" + (a.star.kind === "nota" ? GROUPS.notas.rgb : GROUPS.sistemas.rgb) + ")"
+      : ink.ink;
+    ctx.strokeStyle = hot ? ink.accent : tone;
     ctx.globalAlpha = (hot ? 1 : aside ? 0.14 : 0.9) * depth;
-    ctx.lineWidth = hot ? 1.6 : 1.25;
+    ctx.lineWidth = (hot ? 1.6 : 1.25) * depth;
     ctx.setLineDash(hot ? [5, 6] : [8, 10]);
     ctx.beginPath();
     ctx.moveTo(a.p.x + ux * pad, a.p.y + uy * pad);
