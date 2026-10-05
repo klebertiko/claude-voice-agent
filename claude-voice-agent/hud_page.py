@@ -225,9 +225,9 @@ _PAGE = r"""<!DOCTYPE html>
       grid-template-rows: auto minmax(0, 1fr) auto minmax(2.75rem, 4rem) auto auto;
     }
     .room:not(:has(#empty)) {
-      grid-template-rows: auto minmax(0, 1fr) auto minmax(2.75rem, 5.5rem) auto auto;
+      grid-template-rows: auto minmax(0, 1fr) auto minmax(2.75rem, 4rem) auto auto;
     }
-    #log { max-height: 4.5rem; }
+    #log { max-height: 3.5rem; }
     /* A nota aberta fica na faixa dos instrumentos. O céu não encolhe. */
     #note:not([hidden]) {
       position: fixed;
