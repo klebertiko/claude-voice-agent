@@ -60,7 +60,7 @@ _PAGE = r"""<!DOCTYPE html>
     font-family: var(--font-body); font-weight: 600; font-size: var(--text-body);
     line-height: 1.25; letter-spacing: 0;
   }
-  .mark { width: 36px; height: 36px; flex: none; color: var(--color-accent); }
+  .mark { width: 40px; height: 40px; flex: none; color: var(--color-accent); }
   .meta { display: flex; align-items: baseline; gap: 24px; }
   #status { font-size: var(--text-body); color: var(--color-ink-2); }
   body[data-state="listening"] #status,
@@ -273,7 +273,7 @@ _PAGE = r"""<!DOCTYPE html>
     }
     #note:not([hidden]) #note-links::-webkit-scrollbar { height: 0; display: none; }
     .strip { padding: 12px 16px; }
-    .mark { width: 28px; height: 28px; }
+    .mark { width: 32px; height: 32px; }
     .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
     .well { grid-row: 2; min-height: 0; }
     .telemetry { grid-row: 3; padding-top: 4px; padding-bottom: 4px; }
@@ -457,7 +457,7 @@ _PAGE = r"""<!DOCTYPE html>
 <canvas id="field" aria-label="constelação"></canvas>
 <div class="room">
   <header class="strip">
-    <h1><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path stroke-width="2.35" d="M40 12C18 17 14 32 17 46c3 8 12 11 21 7"/><path stroke-width="1.2" d="M48 16v32"/><path stroke-width="1.15" d="M32 36.6v6"/></g><g fill="currentColor"><path d="M24.2 32.6l2.2 2.2-2.2 2.2-2.2-2.2z"/><path d="M32 27.4l3.1 3.1-3.1 3.1-3.1-3.1z"/><path d="M39.8 24.4l2.2 2.2-2.2 2.2-2.2-2.2z"/><path opacity="0.82" d="M32 44.6l1.5 1.5-1.5 1.5-1.5-1.5z"/></g></svg>__NAME__</h1>
+    <h1><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path stroke-width="1.7" d="M21.5 3.2C6.2 6.2 3.6 15.2 5.6 24.2c1.5 5.2 7.2 7.2 13.4 5.2"/><path stroke-width="1.15" d="M23.2 5.4v21.2"/><path stroke-width="1.15" d="M14.6 18.4v4.2"/></g><g fill="currentColor"><path d="M10.2 16.15l1.45 1.45-1.45 1.45-1.45-1.45z"/><path d="M14.6 13.25l1.95 1.95-1.95 1.95-1.95-1.95z"/><path d="M19 11.35l1.45 1.45-1.45 1.45-1.45-1.45z"/><path d="M14.6 23.05l1.15 1.15-1.15 1.15-1.15-1.15z"/></g></svg>__NAME__</h1>
     <div class="meta">
       <p id="status">pronto</p>
       <p id="clock">00:00:00</p>
