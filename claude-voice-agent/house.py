@@ -222,6 +222,20 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
             return "Não alcancei o clima, Senhor."
         mb = int(round(float(hpa)))
         return f"Em {label}, pressão de {mb} milibares, Senhor."
+    if field == "chance":
+        days = 2 if day == "amanha" else 1
+        url = (
+            "https://api.open-meteo.com/v1/forecast?daily=precipitation_probability_max"
+            f"&forecast_days={days}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        values = (data.get("daily") or {}).get("precipitation_probability_max") or []
+        index = 1 if day == "amanha" else 0
+        if len(values) <= index or values[index] is None:
+            return "Não alcancei o clima, Senhor."
+        pct = int(round(float(values[index])))
+        when = "Amanhã em" if day == "amanha" else "Em"
+        return f"{when} {label}, chance de chuva de {pct} por cento, Senhor."
     if day == "amanha":
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max,weather_code"
@@ -1171,6 +1185,21 @@ def _uv_place(norm: str) -> str | None:
     return _city_name(match.group(1) or "")
 
 
+def _chance_place(norm: str) -> str | None:
+    """None quando não é chance de chuva. Vazio quando falta a cidade."""
+    match = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
+        r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?(?:chance|probabilidade)\s+de\s+chuva"
+        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if not match:
+        return None
+    return _city_name(match.group(1) or "")
+
+
 def _wind_place(norm: str) -> str | None:
     """None quando não é vento. Vazio quando falta a cidade."""
     match = re.fullmatch(
@@ -1502,6 +1531,12 @@ def house_reply(
                 return "De qual lugar, Senhor."
             day = "amanha" if re.search(r"\bamanha\b", norm) else ""
             return _weather(humid_place, fetch, day=day, field="umidade")
+        chance_place = _chance_place(norm)
+        if chance_place is not None:
+            if not chance_place:
+                return "De qual lugar, Senhor."
+            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            return _weather(chance_place, fetch, day=day, field="chance")
         if _wants_weather(norm):
             place = _place_of(norm)
             if not place:
