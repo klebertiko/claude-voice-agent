@@ -209,6 +209,8 @@ def _topic_of(norm: str) -> str:
         "noticias do ", "noticia do ",
         "noticias da ", "noticia da ",
         "o que esta acontecendo em ",
+        "o que esta acontecendo no ",
+        "o que esta acontecendo na ",
         "o que esta acontecendo sobre ",
     ):
         if norm.startswith(prefix):
@@ -216,6 +218,12 @@ def _topic_of(norm: str) -> str:
     match = re.search(r"noticias?\s+(?:sobre|de|do|da)\s+(.+)$", norm)
     if match:
         return match.group(1).strip(" .")
+    bare = re.match(r"^noticias?\s+(?!sobre\s|de\s|do\s|da\s)(.+)$", norm)
+    if bare:
+        return bare.group(1).strip(" .")
+    happening = re.match(r"^o que esta acontecendo\s+(.+)$", norm)
+    if happening:
+        return happening.group(1).strip(" .")
     return ""
 
 
@@ -357,7 +365,7 @@ def house_reply(
             if not place:
                 return "De qual lugar, Senhor."
             return _weather(place, fetch)
-        if "noticia" in norm or norm == "o que esta acontecendo":
+        if "noticia" in norm or norm == "o que esta acontecendo" or norm.startswith("o que esta acontecendo "):
             topic = _topic_of(norm)
             if not topic:
                 return "Sobre o que, Senhor."

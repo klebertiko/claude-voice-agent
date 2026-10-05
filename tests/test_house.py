@@ -74,6 +74,14 @@ def test_news_asks_then_reads_the_topic(tmp_path):
         "Nas notícias, Senhor. Alpha sobe. Beta cai."
     )
     assert "economia" in seen[0]
+    assert _reply("notícias economia", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert "economia" in seen[-1]
+    assert _reply("o que está acontecendo no Brasil", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert "brasil" in seen[-1].lower()
 
 
 def test_search_speaks_the_abstract(tmp_path):
