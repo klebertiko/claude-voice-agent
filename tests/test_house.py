@@ -37,7 +37,7 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
     def fetch(url):
         seen.append(url)
         if "geocoding" in url:
-            assert "paulo" in url.lower() or "curitiba" in url.lower()
+            assert any(city in url.lower() for city in ("paulo", "curitiba", "rio", "recife"))
             return '{"results":[{"latitude":-23.5,"longitude":-46.6,"name":"São Paulo"}]}'
         return '{"current":{"temperature_2m":22,"weather_code":1}}'
 
@@ -61,6 +61,18 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
         "Em São Paulo, 22 graus, quase limpo, Senhor."
     )
     assert _reply("tempo para pensar", fetch, path) is None
+    assert _reply("tempo no rio", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert any("rio" in url for url in seen)
+    assert _reply("clima do rio", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert _reply("qual a temperatura em recife", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert any("recife" in url for url in seen)
+    assert _reply("qual a temperatura", fetch, path) == "De qual lugar, Senhor."
 
 
 def test_unrelated_tempo_is_not_weather(tmp_path):
@@ -96,6 +108,9 @@ def test_news_asks_then_reads_the_topic(tmp_path):
         "Nas notícias, Senhor. Alpha sobe. Beta cai."
     )
     assert "brasil" in seen[-1].lower()
+    before = len(seen)
+    assert _reply("notícias sobre", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
+    assert len(seen) == before
 
 
 def test_search_speaks_the_abstract(tmp_path):
@@ -116,9 +131,11 @@ def test_search_speaks_the_abstract(tmp_path):
         "quero pesquisar café",
         "pesquise sobre café",
         "busque sobre o café",
+        "busca aí café",
+        "pesquisa pra mim o café",
     ):
         assert _reply(said, fetch, path) == "O café é uma bebida, Senhor."
-    assert all("cafe" in url and "sobre" not in url for url in seen)
+    assert all("q=cafe" in url and "sobre" not in url for url in seen)
     assert _reply("pode pesquisar", fetch, path) == "O que devo procurar, Senhor?"
 
 
@@ -148,12 +165,20 @@ def test_reminder_roundtrip(tmp_path):
     assert listed.index("entregar o projeto na sexta") < listed.index("comprar café")
     assert "comprar café" in listed
     assert "voz do orion" in listed
+    assert _reply("anota aí comprar leite", fetch, path) == "Anotado, Senhor."
+    assert '"text": "comprar leite"' in path.read_text(encoding="utf-8")
+    assert "aí" not in path.read_text(encoding="utf-8")
+    assert _reply("lembra de pagar a luz", fetch, path) == "Anotado, Senhor."
+    assert '"text": "pagar a luz"' in path.read_text(encoding="utf-8")
+    assert "pagar a luz" in _reply("quais são os lembretes", fetch, path)
+    assert _reply("liste os arquivos", fetch, path) is None
 
 
 def test_note_query_is_only_the_search():
     from claude_agent_voice.house import note_query_of
 
     assert note_query_of("buscar nota projeto", "Nas notas, Senhor. entregar.") == "projeto"
+    assert note_query_of("buscar nas notas projeto", "Nas notas, Senhor. entregar.") == "projeto"
     assert note_query_of("voz", "Nas notas, Senhor. revisar o projeto de voz.") == "voz"
     assert note_query_of("buscar nota marte", "Não há nota com isso, Senhor.") == "marte"
     assert note_query_of("buscar nota", "O que devo buscar nas notas, Senhor?") == ""
@@ -172,6 +197,12 @@ def test_note_search_stays_in_the_vault(tmp_path):
 
     found = _reply("buscar nota projeto", fetch, path)
     assert found == "Nas notas, Senhor. entregar o projeto na sexta."
+    assert _reply("buscar nas notas projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("procura nas notas projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
     assert _reply("buscar nota marte", fetch, path) == "Não há nota com isso, Senhor."
 
 
@@ -206,6 +237,7 @@ def test_whatsapp_is_a_link_with_permission(tmp_path):
     spaced = _reply("mande whatsapp para (11) 99999-8888 dizendo cheguei", fetch, path)
     assert spaced.startswith("ACAO: xdg-open 'https://wa.me/11999998888?text=cheguei'")
     assert _reply("mande um whatsapp", fetch, path) == "Diga o número, Senhor."
+    assert _reply("manda um zap", fetch, path) == "Diga o número, Senhor."
 
 
 def test_the_next_lines_build_the_whatsapp(tmp_path):
