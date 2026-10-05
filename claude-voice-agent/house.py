@@ -586,13 +586,21 @@ def _topic_of(norm: str) -> str:
         "o que esta acontecendo no ",
         "o que esta acontecendo na ",
         "o que esta acontecendo sobre ",
+        "o que aconteceu em ",
+        "o que aconteceu no ",
+        "o que aconteceu na ",
+        "o que aconteceu sobre ",
     ):
         if norm.startswith(prefix):
             return _usable_topic(norm[len(prefix) :])
     match = re.search(r"noticias?\s+(?:sobre|de|do|da)\s+(.+)$", norm)
     if match:
         return _usable_topic(match.group(1))
-    fresh = re.match(r"^o que ha de novo(?:\s+(?:sobre|de|do|da)\s+(.+))?$", norm)
+    fresh = re.match(
+        r"^(?:me\s+(?:conta|fala|diz)\s+)?o que (?:ha|houve) de novo"
+        r"(?:\s+(?:sobre|de|do|da)\s+(.+?))?(?:\s+(?:hoje|agora))?$",
+        norm,
+    )
     if fresh:
         return _usable_topic(fresh.group(1) or "") or "brasil"
     if re.fullmatch(
@@ -606,9 +614,12 @@ def _topic_of(norm: str) -> str:
         if topic == "ultimas":
             return "brasil"
         return topic
-    happening = re.match(r"^o que esta acontecendo\s+(.+)$", norm)
+    happening = re.match(r"^o que (?:esta acontecendo|aconteceu)\s+(.+)$", norm)
     if happening:
-        return _usable_topic(happening.group(1))
+        rest = happening.group(1).strip()
+        if rest in {"de novo", "novo"}:
+            return "brasil"
+        return _usable_topic(rest)
     return ""
 
 
@@ -893,9 +904,13 @@ def house_reply(
         if (
             "noticia" in norm
             or "novidade" in norm
-            or norm == "o que esta acontecendo"
-            or norm.startswith("o que esta acontecendo ")
-            or re.match(r"^o que ha de novo(?:\s+(?:sobre|de|do|da)\s+\S.*)?$", norm)
+            or norm in {"o que esta acontecendo", "o que aconteceu"}
+            or norm.startswith(("o que esta acontecendo ", "o que aconteceu "))
+            or re.match(
+                r"^(?:me\s+(?:conta|fala|diz)\s+)?o que (?:ha|houve) de novo"
+                r"(?:\s+(?:sobre|de|do|da)\s+\S.*)?(?:\s+(?:hoje|agora))?$",
+                norm,
+            )
         ):
             topic = _topic_of(norm)
             if not topic:
