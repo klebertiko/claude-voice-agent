@@ -557,7 +557,7 @@ function paintNebula(cloud) {
   ctx.save();
   ctx.translate(cloud.x, cloud.y);
   ctx.rotate(cloud.angle || 0);
-  ctx.scale(1, 0.52);
+  ctx.scale(1, 0.74);
   const disc = ctx.createRadialGradient(0, 0, 0, 0, 0, rad);
   disc.addColorStop(0, "rgba(" + cloud.rgb + ",0.28)");
   disc.addColorStop(0.5, "rgba(" + cloud.rgb + ",0.14)");
@@ -567,7 +567,7 @@ function paintNebula(cloud) {
   ctx.arc(0, 0, rad, 0, Math.PI * 2);
   ctx.fill();
   ctx.save();
-  ctx.scale(1.08, 0.2);
+  ctx.scale(1.05, 0.11);
   ctx.fillStyle = "rgba(7, 13, 22, 0.72)";
   ctx.beginPath();
   ctx.arc(0, 0, rad * 0.78, 0, Math.PI * 2);
