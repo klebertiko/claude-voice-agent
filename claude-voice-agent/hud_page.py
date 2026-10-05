@@ -511,25 +511,14 @@ function nebulaSprite(rgb) {
   const mid = S / 2;
   const rad = mid - 1;
   const disc = pen.createRadialGradient(mid, mid, 0, mid, mid, rad);
-  disc.addColorStop(0, "rgba(" + rgb + ",0.36)");
-  disc.addColorStop(0.55, "rgba(" + rgb + ",0.16)");
+  disc.addColorStop(0, "rgba(" + rgb + ",0.40)");
+  disc.addColorStop(0.42, "rgba(" + rgb + ",0.22)");
+  disc.addColorStop(0.78, "rgba(" + rgb + ",0.08)");
   disc.addColorStop(1, "rgba(" + rgb + ",0)");
   pen.fillStyle = disc;
   pen.beginPath();
   pen.arc(mid, mid, rad, 0, Math.PI * 2);
   pen.fill();
-  pen.save();
-  pen.translate(mid, mid);
-  pen.scale(1, 0.16);
-  const dust = pen.createRadialGradient(0, 0, rad * 0.12, 0, 0, rad * 0.8);
-  dust.addColorStop(0, "rgba(7, 13, 22, 0.34)");
-  dust.addColorStop(0.65, "rgba(7, 13, 22, 0.12)");
-  dust.addColorStop(1, "rgba(7, 13, 22, 0)");
-  pen.fillStyle = dust;
-  pen.beginPath();
-  pen.arc(0, 0, rad * 0.8, 0, Math.PI * 2);
-  pen.fill();
-  pen.restore();
   const core = pen.createRadialGradient(mid, mid, 0, mid, mid, rad * 0.2);
   core.addColorStop(0, "rgba(" + rgb + ",0.72)");
   core.addColorStop(1, "rgba(" + rgb + ",0)");
@@ -599,7 +588,7 @@ function paintNebula(cloud) {
   ctx.save();
   ctx.translate(cloud.x, cloud.y);
   ctx.rotate(cloud.angle || 0);
-  ctx.scale(1, 0.74);
+  ctx.scale(1, 0.88);
   ctx.drawImage(sprite, -rad, -rad, rad * 2, rad * 2);
   ctx.restore();
 }
