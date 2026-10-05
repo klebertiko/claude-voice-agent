@@ -866,6 +866,7 @@ def test_note_query_is_only_the_search():
     ) == "voz"
     assert note_query_of("o que eu anotei", "Lembretes, Senhor. entregar.") == ""
     assert note_query_of("mostra a última nota", "A última nota, Senhor. revisar.") == ""
+    assert note_query_of("mostra a primeira nota", "A primeira nota, Senhor. entregar.") == ""
     assert note_query_of("mostra a nota do projeto", "Nas notas, Senhor. entregar.") == "projeto"
     assert note_query_of("voz", "Nas notas, Senhor. revisar o projeto de voz.") == "voz"
     assert note_query_of("buscar nota marte", "Não há nota com isso, Senhor.") == "marte"
@@ -1013,6 +1014,19 @@ def test_note_search_stays_in_the_vault(tmp_path):
     assert _reply("mostra a nota", fetch, path) == "O que devo buscar nas notas, Senhor?"
     assert _reply("me mostra as notas", fetch, latest).startswith("Lembretes, Senhor.")
     assert "revisar o projeto de voz" in _reply("me mostra as notas", fetch, latest)
+    assert _reply("mostra a primeira nota", fetch, latest) == (
+        "A primeira nota, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("nota mais antiga", fetch, latest) == (
+        "A primeira nota, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("quantas notas eu tenho", fetch, latest) == "São 2 notas, Senhor."
+    assert _reply("tem quantas notas", fetch, latest) == "São 2 notas, Senhor."
+    assert _reply("quantas notas", fetch, empty) == "Nada anotado, Senhor."
+    assert _reply("mostra a primeira nota", fetch, empty) == "Nada anotado, Senhor."
+    one = tmp_path / "one.json"
+    one.write_text('[{"text": "entregar o projeto na sexta"}]', encoding="utf-8")
+    assert _reply("quantas notas", fetch, one) == "Uma nota, Senhor."
     assert "do projeto" not in path.read_text(encoding="utf-8")
     assert _reply("lembrete do projeto", fetch, path) == (
         "Nas notas, Senhor. entregar o projeto na sexta."

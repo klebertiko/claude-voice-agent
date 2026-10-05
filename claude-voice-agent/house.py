@@ -546,6 +546,54 @@ def _wants_latest_note(norm: str) -> bool:
     return _LATEST_NOTE.fullmatch(norm) is not None
 
 
+def _note_lines(path: Path) -> list[str]:
+    spoken = []
+    for item in _load(path):
+        if not isinstance(item, dict):
+            continue
+        text = " ".join(str(item.get("text") or "").split())
+        if text:
+            spoken.append(text)
+    return spoken
+
+
+def _first_note(path: Path) -> str:
+    """A nota mais antiga, a primeira que foi gravada. Não apaga nada."""
+    spoken = _note_lines(path)
+    if not spoken:
+        return "Nada anotado, Senhor."
+    return "A primeira nota, Senhor. " + spoken[0] + "."
+
+
+def _count_notes(path: Path) -> str:
+    count = len(_note_lines(path))
+    if count == 0:
+        return "Nada anotado, Senhor."
+    if count == 1:
+        return "Uma nota, Senhor."
+    return f"São {count} notas, Senhor."
+
+
+_FIRST_NOTE = re.compile(
+    r"^(?:(?:me\s+)?(?:mostra|mostre|mostrar|le|leia|ler|qual(?:\s+(?:e|foi))?|cade)\s+)?"
+    r"(?:(?:a|o)\s+)?"
+    r"(?:(?:primeira|primeiro)\s+(?:nota|lembrete|recado)"
+    r"|(?:nota|lembrete|recado)\s+mais\s+antiga)$"
+)
+
+
+def _wants_first_note(norm: str) -> bool:
+    return _FIRST_NOTE.fullmatch(norm) is not None
+
+
+def _wants_note_count(norm: str) -> bool:
+    return re.fullmatch(
+        r"(?:quantas|quantos)\s+(?:notas|lembretes|recados)(?:\s+(?:eu\s+)?tenho)?"
+        r"|tem\s+quantas\s+(?:notas|lembretes|recados)",
+        norm,
+    ) is not None
+
+
 def _bare_sky_place(norm: str) -> str:
     """Cidade depois de tempo, clima ou previsão, sem a preposição."""
     match = re.match(
@@ -1227,6 +1275,10 @@ def house_reply(
             return "O que devo anotar, Senhor?"
         if _wants_latest_note(norm):
             return _last_note(reminders_path)
+        if _wants_first_note(norm):
+            return _first_note(reminders_path)
+        if _wants_note_count(norm):
+            return _count_notes(reminders_path)
         body = _remember_body(text)
         if body:
             return _remember(body, reminders_path, moment)
