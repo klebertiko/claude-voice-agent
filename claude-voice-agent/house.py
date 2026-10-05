@@ -128,6 +128,20 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         verb = "nasce" if field == "nascer" else "se põe"
         when = "Amanhã em" if day == "amanha" else "Em"
         return f"{when} {label}, o sol {verb} às {clock}, Senhor."
+    if field == "uv":
+        days = 2 if day == "amanha" else 1
+        url = (
+            "https://api.open-meteo.com/v1/forecast?daily=uv_index_max"
+            f"&forecast_days={days}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        values = (data.get("daily") or {}).get("uv_index_max") or []
+        index = 1 if day == "amanha" else 0
+        if len(values) <= index or values[index] is None:
+            return "Não alcancei o clima, Senhor."
+        level = int(round(float(values[index])))
+        when = "Amanhã em" if day == "amanha" else "Em"
+        return f"{when} {label}, índice UV de {level}, Senhor."
     if day == "amanha":
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max,weather_code"
@@ -920,6 +934,18 @@ def _sun_place(norm: str) -> tuple[str, str] | None:
     return None
 
 
+def _uv_place(norm: str) -> str | None:
+    """None quando não é o índice UV. Vazio quando falta a cidade."""
+    match = re.fullmatch(
+        r"(?:qual\s+(?:e\s+)?)?(?:o\s+)?(?:indice\s+)?uv"
+        r"(?:\s+(?:agora|hoje|amanha))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if not match:
+        return None
+    return _city_name(match.group(1) or "")
+
+
 def _wind_place(norm: str) -> str | None:
     """None quando não é vento. Vazio quando falta a cidade."""
     match = re.fullmatch(
@@ -1200,6 +1226,12 @@ def house_reply(
             norm,
         ):
             return _list_notes(reminders_path)
+        uv_place = _uv_place(norm)
+        if uv_place is not None:
+            if not uv_place:
+                return "De qual lugar, Senhor."
+            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            return _weather(uv_place, fetch, day=day, field="uv")
         sun = _sun_place(norm)
         if sun is not None:
             kind, place = sun

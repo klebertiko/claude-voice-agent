@@ -441,6 +441,38 @@ def test_sun_names_the_city(tmp_path):
     )
 
 
+def test_uv_names_the_city(tmp_path):
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "geocoding" in url:
+            assert "recife" in url.lower() or "curitiba" in url.lower()
+            name = "Recife" if "recife" in url.lower() else "Curitiba"
+            return (
+                '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
+            )
+        assert "uv_index_max" in url
+        assert "temperature_2m" not in url
+        return '{"daily":{"uv_index_max":[11.2,9.4]}}'
+
+    path = tmp_path / "n.json"
+    assert _reply("índice uv", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("uv", fetch, path) == "De qual lugar, Senhor."
+    assert seen == []
+    assert _reply("índice uv em recife", fetch, path) == (
+        "Em Recife, índice UV de 11, Senhor."
+    )
+    assert "forecast_days=1" in seen[-1]
+    assert _reply("qual o uv em curitiba", fetch, path) == (
+        "Em Curitiba, índice UV de 11, Senhor."
+    )
+    assert _reply("uv amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, índice UV de 9, Senhor."
+    )
+    assert "forecast_days=2" in seen[-1]
+
+
 def test_unrelated_tempo_is_not_weather(tmp_path):
     def fetch(_url):
         raise AssertionError("não devia buscar o clima")
@@ -1069,6 +1101,9 @@ def test_the_next_line_answers_the_question(monkeypatch):
         if field == "por":
             when = "Amanhã em" if day == "amanha" else "Em"
             return f"{when} {place}, o sol se põe às 17 horas e 40 minutos, Senhor."
+        if field == "uv":
+            when = "Amanhã em" if day == "amanha" else "Em"
+            return f"{when} {place}, índice UV de 11, Senhor."
         if day == "amanha":
             return f"Amanhã em {place}, máxima de 27 graus, nublado, Senhor."
         return f"Em {place}, 19 graus, nublado, Senhor."
@@ -1120,6 +1155,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert reply("Curitiba", []) == (
         "Amanhã em Curitiba, o sol se põe às 17 horas e 40 minutos, Senhor."
     )
+    assert reply("índice uv", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Em Recife, índice UV de 11, Senhor."
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):
