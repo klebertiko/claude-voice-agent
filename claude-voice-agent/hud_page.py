@@ -364,7 +364,7 @@ function fitScene(rect) {
     const reach = Math.max(radiusPx * 0.85, rect.width / 2 - radiusPx - 56);
     const offset = Math.min(reach, radiusPx * 1.65);
     return {
-      notas: Object.assign(at(-offset, 0), { radius: radiusPx / k, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
+      notas: Object.assign(at(-offset, 0), { radius: radiusPx / k, zScale: 0.42, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
       sistemas: Object.assign(at(offset, 0), { radius: radiusPx / k, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
     };
   }
@@ -373,7 +373,7 @@ function fitScene(rect) {
   const reach = Math.max(radiusPx * 0.62, rect.height / 2 - radiusPx - 16);
   const offset = Math.min(rect.height * 0.22, reach);
   return {
-    notas: Object.assign(at(0, -offset), { radius: radiusPx / k, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
+    notas: Object.assign(at(0, -offset), { radius: radiusPx / k, zScale: 0.36, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
     sistemas: Object.assign(at(0, offset * 0.55), { radius: radiusPx * 0.62 / k, zScale: 0.18, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
   };
 }
@@ -397,7 +397,7 @@ function systemPos(star, center) {
   if (star.id === "sys-cerebro") return { x: center.x, y: center.y, z: center.z || 0 };
   const ringIds = INNER_RING.indexOf(star.id) >= 0 ? INNER_RING : OUTER_RING;
   const index = Math.max(0, ringIds.indexOf(star.id));
-  const ring = (ringIds === INNER_RING ? 0.48 : 0.95) * center.radius;
+  const ring = (ringIds === INNER_RING ? 0.48 : 0.62) * center.radius;
   const tilt = ringIds === INNER_RING ? 1.05 : 0.8;
   return ringPos(index, ringIds.length, center, ring, tilt);
 }
@@ -434,7 +434,7 @@ function settle() {
         const dy = a.y - b.y;
         const dz = a.z - b.z;
         const dist = Math.max(0.05, Math.hypot(dx, dy, dz));
-        const push = Math.min(0.06, 0.012 / (dist * dist));
+        const push = Math.min(0.02, 0.012 / (dist * dist));
         a.x += dx / dist * push; a.y += dy / dist * push; a.z += dz / dist * push;
         b.x -= dx / dist * push; b.y -= dy / dist * push; b.z -= dz / dist * push;
       }
@@ -446,10 +446,10 @@ function settle() {
       b.x += (a.x - b.x) * 0.018; b.y += (a.y - b.y) * 0.018; b.z += (a.z - b.z) * 0.018;
     }
     for (const node of nodes) {
-      node.x += (node.hx - node.x) * 0.08;
-      node.y += (node.hy - node.y) * 0.08;
-      node.z += (node.hz - node.z) * 0.08;
-      const limit = node.group === "nota" ? 0.95 : 1.2;
+      node.x += (node.hx - node.x) * 0.22;
+      node.y += (node.hy - node.y) * 0.22;
+      node.z += (node.hz - node.z) * 0.22;
+      const limit = node.group === "nota" ? 0.82 : 0.9;
       const mag = Math.hypot(node.x, node.y, node.z);
       if (mag > limit) {
         node.x *= limit / mag; node.y *= limit / mag; node.z *= limit / mag;
@@ -605,8 +605,8 @@ function labelSpots(x, y, cx0, cy0) {
   }
   return spots;
 }
-function paintDisc(center, tilt, rgb, yaw, pitch, cx, cy, scale, strong) {
-  const R = center.radius * 1.08;
+function paintDisc(center, tilt, rgb, yaw, pitch, cx, cy, scale, strong, reach) {
+  const R = center.radius * reach;
   const lean = tilt;
   const origin = { x: center.x, y: center.y, z: center.z || 0 };
   const rimU = { x: origin.x + R, y: origin.y, z: origin.z };
@@ -693,8 +693,9 @@ function drawPlate() {
     const rot = rotate(disc.center, yaw, pitch);
     return { disc, z: rot.z };
   }).sort((a, b) => b.z - a.z);
+  const reach = rect.width >= 700 ? 1.25 : 1.08;
   for (const item of discs) {
-    paintDisc(item.disc.center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong);
+    paintDisc(item.disc.center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, reach);
   }
   const byId = {};
   for (const item of view) byId[item.star.id] = item;
@@ -760,13 +761,11 @@ function drawPlate() {
     ctx.beginPath();
     ctx.arc(item.p.x, item.p.y, (item.star.kind === "sistema" ? 3.2 : 2.7) * depthScale * pulse, 0, Math.PI * 2);
     ctx.fill();
-    if (item.star.kind === "sistema") {
-      ctx.strokeStyle = chosen ? ink.accent : ink.ink;
-      ctx.lineWidth = 1.35;
-      ctx.beginPath();
-      ctx.arc(item.p.x, item.p.y, 10 * depthScale * pulse, 0, Math.PI * 2);
-      ctx.stroke();
-    }
+    ctx.strokeStyle = chosen ? ink.accent : ink.ink;
+    ctx.lineWidth = item.star.kind === "sistema" ? 1.35 : 1.15;
+    ctx.beginPath();
+    ctx.arc(item.p.x, item.p.y, (item.star.kind === "sistema" ? 10 : 6.2) * depthScale * pulse, 0, Math.PI * 2);
+    ctx.stroke();
     namedOnScreen.push({
       star: item.star, pos: item.pos, x: item.p.x, y: item.p.y,
       outside: inside, align: "left", lx: item.p.x + 12, ly: item.p.y, labelW: 0,
