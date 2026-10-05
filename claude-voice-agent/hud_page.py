@@ -794,12 +794,13 @@ function drawPlate() {
     ctx.globalAlpha = 0.88;
     paintDisc(center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, reach);
     const lean = item.disc.tilt;
+    const zScale = center.zScale == null ? 1 : center.zScale;
+    const lobe = item.disc.strong ? 0.62 : 0.4;
     const near = Object.assign({}, center, {
-      y: center.y - Math.cos(lean) * center.radius * 0.22,
-      z: (center.z || 0) - Math.sin(lean) * center.radius * 0.85,
+      z: (center.z || 0) - Math.sin(lean) * center.radius * DEPTH * zScale * 0.62,
     });
-    ctx.globalAlpha = 0.55;
-    paintDisc(near, lean, item.disc.rgb, yaw, pitch, cx, cy, scale, true, reach * 0.28);
+    ctx.globalAlpha = item.disc.strong ? 0.62 : 0.42;
+    paintDisc(near, lean, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, lobe);
   }
   ctx.restore();
   const byId = {};
