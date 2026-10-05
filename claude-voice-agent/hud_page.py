@@ -1094,10 +1094,10 @@ function trimCloud(marks, rect, boxes, stars) {
     ctx.globalCompositeOperation = "source-over";
     ctx.globalAlpha = 1;
     ctx.beginPath();
-    ctx.moveTo(1, 0);
+    ctx.moveTo(1.28, 0);
     for (let i = 1; i <= 64; i++) {
       const a = (i / 64) * Math.PI * 2;
-      ctx.lineTo(Math.cos(a), Math.sin(a));
+      ctx.lineTo(Math.cos(a) * 1.28, Math.sin(a) * 1.28);
     }
     ctx.closePath();
     ctx.moveTo(edgeAt(0), 0);
@@ -1108,6 +1108,19 @@ function trimCloud(marks, rect, boxes, stars) {
     }
     ctx.closePath();
     ctx.fill("evenodd");
+    ctx.beginPath();
+    ctx.moveTo(edgeAt(0), 0);
+    for (let i = 1; i <= 64; i++) {
+      const a = (i / 64) * Math.PI * 2;
+      const e = edgeAt(a);
+      ctx.lineTo(Math.cos(a) * e, Math.sin(a) * e);
+    }
+    ctx.closePath();
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 0.07;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
     ctx.restore();
   }
 }
