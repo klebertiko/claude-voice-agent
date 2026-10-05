@@ -681,6 +681,32 @@ def _wants_latest_note(norm: str) -> bool:
     return _LATEST_NOTE.fullmatch(norm) is not None
 
 
+_FORGET_LAST = re.compile(
+    r"^(?:me\s+)?(?:apaga|apague|apagar|remove|remova|remover|cancela|cancele|cancelar|desfaz|desfaca)\s+"
+    r"(?:(?:a|o)\s+)?(?:ultima|ultimo)\s+(?:nota|lembrete|recado)$"
+)
+
+
+def _wants_forget_last(norm: str) -> bool:
+    return _FORGET_LAST.fullmatch(norm) is not None
+
+
+def forget_last_note(path: Path) -> str:
+    """Tira só a nota mais nova. As outras ficam."""
+    items = _load(path)
+    for index in range(len(items) - 1, -1, -1):
+        item = items[index]
+        if not isinstance(item, dict):
+            continue
+        text = " ".join(str(item.get("text") or "").split())
+        if not text:
+            continue
+        del items[index]
+        _save(path, items)
+        return f"Desfeito, Senhor. {text}."
+    return "Nada para desfazer, Senhor."
+
+
 def _note_lines(path: Path) -> list[str]:
     spoken = []
     for item in _load(path):
@@ -1540,6 +1566,8 @@ def house_reply(
             "coloca nas notas", "coloca na nota",
         }:
             return "O que devo anotar, Senhor?"
+        if _wants_forget_last(norm):
+            return forget_last_note(reminders_path)
         if _wants_latest_note(norm):
             return _last_note(reminders_path)
         if _wants_first_note(norm):

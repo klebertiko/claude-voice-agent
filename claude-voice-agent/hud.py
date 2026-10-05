@@ -17,7 +17,13 @@ from zoneinfo import ZoneInfo
 
 from .actions import local_command
 from .brains import subscription_reply
-from .house import continue_house, continue_whatsapp, house_reply, whatsapp_number
+from .house import (
+    continue_house,
+    continue_whatsapp,
+    forget_last_note,
+    house_reply,
+    whatsapp_number,
+)
 from .llm_ollama import ask_ollama, probe_ollama
 from .noise import is_noise_transcript
 from .personas import Persona, spoken_voice
@@ -308,6 +314,15 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
         repeated = _repeat(cleaned, history)
         if repeated:
             return repeated
+        if _plain(cleaned) in {"desfaz", "desfaz isso", "desfaca", "desfaca isso"}:
+            previous = ""
+            for role, text in reversed(history):
+                if role == "assistant" and text and not text.startswith("ACAO:"):
+                    previous = text
+                    break
+            if previous == "Anotado, Senhor.":
+                return forget_last_note(settings.reminders_path)
+            return "Nada para desfazer, Senhor."
         if pending["kind"]:
             fact = _panel_fact(cleaned, persona)
             local = spoken_fallback(cleaned, persona.name, moment)

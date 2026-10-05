@@ -1623,6 +1623,29 @@ def test_note_search_stays_in_the_vault(tmp_path):
     assert voice_hit == "Nas notas, Senhor. revisar o projeto de voz."
 
 
+def test_forget_removes_only_the_newest(tmp_path):
+    def fetch(_url):
+        raise AssertionError("desfazer não usa rede")
+
+    path = tmp_path / "n.json"
+    path.write_text(
+        '[{"text": "entregar o projeto"}, {"text": "revisar a voz"}]',
+        encoding="utf-8",
+    )
+    assert _reply("apaga a última nota", fetch, path) == "Desfeito, Senhor. revisar a voz."
+    left = path.read_text(encoding="utf-8")
+    assert "revisar a voz" not in left
+    assert "entregar o projeto" in left
+    assert _reply("a última nota", fetch, path) == (
+        "A última nota, Senhor. entregar o projeto."
+    )
+    assert _reply("desfaz a última nota", fetch, path) == (
+        "Desfeito, Senhor. entregar o projeto."
+    )
+    assert _reply("apaga o último lembrete", fetch, path) == "Nada para desfazer, Senhor."
+    assert _reply("esquece", fetch, path) == "O que devo anotar, Senhor?"
+
+
 def test_camera_and_image_are_refused(tmp_path):
     def fetch(_url):
         raise AssertionError("recusa não usa rede")

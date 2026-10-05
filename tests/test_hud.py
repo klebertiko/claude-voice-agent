@@ -110,6 +110,39 @@ def test_repeat_says_the_last_answer(tmp_path, monkeypatch):
     )
 
 
+def test_undo_removes_only_a_note_just_saved(tmp_path):
+    path = tmp_path / "n.json"
+    path.write_text('[{"text": "entregar o projeto"}]', encoding="utf-8")
+    reply = make_reply_fn(
+        Settings.from_env(
+            env={
+                "CLAUDE_VOICE_CODEX_CLI": "missing-codex",
+                "CLAUDE_VOICE_CURSOR_CLI": "missing-cursor",
+                "CLAUDE_VOICE_CLAUDE_CLI": "missing-claude",
+                "OLLAMA_HOST": "",
+                "CLAUDE_VOICE_OLLAMA_HOST": "",
+                "CLAUDE_VOICE_REMINDERS": str(path),
+            }
+        ),
+        get_persona("orion"),
+        lambda: WHEN,
+    )
+    clock = reply("que horas são", [])
+    assert reply("desfaz", [("user", "que horas são"), ("assistant", clock)]) == (
+        "Nada para desfazer, Senhor."
+    )
+    assert "entregar o projeto" in path.read_text(encoding="utf-8")
+    assert reply("anote prova de desfazer", []) == "Anotado, Senhor."
+    assert "prova de desfazer" in path.read_text(encoding="utf-8")
+    assert reply(
+        "desfaz",
+        [("user", "anote prova de desfazer"), ("assistant", "Anotado, Senhor.")],
+    ) == "Desfeito, Senhor. prova de desfazer."
+    saved = path.read_text(encoding="utf-8")
+    assert "prova de desfazer" not in saved
+    assert "entregar o projeto" in saved
+
+
 def test_spoken_name_when_asked():
     assert spoken_fallback("Qual seu nome?", "Orion", WHEN) == "O nome é Orion, Senhor."
     assert spoken_fallback("Quem é você?", "Orion", WHEN) == "O nome é Orion, Senhor."
