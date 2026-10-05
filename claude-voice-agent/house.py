@@ -100,6 +100,17 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
             return "Não alcancei o clima, Senhor."
         graus = int(round(float(feels)))
         return f"Em {label}, sensação de {graus} graus, Senhor."
+    if field == "vento":
+        url = (
+            "https://api.open-meteo.com/v1/forecast?current=wind_speed_10m"
+            f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        speed = (data.get("current") or {}).get("wind_speed_10m")
+        if speed is None:
+            return "Não alcancei o clima, Senhor."
+        km = int(round(float(speed)))
+        return f"Em {label}, vento de {km} quilômetros por hora, Senhor."
     if day == "amanha":
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max,weather_code"
@@ -843,6 +854,25 @@ def _feels_place(norm: str) -> str | None:
     return _city_name(match.group(1) or "")
 
 
+def _wind_place(norm: str) -> str | None:
+    """None quando não é vento. Vazio quando falta a cidade."""
+    match = re.fullmatch(
+        r"(?:qual\s+(?:e\s+)?)?(?:(?:o|a)\s+)?(?:velocidade\s+do\s+)?vento"
+        r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if match:
+        return _city_name(match.group(1) or "")
+    blowing = re.fullmatch(
+        r"(?:(?:esta|ta)\s+)?ventando"
+        r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if blowing:
+        return _city_name(blowing.group(1) or "")
+    return None
+
+
 def _wants_weather(norm: str) -> bool:
     if "faz tempo" in norm:
         return False
@@ -1104,6 +1134,11 @@ def house_reply(
             norm,
         ):
             return _list_notes(reminders_path)
+        wind_place = _wind_place(norm)
+        if wind_place is not None:
+            if not wind_place:
+                return "De qual lugar, Senhor."
+            return _weather(wind_place, fetch, field="vento")
         feels_place = _feels_place(norm)
         if feels_place is not None:
             if not feels_place:
