@@ -77,7 +77,10 @@ _PAGE = r"""<!DOCTYPE html>
     min-width: 0; min-height: 0; padding: 8px 24px 32px;
     background: var(--color-bg);
   }
-  .systems { margin: 0; display: flex; flex-flow: row nowrap; gap: 8px 16px; overflow-x: auto; }
+  .systems {
+    margin: 0; display: flex; flex-flow: row nowrap; gap: 8px 16px; overflow-x: auto;
+    scrollbar-width: thin; scrollbar-color: rgba(232, 238, 246, 0.35) transparent;
+  }
   .systems div, .systems button.fact {
     display: flex; justify-content: flex-start; align-items: baseline;
     gap: 8px; min-width: 0; min-height: 44px;
@@ -97,14 +100,16 @@ _PAGE = r"""<!DOCTYPE html>
   #note-text { font-size: var(--text-body); line-height: 1.5; }
   #note-links { display: flex; flex-wrap: wrap; gap: 8px 16px; }
   #log {
-    flex: 1; min-height: 0; max-height: 8rem; overflow: auto;
-    display: flex; flex-direction: column; gap: 16px; max-width: 72ch;
+    flex: 1; min-height: 0; max-height: 11rem; overflow: auto;
+    display: flex; flex-direction: column; max-width: 72ch;
+    scrollbar-width: thin; scrollbar-color: rgba(232, 238, 246, 0.35) transparent;
   }
+  #log-lines { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
   #log p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; font-size: var(--text-body); }
   #log .empty, #log .meta { color: var(--color-ink-2); }
   #log p[data-speaker]::before {
     content: attr(data-speaker);
-    display: block; margin: 0 0 4px;
+    margin-right: 8px;
     font-size: var(--text-support); font-weight: 600; color: var(--color-ink-2);
   }
   #permit {
@@ -150,17 +155,24 @@ _PAGE = r"""<!DOCTYPE html>
   #send, #allow { color: var(--color-accent); font-weight: 600; }
   #mic[data-hot="1"] { color: var(--color-bad); }
   @media (min-width: 960px) {
+    body { overflow: hidden; }
     .room {
+      height: 100vh; min-height: 0;
       grid-template-columns: 1fr;
-      grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+      grid-template-rows: auto auto minmax(0, 1fr) minmax(7rem, 11rem) auto auto;
     }
     .strip, .telemetry, .well, .talk, #permit, .floor { grid-column: 1; }
     .strip { grid-row: 1; }
     .telemetry { grid-row: 2; padding-top: 0; padding-bottom: 8px; }
     .well { grid-row: 3; min-height: 0; }
-    .talk { grid-row: 4; padding-top: 8px; padding-bottom: 8px; }
-    .floor { grid-row: 5; }
+    .talk { grid-row: 4; min-height: 0; overflow: hidden; padding-top: 8px; padding-bottom: 8px; }
+    #permit { grid-row: 5; }
+    .floor { grid-row: 6; }
+    #log { max-height: none; }
     .strip, #permit, .floor, .telemetry, .talk { padding-left: 24px; padding-right: 24px; }
+  }
+  @media (max-width: 959px) {
+    #log { max-height: none; overflow: visible; }
   }
   @media (max-width: 640px) {
     .strip, .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
@@ -206,7 +218,7 @@ _PAGE = r"""<!DOCTYPE html>
       <p id="note-text"></p>
       <div id="note-links"></div>
     </article>
-    <div id="log" aria-live="polite"><p class="empty" id="empty">Diga, Senhor.</p></div>
+    <div id="log" aria-live="polite"><div id="log-lines"><p class="empty" id="empty">Diga, Senhor.</p></div></div>
   </section>
   <div id="permit" hidden>
     <p>permissão</p>
@@ -232,6 +244,7 @@ const sessEl = document.getElementById("sess");
 const brainEl = document.getElementById("brain");
 const loadEl = document.getElementById("load");
 const logEl = document.getElementById("log");
+const logLines = document.getElementById("log-lines");
 const emptyEl = document.getElementById("empty");
 const form = document.getElementById("form");
 const text = document.getElementById("text");
@@ -300,8 +313,8 @@ const systemText = {
   "sys-codex": "Codex, ausente.",
   "sys-cursor": "Cursor, ausente.",
   "sys-claude": "Claude, ausente.",
-  "sys-clima": "Clima de São Paulo, ao vivo.",
-  "sys-noticias": "Notícias por RSS.",
+  "sys-clima": "De qual lugar, Senhor?",
+  "sys-noticias": "Sobre o que, Senhor?",
   "sys-busca": "Busca na web.",
   "sys-lembretes": "Notas deste céu.",
   "sys-voz": "Voz george, ritmo 1.08.",
@@ -488,20 +501,29 @@ function drawPlate() {
   }
   const byId = {};
   for (const item of view) byId[item.star.id] = item;
-  ctx.lineWidth = 1.35;
-  ctx.setLineDash([]);
+  ctx.lineCap = "round";
   for (const pair of world.links) {
     const a = byId[pair[0].star.id];
     const b = byId[pair[1].star.id];
     if (!a || !b) continue;
     const hot = picked && (a.star.id === picked || b.star.id === picked);
+    const dx = b.p.x - a.p.x;
+    const dy = b.p.y - a.p.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const pad = 16;
+    if (len < pad * 2 + 8) continue;
+    const ux = dx / len;
+    const uy = dy / len;
     ctx.strokeStyle = hot ? ink.accent : ink.ink;
-    ctx.globalAlpha = hot ? 1 : 0.72;
+    ctx.globalAlpha = hot ? 1 : 0.9;
+    ctx.lineWidth = hot ? 1.6 : 1.25;
+    ctx.setLineDash(hot ? [5, 6] : [8, 10]);
     ctx.beginPath();
-    ctx.moveTo(a.p.x, a.p.y);
-    ctx.lineTo(b.p.x, b.p.y);
+    ctx.moveTo(a.p.x + ux * pad, a.p.y + uy * pad);
+    ctx.lineTo(b.p.x - ux * pad, b.p.y - uy * pad);
     ctx.stroke();
   }
+  ctx.setLineDash([]);
   namedOnScreen = [];
   for (const item of view) {
     const inside = item.p.x >= rect.left + 4 && item.p.x <= rect.right - 4 && item.p.y >= rect.top + 8 && item.p.y <= rect.bottom - 28;
@@ -667,8 +689,8 @@ function addLine(cls, message) {
   p.textContent = message;
   if (cls === "user") p.dataset.speaker = "Senhor";
   if (cls === "agent") p.dataset.speaker = "Orion";
-  logEl.appendChild(p);
-  logEl.scrollTop = logEl.scrollHeight;
+  (logLines || logEl).appendChild(p);
+  requestAnimationFrame(() => { logEl.scrollTop = logEl.scrollHeight; });
 }
 function showPermit(id, command) {
   permitId = id || "";
@@ -802,8 +824,18 @@ async function chooseBrain(id) {
 function runSystem(id) {
   const brains = { "sys-codex": "codex", "sys-cursor": "cursor", "sys-claude": "claude", "sys-cerebro": "ollama" };
   if (brains[id]) { chooseBrain(brains[id]); return; }
-  if (id === "sys-clima") { sendText("qual o tempo"); return; }
-  if (id === "sys-noticias") { sendText("notícias"); return; }
+  if (id === "sys-clima") {
+    text.value = "tempo em ";
+    text.focus();
+    skyRead.textContent = "De qual lugar, Senhor?";
+    return;
+  }
+  if (id === "sys-noticias") {
+    text.value = "notícias sobre ";
+    text.focus();
+    skyRead.textContent = "Sobre o que, Senhor?";
+    return;
+  }
   if (id === "sys-lembretes") { sendText("quais lembretes"); return; }
   if (id === "sys-voz") { voiceBtn.click(); return; }
   if (id === "sys-busca") {
