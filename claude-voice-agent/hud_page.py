@@ -180,6 +180,12 @@ _PAGE = r"""<!DOCTYPE html>
     .strip, .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
     .meta { gap: 16px; }
     .well { min-height: 62vh; }
+    .systems {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: visible;
+      gap: 0 16px;
+    }
   }
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
 </style>
