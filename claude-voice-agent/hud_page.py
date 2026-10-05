@@ -814,8 +814,8 @@ function drawPlate() {
     return { disc, z: rot.z };
   }).sort((a, b) => b.z - a.z);
   const reachFor = (item) => {
-    const base = rect.width >= 700 ? 1.25 : 1.08;
-    if (rect.width >= 700) return base;
+    if (rect.width >= 700) return item.disc.strong ? 1.32 : 1.25;
+    const base = 1.08;
     return item.disc.strong ? base * 1.18 : base * 1.48;
   };
   ctx.save();
