@@ -776,14 +776,18 @@ function labelSpots(x, y, cx0, cy0) {
     { x: x - 26, y: y - 34, align: "center" },
     { x: x + 44, y: y - 34, align: "center" },
     { x: x - 44, y: y - 34, align: "center" },
-    { x: x + 30, y, align: "right" },
-    { x: x - 30, y, align: "left" },
-    { x: x + 46, y, align: "right" },
-    { x: x - 46, y, align: "left" },
+    { x: x + 30, y, align: "left" },
+    { x: x - 30, y, align: "right" },
+    { x: x + 46, y, align: "left" },
+    { x: x - 46, y, align: "right" },
     { x: x + 12, y: y + 36, align: "center" },
     { x: x - 12, y: y + 36, align: "center" },
     { x: x + 12, y: y - 36, align: "center" },
-    { x: x - 12, y: y - 36, align: "center" }
+    { x: x - 12, y: y - 36, align: "center" },
+    { x, y: y - 50, align: "center" },
+    { x, y: y + 50, align: "center" },
+    { x: x + 52, y, align: "left" },
+    { x: x - 52, y, align: "right" }
   );
   return spots;
 }
@@ -1030,14 +1034,26 @@ function drawPlate() {
       const outside = home && nest > home.maxD ? 1 : 0;
       let tone = 0;
       let seen = 0;
+      let worst = plate ? 99 : 8;
+      const fillLum = toneLum(232, 238, 246);
       for (let y = trial.t + 2; y <= trial.b - 2; y += 4) {
         for (let x = trial.l + 2; x <= trial.r - 2; x += 6) {
           seen++;
           tone += toneAt(x, y, item.star.kind);
+          if (!plate) continue;
+          const px = Math.floor(x * DPR) - plateX;
+          const py = Math.floor(y * DPR) - plateY;
+          if (px < 0 || py < 0 || px >= plateW || py >= plateH) continue;
+          const i = (py * plateW + px) * 4;
+          const lum = toneLum(plate[i], plate[i + 1], plate[i + 2]);
+          const hi = Math.max(fillLum, lum);
+          const lo = Math.min(fillLum, lum);
+          worst = Math.min(worst, (hi + 0.05) / (lo + 0.05));
         }
       }
       const share = seen ? tone / seen : 0;
-      consider.push({ opt, trial, wrapped, cross: crosses(trial), intrusion: intrusion(trial), outside, share });
+      const self = item.p.x >= trial.l && item.p.x <= trial.r && item.p.y >= trial.t && item.p.y <= trial.b ? 1 : 0;
+      consider.push({ opt, trial, wrapped, cross: crosses(trial), intrusion: intrusion(trial), outside, share, contrast: worst, self });
     };
     for (const opt of options) pushOpt(opt, labelBox(opt.x, opt.y, opt.align, width), null);
     if (full.indexOf(" ") > 0) {
@@ -1057,7 +1073,20 @@ function drawPlate() {
       }
     }
     const pool = consider.filter((spot) => spot.intrusion < 32);
-    pool.sort((a, b) => (a.intrusion - b.intrusion) || (Math.abs(a.share - b.share) < 0.08 ? 0 : b.share - a.share) || (a.cross - b.cross) || (a.outside - b.outside) || ((a.wrapped ? 1 : 0) - (b.wrapped ? 1 : 0)));
+    pool.sort((a, b) => {
+      const hard = (spot) => spot.intrusion >= 16 ? 1 : 0;
+      if (hard(a) !== hard(b)) return hard(a) - hard(b);
+      if (a.self !== b.self) {
+        const clear = a.self ? b : a;
+        if (clear.share >= 0.8 && clear.intrusion < 16) return a.self - b.self;
+      }
+      if (Math.abs(a.share - b.share) >= 0.08) return b.share - a.share;
+      if (a.intrusion !== b.intrusion) return a.intrusion - b.intrusion;
+      if (a.share >= 0.85 && b.share >= 0.85 && (a.contrast < 4.5) !== (b.contrast < 4.5)) {
+        return (a.contrast < 4.5 ? 1 : 0) - (b.contrast < 4.5 ? 1 : 0);
+      }
+      return (a.self - b.self) || (a.cross - b.cross) || (a.outside - b.outside) || ((a.wrapped ? 1 : 0) - (b.wrapped ? 1 : 0));
+    });
     return { pool, options, width, full };
   };
   const queue = view.filter(eligible);
@@ -1189,9 +1218,9 @@ function starAt(x, y) {
     const dot = Math.hypot(item.x - x, item.y - y);
     if (dot < bestD) { best = item; bestD = dot; }
     const width = item.labelW || 0;
-    if (width > 8 && Math.abs(y - (item.ly || item.y)) <= 16) {
+    if (width > 8 && bestD > 8 && Math.abs(y - (item.ly || item.y)) <= 16) {
       const left = item.align === "center" ? item.lx - width / 2 : item.align === "right" ? item.lx - width : item.lx;
-      if (x >= left - 4 && x <= left + width + 4) { best = item; bestD = 0; }
+      if (x >= left - 4 && x <= left + width + 4) { best = item; bestD = 12; }
     }
   }
   return best;
