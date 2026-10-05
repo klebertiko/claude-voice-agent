@@ -252,17 +252,14 @@ _PAGE = r"""<!DOCTYPE html>
   }
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
   @media (max-width: 1399px) {
-    .systems { flex-flow: row nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+    .systems { flex-flow: row nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; --clip: 100%; }
     .systems::-webkit-scrollbar { height: 0; display: none; }
     .systems.has-more {
-      mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+      mask-image: linear-gradient(90deg, #000 0, #000 var(--clip), transparent var(--clip));
     }
   }
   @media (max-width: 640px) {
     .systems { flex-flow: row nowrap; overflow-x: auto; }
-    .systems.has-more {
-      mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
-    }
     .systems .band { display: contents; }
     .systems .fact[data-brain] { order: 9; }
     .systems .fact:has(#notes) { order: 1; }
@@ -1806,6 +1803,18 @@ function markMore() {
   if (!systemsEl) return;
   const more = systemsEl.scrollWidth - systemsEl.clientWidth - systemsEl.scrollLeft > 8;
   systemsEl.classList.toggle("has-more", more);
+  const rect = systemsEl.getBoundingClientRect();
+  let clip = rect.width;
+  if (more) {
+    for (const fact of systemsEl.querySelectorAll(".fact")) {
+      const row = fact.getBoundingClientRect();
+      if (row.left < rect.right - 8 && row.right > rect.right + 8 && row.left - rect.left >= 44) {
+        clip = row.left - rect.left;
+        break;
+      }
+    }
+  }
+  systemsEl.style.setProperty("--clip", clip + "px");
 }
 systemsEl.addEventListener("scroll", markMore, { passive: true });
 addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); markMore(); });
