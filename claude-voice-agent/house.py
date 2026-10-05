@@ -487,6 +487,7 @@ def _note_text(note: str) -> str:
 _REMEMBER_PREFIXES = (
     "guarda isso nas notas ",
     "guarda isso na nota ",
+    "guarda isso ",
     "adiciona nas notas ",
     "adiciona na nota ",
     "registra nas notas ",
@@ -1685,7 +1686,7 @@ def house_reply(
             "me lembre", "me lembra", "me lembre de", "me lembra de",
             "esquece de", "esquece", "nao esquece de", "nao esquece", "nao me deixa esquecer de",
             "guarda nas notas", "guarda na nota",
-            "guarda isso nas notas", "guarda isso na nota",
+            "guarda isso nas notas", "guarda isso na nota", "guarda isso",
             "adiciona nas notas", "adiciona na nota",
             "registra nas notas", "registra na nota",
             "escreve nas notas", "escreve na nota",
