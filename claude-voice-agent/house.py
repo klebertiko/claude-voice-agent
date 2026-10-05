@@ -361,11 +361,25 @@ def _note_subject(norm: str) -> str | None:
     if recado:
         return _clean_subject(recado.group(1) or "")
     owned_note = re.match(
-        r"^lembrete(?:\s+(?:do|da|sobre))(?:\s+(.*))?$",
+        r"^(?:o\s+)?lembrete(?:\s+(?:do|da|sobre))(?:\s+(.*))?$",
         norm,
     )
     if owned_note:
         return _clean_subject(owned_note.group(1) or "")
+    bare_owned = re.match(
+        r"^(?:(?:o|a)\s+)?(?:nota|recado)\s+(?:do|da|de|sobre)\s+(.+)$",
+        norm,
+    )
+    if bare_owned:
+        return _clean_subject(bare_owned.group(1))
+    shown = re.match(
+        r"^(?:me\s+)?(?:mostra|mostre|mostrar|ve|ver|le|leia|ler|qual)\s+"
+        r"(?:(?:a|o)\s+)?(?:nota|lembrete|recado)"
+        r"(?:\s+(?:do|da|de|sobre))?(?:\s+(.*))?$",
+        norm,
+    )
+    if shown:
+        return _clean_subject(shown.group(1) or "")
     lookup = re.match(
         r"^(?:buscar|busque|busca|procurar|procure|procura|pesquisar|pesquise|pesquisa)"
         r"\s+(?:(?:o|a|os|as|um|uma)\s+)?"
@@ -1009,7 +1023,11 @@ def house_reply(
             "lista minhas notas", "lista as notas",
             "listar minhas notas", "listar as notas",
             "liste minhas notas", "liste as notas",
-        }:
+        } or re.fullmatch(
+            r"(?:me\s+)?(?:mostra|mostre|mostrar|le|leia|ler)\s+"
+            r"(?:as|os|minhas|meus)\s+(?:notas|lembretes|recados)",
+            norm,
+        ):
             return _list_notes(reminders_path)
         if _wants_weather(norm):
             place = _place_of(norm)

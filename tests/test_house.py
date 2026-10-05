@@ -599,6 +599,7 @@ def test_note_query_is_only_the_search():
     ) == "voz"
     assert note_query_of("o que eu anotei", "Lembretes, Senhor. entregar.") == ""
     assert note_query_of("mostra a última nota", "A última nota, Senhor. revisar.") == ""
+    assert note_query_of("mostra a nota do projeto", "Nas notas, Senhor. entregar.") == "projeto"
     assert note_query_of("voz", "Nas notas, Senhor. revisar o projeto de voz.") == "voz"
     assert note_query_of("buscar nota marte", "Não há nota com isso, Senhor.") == "marte"
     assert note_query_of("buscar nota", "O que devo buscar nas notas, Senhor?") == ""
@@ -721,6 +722,31 @@ def test_note_search_stays_in_the_vault(tmp_path):
     assert _reply("mostra as notas", fetch, latest).startswith("Lembretes, Senhor.")
     assert "entregar o projeto na sexta" in _reply("mostra as notas", fetch, latest)
     assert _reply("as últimas notas", fetch, latest) is None
+    assert _reply("mostra a nota do projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("me mostra a nota do projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("lê a nota do projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("o lembrete do projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("nota do projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("mostra o recado da voz", fetch, voice) == (
+        "Nas notas, Senhor. revisar o projeto de voz."
+    )
+    assert _reply("recado da voz", fetch, voice) == (
+        "Nas notas, Senhor. revisar o projeto de voz."
+    )
+    assert _reply("mostra a nota", fetch, path) == "O que devo buscar nas notas, Senhor?"
+    assert _reply("me mostra as notas", fetch, latest).startswith("Lembretes, Senhor.")
+    assert "revisar o projeto de voz" in _reply("me mostra as notas", fetch, latest)
+    assert "do projeto" not in path.read_text(encoding="utf-8")
     assert _reply("lembrete do projeto", fetch, path) == (
         "Nas notas, Senhor. entregar o projeto na sexta."
     )
