@@ -138,11 +138,15 @@ def _note_text(note: str) -> str:
     while raw:
         plain = _plain(raw)
         dropped = False
-        if plain in {"ai", "isso", "que", "por favor", "por gentileza", "para mim", "pra mim", "o seguinte"}:
+        if plain in {
+            "ai", "isso", "que", "por favor", "por gentileza", "para mim", "pra mim", "o seguinte",
+            "nas notas", "na nota", "uma nota",
+        }:
             return ""
         for filler in (
             "ai ", "isso ", "que ", "por favor ", "por gentileza ",
             "para mim ", "pra mim ", "o seguinte ", "amanha de ",
+            "nas notas ", "na nota ", "uma nota ",
         ):
             if plain.startswith(filler):
                 words = len(filler.split())
@@ -155,6 +159,14 @@ def _note_text(note: str) -> str:
 
 
 _REMEMBER_PREFIXES = (
+    "guarda nas notas ",
+    "guarda na nota ",
+    "salva nas notas ",
+    "salva na nota ",
+    "salva uma nota ",
+    "salva a nota ",
+    "coloca nas notas ",
+    "coloca na nota ",
     "nao me deixa esquecer de ",
     "nao esquece de ",
     "esquece de ",
@@ -679,6 +691,9 @@ def house_reply(
             "anote", "anota", "lembrete", "lembra", "lembra de",
             "me lembre", "me lembra", "me lembre de", "me lembra de",
             "esquece de", "nao esquece de", "nao me deixa esquecer de",
+            "guarda nas notas", "guarda na nota",
+            "salva nas notas", "salva na nota", "salva uma nota", "salva a nota",
+            "coloca nas notas", "coloca na nota",
         }:
             return "O que devo anotar, Senhor?"
         body = _remember_body(text)
