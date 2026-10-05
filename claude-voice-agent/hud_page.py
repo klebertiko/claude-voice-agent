@@ -289,6 +289,27 @@ _PAGE = r"""<!DOCTYPE html>
       scrollbar-width: none;
     }
     .room:has(#empty) #note:not([hidden]) #note-links::-webkit-scrollbar { height: 0; display: none; }
+    /* A fala fica na folga sob os nomes. O céu não encolhe. */
+    .room:not(:has(#note:not([hidden]))) {
+      grid-template-rows: auto minmax(0, 1fr) auto 0 auto auto;
+    }
+    .room:not(:has(#note:not([hidden]))) .talk { padding-top: 0; padding-bottom: 0; }
+    .room:not(:has(#empty)):not(:has(#note:not([hidden]))) #log {
+      position: fixed;
+      z-index: 4;
+      left: 0;
+      right: 0;
+      bottom: var(--log-bottom, 117px);
+      height: 1.5rem;
+      max-height: 1.5rem;
+      margin: 0;
+      padding: 0 16px;
+      background: var(--color-bg);
+      overflow: auto;
+      scrollbar-width: none;
+    }
+    .room:not(:has(#empty)):not(:has(#note:not([hidden]))) #log::-webkit-scrollbar { height: 0; display: none; }
+    .room:not(:has(#empty)) #sky-read { display: none; }
   }
   @media (max-height: 780px) and (min-width: 641px) {
     #log, .room:has(#note:not([hidden])) #log { max-height: 3.5rem; }
@@ -1617,6 +1638,7 @@ function mark(btn, state) {
   setTimeout(() => { if (btn.dataset.state === state) delete btn.dataset.state; }, 900);
 }
 function settleLog() {
+  seatLog();
   if (!logEl || !logLines) return;
   const paras = [...logLines.querySelectorAll("p")];
   if (!paras.length) return;
@@ -1663,6 +1685,7 @@ function showPermit(id, command) {
   permitCmd.textContent = command || "";
   permitEl.hidden = !permitId;
   wake();
+  requestAnimationFrame(() => { seatLog(); settleLog(); });
 }
 async function refreshBrain() {
   try {
@@ -1750,6 +1773,12 @@ function seatNote() {
   if (!tel) return;
   const lift = Math.round(window.innerHeight - tel.getBoundingClientRect().bottom);
   document.documentElement.style.setProperty("--note-bottom", lift + "px");
+}
+function seatLog() {
+  const sky = document.querySelector(".well");
+  if (!sky) return;
+  const lift = Math.round(window.innerHeight - sky.getBoundingClientRect().bottom);
+  document.documentElement.style.setProperty("--log-bottom", lift + "px");
 }
 function closeNote() {
   if (!noteEl || noteEl.hidden) return;
@@ -2196,8 +2225,9 @@ function markMore() {
   tel.style.setProperty("--more-x", moreX + "px");
 }
 systemsEl.addEventListener("scroll", markMore, { passive: true });
-addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); markMore(); seatNote(); });
+addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); markMore(); seatNote(); seatLog(); });
 resize();
+seatLog();
 markMore();
 requestAnimationFrame(markMore);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(markMore);
