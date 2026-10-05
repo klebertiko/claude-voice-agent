@@ -873,6 +873,13 @@ def _topic_of(norm: str) -> str:
         norm,
     ):
         return "brasil"
+    if re.fullmatch(
+        r"(?:(?:quais|me\s+(?:da|fala|diz|conta|passa))\s+)?"
+        r"(?:(?:as|os|uma)\s+)?"
+        r"noticias?\s+(?:brasileiras?|nacionais?)",
+        norm,
+    ):
+        return "brasil"
     fresh_bit = re.match(
         r"^(?:(?:tem(?:\s+alguma)?|alguma)\s+noticias?(?:\s+novas?)?|noticias?\s+novas?)"
         r"(?:\s+(?:sobre|de|do|da)\s+(.+))?$",
