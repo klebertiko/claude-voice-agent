@@ -86,6 +86,7 @@ _PAGE = r"""<!DOCTYPE html>
     margin: 0; display: flex; flex-flow: row nowrap; gap: 6px; overflow-x: auto;
     scrollbar-width: thin; scrollbar-color: rgba(232, 238, 246, 0.35) transparent;
   }
+  .systems .band { display: contents; }
   .systems div, .systems button.fact {
     display: flex; justify-content: flex-start; align-items: baseline;
     gap: 8px; min-width: 0; min-height: 44px; flex: none; white-space: nowrap;
@@ -222,6 +223,32 @@ _PAGE = r"""<!DOCTYPE html>
     #log, .room:has(#note:not([hidden])) #log { max-height: 3.5rem; }
   }
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
+  @media (max-width: 1399px) {
+    .systems { flex-flow: row wrap; overflow: visible; row-gap: 0; }
+    .systems button.fact {
+      flex-direction: column; align-items: flex-start; justify-content: flex-end;
+      gap: 0; min-height: 44px; padding-bottom: 2px;
+    }
+    .systems .k { font-size: var(--text-support); line-height: 1.2; }
+    .systems .v { font-size: var(--text-body); line-height: 1.2; }
+    .systems button.fact:not(:has(.v)) .k { font-size: var(--text-body); line-height: 1.25; }
+  }
+  @media (max-width: 640px) {
+    .systems { flex-flow: row nowrap; overflow-x: auto; }
+    .systems .band { display: contents; }
+    .systems .fact[data-brain] { order: 9; }
+    .systems .fact:has(#notes) { order: 1; }
+    .systems .fact:has(#date) { order: 2; }
+    .systems .fact[data-voice] { order: 3; }
+    .systems .fact[data-draft="anote "] { order: 4; }
+    .systems .fact[data-draft="buscar nota "] { order: 5; }
+    .systems .fact:has(#sky),
+    .systems .fact[data-ask="qual o ritmo"],
+    .systems .fact[data-ask="qual a carga"],
+    .systems .fact[data-ask="qual o fuso"],
+    .systems .fact[data-ask="qual seu nome"] { order: 8; }
+    .systems .fact:has(#sky) { margin-left: 16px; }
+  }
 </style>
 </head>
 <body data-state="idle" data-name="__NAME__" data-load="0">
@@ -239,10 +266,13 @@ _PAGE = r"""<!DOCTYPE html>
   </div>
   <aside class="telemetry">
     <div class="systems">
+      <div class="band">
       <button type="button" class="fact" data-brain="codex"><span class="k">Codex</span><span class="v is-down" id="brain-codex">ausente</span></button>
       <button type="button" class="fact" data-brain="cursor"><span class="k">Cursor</span><span class="v is-down" id="brain-cursor">ausente</span></button>
       <button type="button" class="fact" data-brain="claude"><span class="k">Claude</span><span class="v is-down" id="brain-claude">ausente</span></button>
       <button type="button" class="fact" data-brain="ollama"><span class="k">Cérebro</span><span class="v is-down" id="brain">ausente</span></button>
+      </div>
+      <div class="band">
       <button type="button" class="fact" data-ask="quais lembretes"><span class="k">Céu</span><span class="v" id="sky">0</span></button>
       <button type="button" class="fact" data-ask="quais lembretes"><span class="k">Lembretes</span><span class="v" id="notes">0</span></button>
       <button type="button" class="fact" data-voice="1"><span class="k">Voz</span><span class="v" id="voice-name">daniel</span></button>
@@ -253,6 +283,7 @@ _PAGE = r"""<!DOCTYPE html>
       <button type="button" class="fact" data-ask="qual seu nome"><span class="k">Sessão</span><span class="v" id="sess">à espera do nome</span></button>
       <button type="button" class="fact" data-draft="anote "><span class="k">Nova nota</span></button>
       <button type="button" class="fact" data-draft="buscar nota "><span class="k">Buscar nota</span></button>
+      </div>
     </div>
   </aside>
   <section class="talk">
