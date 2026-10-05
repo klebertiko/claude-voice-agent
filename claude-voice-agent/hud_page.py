@@ -717,7 +717,11 @@ function labelSpots(x, y, cx0, cy0) {
     { x: x + 30, y, align: "right" },
     { x: x - 30, y, align: "left" },
     { x: x + 46, y, align: "right" },
-    { x: x - 46, y, align: "left" }
+    { x: x - 46, y, align: "left" },
+    { x: x + 12, y: y + 36, align: "center" },
+    { x: x - 12, y: y + 36, align: "center" },
+    { x: x + 12, y: y - 36, align: "center" },
+    { x: x - 12, y: y - 36, align: "center" }
   );
   return spots;
 }
