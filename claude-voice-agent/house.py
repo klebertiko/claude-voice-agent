@@ -64,7 +64,7 @@ def _save(path: Path, items: list[dict]) -> None:
     path.write_text(json.dumps(items, ensure_ascii=False), encoding="utf-8")
 
 
-def _weather(place: str, fetch) -> str:
+def _weather(place: str, fetch, *, day: str = "") -> str:
     name = place.strip(" .?")
     if not name:
         return "De qual lugar, Senhor."
@@ -78,6 +78,20 @@ def _weather(place: str, fetch) -> str:
     if not hit:
         return "Não achei essa cidade, Senhor."
     lat, lon, label = hit["latitude"], hit["longitude"], hit.get("name") or name
+    if day == "amanha":
+        url = (
+            "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max,weather_code"
+            f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        daily = data.get("daily") or {}
+        highs = daily.get("temperature_2m_max") or []
+        codes = daily.get("weather_code") or []
+        if len(highs) < 2:
+            return "Não alcancei o clima, Senhor."
+        sky = _WX.get(int(codes[1] if len(codes) > 1 else 0), "instável")
+        graus = int(round(float(highs[1])))
+        return f"Amanhã em {label}, máxima de {graus} graus, {sky}, Senhor."
     url = (
         "https://api.open-meteo.com/v1/forecast?current=temperature_2m,weather_code"
         f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
@@ -377,7 +391,11 @@ _VAGUE_PLACE = {"cidade", "lugar", "ai", "la", "aqui", "hoje", "agora", "amanha"
 def _city_name(place: str) -> str:
     """Tira hoje, agora e um lugar vago. «curitiba hoje» fica «curitiba»."""
     place = (place or "").strip(" .")
-    place = re.sub(r"^(?:hoje|agora|la|muito)\s+", "", place)
+    place = re.sub(
+        r"^(?:hoje|agora|la|muito|amanha|depois)(?:\s+(?:em|no|na|de|do|da))?\s+",
+        "",
+        place,
+    )
     place = re.sub(r"\s+(?:hoje|agora|amanha)$", "", place).strip()
     if not place or place in _VAGUE_PLACE:
         return ""
@@ -407,7 +425,7 @@ def _rain_place(norm: str) -> str | None:
     """Cidade numa frase de chuva, garoa ou trovoada. None se não for essa frase."""
     match = re.match(
         r"^(?:vai chover|(?:esta|ta)\s+(?:chovendo|garoando)|chove|garoa)"
-        r"(?:\s+(?:hoje|agora|la|muito))?"
+        r"(?:\s+(?:hoje|agora|la|muito|amanha))?"
         r"(?:\s+(?:em|no|na)\s+(.+))?$",
         norm,
     )
@@ -444,6 +462,14 @@ def _place_of(norm: str) -> str:
     later = _later_place(norm)
     if later is not None:
         return later
+    day_city = re.search(
+        r"\b(?:tempo|clima|previsao)\s+(?:para\s+)?(?:amanha|hoje|depois)\s+(?:em|no|na|de)\s+(.+)$",
+        norm,
+    )
+    if day_city:
+        place = _city_name(day_city.group(1))
+        if place and place not in {"tempo"}:
+            return place
     for prefix in (
         "tempo em ", "clima em ", "previsao em ", "previsao para ",
         "clima de ", "tempo de ", "clima do ", "tempo do ", "clima da ", "tempo da ",
@@ -770,7 +796,8 @@ def house_reply(
             place = _place_of(norm)
             if not place:
                 return "De qual lugar, Senhor."
-            return _weather(place, fetch)
+            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            return _weather(place, fetch, day=day)
         if (
             "noticia" in norm
             or "novidade" in norm

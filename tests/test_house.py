@@ -52,6 +52,8 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
         if "geocoding" in url:
             assert any(city in url.lower() for city in ("paulo", "curitiba", "rio", "recife"))
             return '{"results":[{"latitude":-23.5,"longitude":-46.6,"name":"São Paulo"}]}'
+        if "daily=" in url:
+            return '{"daily":{"temperature_2m_max":[20,27],"weather_code":[1,3]}}'
         return '{"current":{"temperature_2m":22,"weather_code":1}}'
 
     path = tmp_path / "n.json"
@@ -169,10 +171,24 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
     assert "name=curitiba" in seen[-2]
     assert "hoje" not in seen[-2]
     assert _reply("tempo para amanhã em curitiba", fetch, path) == (
-        "Em São Paulo, 22 graus, quase limpo, Senhor."
+        "Amanhã em São Paulo, máxima de 27 graus, nublado, Senhor."
     )
     assert "name=curitiba" in seen[-2]
     assert "amanha" not in seen[-2]
+    assert "daily=" in seen[-1]
+    assert _reply("vai chover amanhã em curitiba", fetch, path) == (
+        "Amanhã em São Paulo, máxima de 27 graus, nublado, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    assert _reply("clima amanhã no rio", fetch, path) == (
+        "Amanhã em São Paulo, máxima de 27 graus, nublado, Senhor."
+    )
+    assert "name=rio" in seen[-2]
+    assert "amanha" not in seen[-2]
+    assert _reply("tempo para hoje em curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "daily=" not in seen[-1]
     assert _reply("está garoando em curitiba", fetch, path) == (
         "Em São Paulo, 22 graus, quase limpo, Senhor."
     )
