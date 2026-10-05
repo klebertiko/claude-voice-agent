@@ -56,9 +56,9 @@ _PAGE = r"""<!DOCTYPE html>
     background: var(--color-bg);
   }
   .strip h1 {
-    display: flex; align-items: center; gap: 10px;
-    font-family: var(--font-body); font-weight: 600; font-size: var(--text-body);
-    line-height: 1.25; letter-spacing: 0;
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--font-body); font-weight: 600; font-size: 1.75rem;
+    line-height: 1; letter-spacing: 0.04em; white-space: nowrap;
   }
   .mark { width: 40px; height: 40px; flex: none; color: var(--color-accent); }
   .meta { display: flex; align-items: baseline; gap: 24px; }
@@ -1699,25 +1699,6 @@ function drawPlate() {
       paintLabel(paint.full, paint.spot.x, paint.spot.y, paint.halo);
     }
   }
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(rect.left, rect.top, rect.width, rect.height);
-  for (const box of boxes) {
-    ctx.rect(box.l - 10, box.t - 10, box.r - box.l + 20, box.b - box.t + 20);
-  }
-  ctx.clip("evenodd");
-  ctx.globalCompositeOperation = "lighter";
-  for (const item of discs) {
-    const center = item.disc.center;
-    const reach = reachFor(item);
-    const lobe = Object.assign({}, center, {
-      x: center.x - center.radius * 0.36,
-      y: center.y + center.radius * 0.22,
-    });
-    ctx.globalAlpha = item.disc.strong ? 0.72 : 0.48;
-    paintDisc(lobe, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, reach * 0.48);
-  }
-  ctx.restore();
   ctx.restore();
   ctx.globalAlpha = 1;
   ctx.setLineDash([]);
