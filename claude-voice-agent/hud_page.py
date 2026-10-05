@@ -95,7 +95,7 @@ _PAGE = r"""<!DOCTYPE html>
   }
   .systems button.fact {
     flex-direction: column; align-items: flex-start; justify-content: flex-end;
-    gap: 0; padding-bottom: 2px;
+    gap: 2px; padding-bottom: 2px;
   }
   .telemetry { position: relative; }
   .telemetry:has(.systems.has-more)::after {
@@ -113,7 +113,7 @@ _PAGE = r"""<!DOCTYPE html>
     margin: 0; font-size: var(--text-body); line-height: 1.2; text-align: left; white-space: nowrap;
     font-variant-numeric: tabular-nums; color: var(--color-ink); overflow-wrap: normal;
   }
-  .systems .is-down { color: var(--color-ink-2); }
+  .systems .is-down { color: var(--color-ink); }
   .systems button.fact:not(:has(.v)) .k { font-size: var(--text-body); line-height: 1.25; }
   .talk { display: flex; flex-direction: column; gap: 16px; }
   #note { display: flex; flex-direction: column; gap: 8px; max-width: 72ch; }
@@ -175,6 +175,9 @@ _PAGE = r"""<!DOCTYPE html>
   .act[data-state="success"] { color: var(--color-ok); }
   #send, #allow { color: var(--color-accent); font-weight: 600; }
   #mic[data-hot="1"] { color: var(--color-bad); }
+  @media (min-width: 1400px) {
+    .systems { gap: 16px; }
+  }
   @media (min-width: 960px) {
     body { overflow: hidden; }
     .room {
