@@ -1222,6 +1222,27 @@ def _wind_place(norm: str) -> str | None:
     return None
 
 
+def _how_city(norm: str) -> str | None:
+    """Cidade em «como está Recife». None se a frase não for o tempo da cidade."""
+    match = re.fullmatch(
+        r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
+        r"como\s+(?:esta|ta|vai)"
+        r"(?:\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:em|no|na))?"
+        r"(?:\s+(.+))?",
+        norm,
+    )
+    if not match:
+        return None
+    place = _city_name(match.group(1) or "")
+    if not place:
+        return None
+    first = place.split()[0]
+    if first in {"o", "a", "os", "as", "um", "uma", "voce", "senhor", "sr", "dia", "projeto", "noite", "tarde"}:
+        return None
+    return place
+
+
 def _wants_weather(norm: str) -> bool:
     if "faz tempo" in norm:
         return False
@@ -1537,6 +1558,10 @@ def house_reply(
                 return "De qual lugar, Senhor."
             day = "amanha" if re.search(r"\bamanha\b", norm) else ""
             return _weather(chance_place, fetch, day=day, field="chance")
+        how_place = _how_city(norm)
+        if how_place is not None:
+            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            return _weather(how_place, fetch, day=day)
         if _wants_weather(norm):
             place = _place_of(norm)
             if not place:
