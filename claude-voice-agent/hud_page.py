@@ -247,22 +247,23 @@ _PAGE = r"""<!DOCTYPE html>
       max-width: none;
     }
     #note:not([hidden]) #note-text {
-      flex: 0 1 auto;
-      min-width: 0;
+      flex: 1 1 auto;
+      min-width: 46%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       line-height: 1.25;
     }
-    #note.is-links #note-text { display: none; }
     #note:not([hidden]) #note-links {
-      flex: none;
-      max-width: 100%;
+      flex: 0 1 auto;
+      max-width: 50%;
       min-width: 0;
       flex-wrap: nowrap;
       overflow-x: auto;
       scrollbar-width: none;
     }
+    #note:not([hidden]) #note-links .k,
+    #note:not([hidden]) #note-links .act { flex: none; }
     #note:not([hidden]) #note-links::-webkit-scrollbar { height: 0; display: none; }
     .strip { padding: 12px 16px; }
     .mark { width: 28px; height: 44px; }
@@ -1816,7 +1817,6 @@ function seatPermit() {
 function closeNote() {
   if (!noteEl || noteEl.hidden) return;
   noteEl.hidden = true;
-  noteEl.classList.remove("is-links");
   noteText.textContent = "";
   noteLinks.replaceChildren();
   requestAnimationFrame(settleLog);
@@ -1824,7 +1824,6 @@ function closeNote() {
 function openNote(star) {
   if (!noteEl) return;
   seatNote();
-  noteEl.classList.remove("is-links");
   noteEl.hidden = false;
   noteText.textContent = star.text || star.label;
   noteLinks.replaceChildren();
@@ -1847,11 +1846,7 @@ function openNote(star) {
     });
     noteLinks.appendChild(btn);
   }
-  requestAnimationFrame(() => {
-    settleLog();
-    const sheet = window.matchMedia("(max-width: 640px)").matches;
-    noteEl.classList.toggle("is-links", !!(sheet && noteText.getBoundingClientRect().width < 24));
-  });
+  requestAnimationFrame(settleLog);
 }
 function focusStar(id) {
   const star = memory.find((item) => item.id === id);
