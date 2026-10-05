@@ -589,6 +589,14 @@ function resize() {
   canvas.style.height = h + "px";
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
+function paintLabel(text, x, y) {
+  ctx.lineJoin = "round";
+  ctx.miterLimit = 2;
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = ink.bg;
+  ctx.strokeText(text, x, y);
+  ctx.fillText(text, x, y);
+}
 function labelBox(x, y, align, width) {
   const left = align === "right" ? x - width : align === "center" ? x - width / 2 : x;
   return { l: left - 4, r: left + width + 4, t: y - 9, b: y + 9 };
@@ -882,10 +890,10 @@ function drawPlate() {
     ctx.fillStyle = item.star.id === picked ? ink.accent : ink.ink;
     ctx.textAlign = spot.align;
     if (lines) {
-      ctx.fillText(lines[0], spot.x, spot.y - 8);
-      ctx.fillText(lines[1], spot.x, spot.y + 8);
+      paintLabel(lines[0], spot.x, spot.y - 8);
+      paintLabel(lines[1], spot.x, spot.y + 8);
     } else {
-      ctx.fillText(full, spot.x, spot.y);
+      paintLabel(full, spot.x, spot.y);
     }
   }
   ctx.font = "600 14px " + ink.body;
@@ -900,7 +908,7 @@ function drawPlate() {
     boxes.push(box);
     ctx.globalAlpha = 0.82;
     ctx.fillStyle = ink.ink2;
-    ctx.fillText(cloud.name, cloud.x, y);
+    paintLabel(cloud.name, cloud.x, y);
   }
   ctx.restore();
   ctx.globalAlpha = 1;
