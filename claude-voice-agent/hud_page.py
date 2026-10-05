@@ -227,32 +227,7 @@ _PAGE = r"""<!DOCTYPE html>
     .room:not(:has(#empty)) {
       grid-template-rows: auto minmax(0, 1fr) auto minmax(2.75rem, 5.5rem) auto auto;
     }
-    .room:has(#note:not([hidden])) {
-      grid-template-rows: auto minmax(0, 1fr) auto auto auto auto;
-    }
     #log { max-height: 4.5rem; }
-    .strip { padding: 12px 16px; }
-    .mark { width: 28px; height: 44px; }
-    .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
-    .well { grid-row: 2; min-height: 0; }
-    .telemetry { grid-row: 3; padding-top: 4px; padding-bottom: 4px; }
-    .talk { grid-row: 4; padding-top: 4px; padding-bottom: 4px; }
-    #permit { grid-row: 5; }
-    .floor { grid-row: 6; padding-top: 4px; padding-bottom: 12px; flex-wrap: nowrap; gap: 8px; }
-    .floor .act { padding-left: 4px; padding-right: 4px; }
-    #text { flex: 1 1 auto; min-width: 0; }
-    .meta { gap: 16px; }
-    .systems { flex-flow: row nowrap; overflow-x: auto; }
-    .systems button.fact { flex: none; }
-  }
-  @media (max-width: 640px) and (max-height: 700px) {
-    .room,
-    .room:has(#empty),
-    .room:not(:has(#empty)),
-    .room:has(#note:not([hidden])) {
-      grid-template-rows: auto minmax(0, 1fr) auto 0 auto auto;
-    }
-    .talk { padding-top: 0; padding-bottom: 0; }
     /* A nota aberta fica na faixa dos instrumentos. O céu não encolhe. */
     #note:not([hidden]) {
       position: fixed;
@@ -289,6 +264,28 @@ _PAGE = r"""<!DOCTYPE html>
       scrollbar-width: none;
     }
     #note:not([hidden]) #note-links::-webkit-scrollbar { height: 0; display: none; }
+    .strip { padding: 12px 16px; }
+    .mark { width: 28px; height: 44px; }
+    .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
+    .well { grid-row: 2; min-height: 0; }
+    .telemetry { grid-row: 3; padding-top: 4px; padding-bottom: 4px; }
+    .talk { grid-row: 4; padding-top: 4px; padding-bottom: 4px; }
+    #permit { grid-row: 5; }
+    .floor { grid-row: 6; padding-top: 4px; padding-bottom: 12px; flex-wrap: nowrap; gap: 8px; }
+    .floor .act { padding-left: 4px; padding-right: 4px; }
+    #text { flex: 1 1 auto; min-width: 0; }
+    .meta { gap: 16px; }
+    .systems { flex-flow: row nowrap; overflow-x: auto; }
+    .systems button.fact { flex: none; }
+  }
+  @media (max-width: 640px) and (max-height: 700px) {
+    .room,
+    .room:has(#empty),
+    .room:not(:has(#empty)),
+    .room:has(#note:not([hidden])) {
+      grid-template-rows: auto minmax(0, 1fr) auto 0 auto auto;
+    }
+    .talk { padding-top: 0; padding-bottom: 0; }
     /* A fala fica na folga sob os nomes. O céu não encolhe. */
     .room:not(:has(#empty)) #log {
       position: fixed;
@@ -1812,7 +1809,7 @@ function openNote(star) {
   }
   requestAnimationFrame(() => {
     settleLog();
-    const sheet = window.matchMedia("(max-width: 640px) and (max-height: 700px)").matches;
+    const sheet = window.matchMedia("(max-width: 640px)").matches;
     noteEl.classList.toggle("is-links", !!(sheet && noteText.getBoundingClientRect().width < 24));
   });
 }
