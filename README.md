@@ -13,7 +13,7 @@ centro são as notas, em 3D.
 
 ## Rodar
 
-Painel (o reator ocupa a sala; sistemas na faixa de cima, conversa na margem):
+Painel (a carta de Orion no centro; observações e conversa nas margens):
 
 ```bash
 uv run python -m claude_agent_voice.web

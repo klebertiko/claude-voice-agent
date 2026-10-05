@@ -118,7 +118,10 @@ def test_page_has_microphone_and_no_camera():
     assert 'id="permit"' in page
     assert "permitir" in page
     assert "recusar" in page
-    assert "reator" in page.lower()
+    assert "reator" not in page.lower()
+    assert "iron" not in page.lower()
+    assert "Glorious" in page
+    assert "Betelgeuse" in page
     assert "constelação" in page
     assert 'id="sky"' in page
     assert 'id="brain-codex"' in page
