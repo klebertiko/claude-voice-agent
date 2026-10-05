@@ -291,16 +291,10 @@ _PAGE = r"""<!DOCTYPE html>
       background: var(--color-bg);
       max-width: none;
     }
-    #permit:not([hidden]) p {
-      flex: 0 1 auto;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+    #permit:not([hidden]) p { flex: none; }
     #permit:not([hidden]) #permit-cmd {
-      flex: 1 1 auto;
-      min-width: 4.5rem;
+      flex: 1 1 0;
+      min-width: 0;
       overflow-x: auto;
       overflow-y: hidden;
       text-overflow: clip;
