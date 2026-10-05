@@ -82,17 +82,25 @@ class WakeGate:
         """Aceita um turno em que o usuário já está na conversa.
 
         A barra de texto não exige o nome: a pessoa já está falando com o
-        painel. A fala do microfone continua no portão. Abrir a janela aqui
-        deixa a frase seguinte, dita em voz, entrar sem repetir o nome.
+        painel. Só um vocativo no início sai (``Orion, busque …``). O nome
+        no assunto fica (``busque Orion``). A fala do microfone continua no
+        portão. Abrir a janela aqui deixa a frase seguinte, dita em voz,
+        entrar sem repetir o nome.
         """
         self._active_until = now + self.window_s
-        norm = _normalize(transcript)
-        tokens = norm.split()
-        if not tokens or not any(token in self.wake_words for token in tokens):
-            return (transcript or "").strip()
-        idx = next(i for i, token in enumerate(tokens) if token in self.wake_words)
-        rest = tokens[:idx] + tokens[idx + 1 :]
-        return " ".join(rest).strip()
+        raw = (transcript or "").strip()
+        if not raw:
+            return ""
+        tokens = _normalize(raw).split()
+        parts = raw.split()
+        drop = 0
+        while drop < len(tokens) and tokens[drop] in self.wake_words:
+            drop += 1
+        if drop == 0:
+            return raw
+        if drop >= len(parts):
+            return ""
+        return " ".join(parts[drop:]).strip()
 
     def close(self) -> None:
         """Fecha a janela imediatamente (ex.: após 'tchau, Lilith')."""

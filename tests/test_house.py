@@ -183,6 +183,42 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert reply("Campinas", []) == "Em Campinas, 19 graus, nublado, Senhor."
 
 
+def test_typed_search_keeps_orion_as_the_subject(monkeypatch):
+    from claude_agent_voice.hud import HudSession, make_reply_fn, take_turn
+    from claude_agent_voice.personas import get_persona
+    from claude_agent_voice.settings import Settings
+    from claude_agent_voice.wake import WakeGate
+
+    seen = []
+
+    def fake_search(query, _fetch):
+        seen.append(query)
+        return f"Achei {query}, Senhor."
+
+    monkeypatch.setattr("claude_agent_voice.house._search", fake_search)
+    persona = get_persona("orion")
+    reply = make_reply_fn(
+        Settings.from_env(
+            env={
+                "CLAUDE_VOICE_CODEX_CLI": "missing-codex",
+                "CLAUDE_VOICE_CURSOR_CLI": "missing-cursor",
+                "CLAUDE_VOICE_CLAUDE_CLI": "missing-claude",
+                "OLLAMA_HOST": "",
+                "CLAUDE_VOICE_OLLAMA_HOST": "",
+            }
+        ),
+        persona,
+        lambda: WHEN,
+    )
+    session = HudSession(
+        persona=persona,
+        gate=WakeGate(wake_words=persona.wake_words, window_s=30),
+    )
+    result = take_turn(session, "busque Orion", 10.0, reply, enforce_wake=False)
+    assert result.reply == "Achei orion, Senhor."
+    assert seen == ["orion"]
+
+
 def test_the_next_line_is_the_note(tmp_path):
     from claude_agent_voice.hud import make_reply_fn
     from claude_agent_voice.personas import get_persona

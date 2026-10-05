@@ -82,6 +82,15 @@ def test_close_ends_window_immediately():
     assert should is False
 
 
+def test_typed_bar_keeps_orion_when_it_is_the_subject():
+    gate = WakeGate(wake_words=get_persona("orion").wake_words, window_s=30.0)
+    assert gate.admit("busque Orion", now=100.0) == "busque Orion"
+    assert gate.admit("Orion, busque Orion", now=100.0) == "busque Orion"
+    assert gate.admit("anote a constelação de Órion", now=100.0) == (
+        "anote a constelação de Órion"
+    )
+
+
 def test_within_window_name_still_stripped_if_leading():
     gate = WakeGate(window_s=30.0)
     gate.process("Lilith oi", now=100.0)
