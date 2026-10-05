@@ -193,6 +193,9 @@ _PAGE = r"""<!DOCTYPE html>
     .room {
       grid-template-rows: auto minmax(0, 1fr) auto minmax(2.75rem, 3.5rem) auto auto;
     }
+    .room:has(#note:not([hidden])) {
+      grid-template-rows: auto minmax(0, 1fr) auto minmax(7.5rem, 9rem) auto auto;
+    }
     .strip { padding: 12px 16px; }
     .mark { width: 28px; height: 44px; }
     .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
