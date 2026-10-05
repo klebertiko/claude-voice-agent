@@ -31,6 +31,15 @@ def test_weather_asks_for_the_place(tmp_path):
     assert _reply("vai chover hoje", fetch, path) == "De qual lugar, Senhor."
     assert _reply("está chovendo agora", fetch, path) == "De qual lugar, Senhor."
     assert _reply("temperatura da cidade", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("qual a previsão para amanhã", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("previsão para amanhã", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("faz frio", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("quantos graus faz", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("como vai o tempo", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me fala o tempo", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("me diz o clima", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("temperatura agora", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("qual a temperatura agora", fetch, path) == "De qual lugar, Senhor."
 
 
 def test_weather_names_the_city(tmp_path):
@@ -197,6 +206,37 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
         "Em São Paulo, 22 graus, quase limpo, Senhor."
     )
     assert "name=rio" in seen[-2]
+    assert _reply("qual a temperatura agora em recife", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "agora" not in seen[-2]
+    assert "daily=" not in seen[-1]
+    assert _reply("faz frio em curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    assert _reply("quantos graus faz em recife", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "daily=" not in seen[-1]
+    assert _reply("amanhã vai chover em recife", fetch, path) == (
+        "Amanhã em São Paulo, máxima de 27 graus, nublado, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "amanha" not in seen[-2]
+    assert "daily=" in seen[-1]
+    assert _reply("vai fazer frio amanhã em curitiba", fetch, path) == (
+        "Amanhã em São Paulo, máxima de 27 graus, nublado, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    assert "amanha" not in seen[-2]
+    assert _reply("como vai o tempo em recife", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "daily=" not in seen[-1]
 
 
 def test_unrelated_tempo_is_not_weather(tmp_path):
@@ -588,6 +628,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert reply("amanhã em Curitiba", []) == (
         "Amanhã em Curitiba, máxima de 27 graus, nublado, Senhor."
     )
+    assert reply("qual a previsão para amanhã", []) == "De qual lugar, Senhor."
+    assert reply("Curitiba", []) == "Amanhã em Curitiba, máxima de 27 graus, nublado, Senhor."
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):

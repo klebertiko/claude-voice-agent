@@ -385,7 +385,7 @@ def _bare_sky_place(norm: str) -> str:
     return place
 
 
-_VAGUE_PLACE = {"cidade", "lugar", "ai", "la", "aqui", "hoje", "agora", "amanha", "mim"}
+_VAGUE_PLACE = {"cidade", "lugar", "ai", "la", "aqui", "hoje", "agora", "amanha", "depois", "mim"}
 
 
 def _city_name(place: str) -> str:
@@ -424,11 +424,12 @@ def _spoken_place(text: str) -> str:
 def _heat_place(norm: str) -> str | None:
     """Cidade numa frase de calor, frio, sol ou nuvem. None se não for essa frase."""
     match = re.match(
-        r"^(?:faz (?:calor|sol)"
+        r"^(?:(?:amanha|hoje|depois)\s+)?"
+        r"(?:faz (?:calor|frio|sol)"
         r"|(?:esta|ta)(?:\s+fazendo)?(?:\s+muito)?\s+(?:calor|quente|frio|sol|nublado)"
         r"|vai (?:esfriar|esquentar)"
         r"|vai fazer(?:\s+muito)?\s+(?:calor|frio|quente|sol))"
-        r"(?:\s+(?:hoje|agora|la|muito))?"
+        r"(?:\s+(?:hoje|agora|la|muito|amanha|depois))?"
         r"(?:\s+(?:em|no|na)\s+(.+))?$",
         norm,
     )
@@ -443,8 +444,9 @@ def _heat_place(norm: str) -> str | None:
 def _rain_place(norm: str) -> str | None:
     """Cidade numa frase de chuva, garoa ou trovoada. None se não for essa frase."""
     match = re.match(
-        r"^(?:vai chover|(?:esta|ta)\s+(?:chovendo|garoando)|chove|garoa)"
-        r"(?:\s+(?:hoje|agora|la|muito|amanha))?"
+        r"^(?:(?:amanha|hoje|depois)\s+)?"
+        r"(?:vai chover|(?:esta|ta)\s+(?:chovendo|garoando)|chove|garoa)"
+        r"(?:\s+(?:hoje|agora|la|muito|amanha|depois))?"
         r"(?:\s+(?:em|no|na)\s+(.+))?$",
         norm,
     )
@@ -457,6 +459,19 @@ def _rain_place(norm: str) -> str | None:
     if storm:
         return _city_name(storm.group(1) or "")
     return None
+
+
+def _graus_place(norm: str) -> str | None:
+    """Cidade em «quantos graus faz em Recife». None se não for essa frase."""
+    match = re.match(
+        r"^quantos graus(?:\s+(?:faz|esta|ta|sao|tem))?"
+        r"(?:\s+(?:agora|hoje|la|muito|amanha|depois))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?$",
+        norm,
+    )
+    if not match:
+        return None
+    return _city_name(match.group(1) or "")
 
 
 def _later_place(norm: str) -> str | None:
@@ -481,6 +496,9 @@ def _place_of(norm: str) -> str:
     later = _later_place(norm)
     if later is not None:
         return later
+    graus = _graus_place(norm)
+    if graus is not None:
+        return graus
     day_city = re.search(
         r"\b(?:tempo|clima|previsao)\s+(?:para\s+)?(?:amanha|hoje|depois)\s+(?:em|no|na|de)\s+(.+)$",
         norm,
@@ -495,7 +513,10 @@ def _place_of(norm: str) -> str:
         "clima no ", "tempo no ", "clima na ", "tempo na ",
     ):
         if norm.startswith(prefix):
-            return norm[len(prefix) :].strip(" .")
+            rest = norm[len(prefix) :].strip(" .")
+            if prefix == "previsao para ":
+                return _city_name(rest)
+            return rest
     match = re.search(
         r"\b(?:tempo|clima|previsao)\s+(?:la\s+)?(?:em|no|na|de)\s+(.+)$",
         norm,
@@ -504,7 +525,10 @@ def _place_of(norm: str) -> str:
         place = _city_name(match.group(1))
         if place and place not in {"tempo"}:
             return place
-    heat = re.search(r"\btemperatura\s+(?:em|no|na|de|do|da)\s+(.+)$", norm)
+    heat = re.search(
+        r"\btemperatura(?:\s+(?:agora|hoje|la|muito))?\s+(?:em|no|na|de|do|da)\s+(.+)$",
+        norm,
+    )
     if heat:
         return _city_name(heat.group(1))
     if "previsao" in norm:
@@ -515,7 +539,7 @@ def _place_of(norm: str) -> str:
                 return place
     forecast = re.search(r"\bprevisao\s+para\s+(.+)$", norm)
     if forecast:
-        return forecast.group(1).strip(" .")
+        return _city_name(forecast.group(1))
     return _bare_sky_place(norm)
 
 
@@ -612,7 +636,12 @@ def _wants_weather(norm: str) -> bool:
         _heat_place(norm) is not None
         or _rain_place(norm) is not None
         or _later_place(norm) is not None
+        or _graus_place(norm) is not None
     ):
+        return True
+    if "como vai o tempo" in norm or "como vai o clima" in norm:
+        return True
+    if norm in {"me fala o tempo", "me fala o clima", "me diz o tempo", "me diz o clima"}:
         return True
     if _place_of(norm):
         return True
