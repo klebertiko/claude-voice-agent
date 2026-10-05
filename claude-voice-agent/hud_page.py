@@ -266,7 +266,7 @@ _PAGE = r"""<!DOCTYPE html>
     #note:not([hidden]) #note-links .act { flex: none; }
     #note:not([hidden]) #note-links .act { overflow: hidden; text-overflow: ellipsis; }
     #note:not([hidden]) #note-links.has-more {
-      mask-image: linear-gradient(90deg, #000 0, #000 var(--link-clip, 100%), transparent var(--link-clip, 100%));
+      mask-image: linear-gradient(90deg, transparent 0, transparent var(--link-clip-left, 0px), #000 var(--link-clip-left, 0px), #000 var(--link-clip, 100%), transparent var(--link-clip, 100%));
     }
     #note:not([hidden]) #note-links::-webkit-scrollbar { height: 0; display: none; }
     .strip { padding: 12px 16px; }
@@ -1857,6 +1857,7 @@ function seatLinks() {
   if (!window.matchMedia("(max-width: 640px)").matches) {
     noteLinks.classList.remove("has-more");
     noteLinks.style.removeProperty("--link-clip");
+    noteLinks.style.removeProperty("--link-clip-left");
     for (const btn of noteLinks.querySelectorAll(".act")) btn.style.removeProperty("maxWidth");
     return;
   }
@@ -1868,11 +1869,23 @@ function seatLinks() {
   const limit = Math.max(44, Math.floor(box.width - capW - (cap ? gap : 0)));
   for (const btn of noteLinks.querySelectorAll(".act")) btn.style.maxWidth = limit + "px";
   const edge = noteLinks.getBoundingClientRect();
+  const kids = [...noteLinks.children];
+  let clipL = 0;
+  if (noteLinks.scrollLeft > 4) {
+    for (let i = 0; i < kids.length; i++) {
+      const row = kids[i].getBoundingClientRect();
+      if (row.right <= edge.left + 1) continue;
+      if (row.left < edge.left - 1 && i + 1 < kids.length) {
+        clipL = kids[i + 1].getBoundingClientRect().left - edge.left;
+      }
+      break;
+    }
+  }
   const more = noteLinks.scrollWidth - noteLinks.clientWidth - noteLinks.scrollLeft > 4;
   let clip = edge.width;
   if (more) {
     let clipLeft = Infinity;
-    for (const el of noteLinks.children) {
+    for (const el of kids) {
       const row = el.getBoundingClientRect();
       if (row.left < edge.right - 1 && row.right > edge.right + 1 && row.left > edge.left + 8) {
         clipLeft = Math.min(clipLeft, row.left);
@@ -1880,8 +1893,9 @@ function seatLinks() {
     }
     if (clipLeft < Infinity) clip = clipLeft - edge.left;
   }
+  noteLinks.style.setProperty("--link-clip-left", Math.max(0, clipL) + "px");
   noteLinks.style.setProperty("--link-clip", clip + "px");
-  noteLinks.classList.toggle("has-more", clip < edge.width - 1);
+  noteLinks.classList.toggle("has-more", clipL > 1 || clip < edge.width - 1);
 }
 function focusStar(id) {
   const star = memory.find((item) => item.id === id);
