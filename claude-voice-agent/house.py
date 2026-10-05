@@ -578,7 +578,7 @@ _FIRST_NOTE = re.compile(
     r"^(?:(?:me\s+)?(?:mostra|mostre|mostrar|le|leia|ler|qual(?:\s+(?:e|foi))?|cade)\s+)?"
     r"(?:(?:a|o)\s+)?"
     r"(?:(?:primeira|primeiro)\s+(?:nota|lembrete|recado)"
-    r"|(?:nota|lembrete|recado)\s+mais\s+antiga)$"
+    r"|(?:nota|lembrete|recado)\s+mais\s+antig[oa])$"
 )
 
 
@@ -589,7 +589,7 @@ def _wants_first_note(norm: str) -> bool:
 def _wants_note_count(norm: str) -> bool:
     return re.fullmatch(
         r"(?:quantas|quantos)\s+(?:notas|lembretes|recados)(?:\s+(?:eu\s+)?tenho)?"
-        r"|tem\s+quantas\s+(?:notas|lembretes|recados)",
+        r"|tem\s+quant(?:as|os)\s+(?:notas|lembretes|recados)",
         norm,
     ) is not None
 
