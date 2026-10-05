@@ -69,7 +69,7 @@ _PAGE = r"""<!DOCTYPE html>
   .well { position: relative; min-height: 28rem; cursor: grab; touch-action: none; }
   .well:active { cursor: grabbing; }
   #sky-read {
-    position: absolute; top: 16px; left: 16px; right: 16px; margin: 0;
+    position: absolute; top: auto; bottom: 16px; left: 16px; right: 16px; margin: 0;
     text-align: center; pointer-events: none;
     font-size: var(--text-body); line-height: 1.5; color: var(--color-ink-2);
   }
@@ -77,7 +77,7 @@ _PAGE = r"""<!DOCTYPE html>
     min-width: 0; min-height: 0; padding: 8px 24px 32px;
     background: var(--color-bg);
   }
-  .systems { margin: 0; display: flex; flex-flow: row wrap; gap: 8px 24px; }
+  .systems { margin: 0; display: flex; flex-flow: row nowrap; gap: 8px 16px; overflow-x: auto; }
   .systems div, .systems button.fact {
     display: flex; justify-content: flex-start; align-items: baseline;
     gap: 8px; min-width: 0; min-height: 44px;
@@ -165,6 +165,7 @@ _PAGE = r"""<!DOCTYPE html>
   @media (max-width: 640px) {
     .strip, .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
     .meta { gap: 16px; }
+    .well { min-height: 62vh; }
   }
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
 </style>
@@ -263,29 +264,31 @@ let noteQuery = "";
 let namedOnScreen = [];
 let picked = "";
 let hovered = "";
-let yawUser = 0.42;
-let pitchUser = -0.16;
-let yawTarget = 0.42;
-let pitchTarget = -0.16;
+let yawUser = 0;
+let pitchUser = 0;
+let yawTarget = 0;
+let pitchTarget = 0;
 let zoom = 1;
 let drag = null;
 let dragMoved = 0;
 const orbitHint = "Arraste para orbitar. A roda aproxima.";
 const GROUPS = {
-  notas: { name: "Notas", x: -2.15, y: 0.35, z: 0.15, r: 1.7, rgb: "186, 92, 140" },
-  sistemas: { name: "Sistemas", x: 2.05, y: -0.45, z: -0.35, r: 1.85, rgb: "64, 112, 196" },
+  notas: { name: "Notas", rgb: "186, 92, 140" },
+  sistemas: { name: "Sistemas", rgb: "64, 112, 196" },
 };
 const SYSTEMS = [
-  { id: "sys-cerebro", label: "Cérebro", lx: 0, ly: 0, lz: 0 },
-  { id: "sys-codex", label: "Codex", lx: -0.58, ly: 0.42, lz: 0.16 },
-  { id: "sys-cursor", label: "Cursor", lx: 0.02, ly: 0.64, lz: -0.22 },
-  { id: "sys-claude", label: "Claude", lx: 0.6, ly: 0.3, lz: 0.14 },
-  { id: "sys-clima", label: "Clima", lx: -0.74, ly: -0.32, lz: 0.22 },
-  { id: "sys-noticias", label: "Notícias", lx: -0.18, ly: -0.66, lz: -0.16 },
-  { id: "sys-busca", label: "Busca", lx: 0.46, ly: -0.5, lz: 0.24 },
-  { id: "sys-lembretes", label: "Lembretes", lx: 0.78, ly: -0.08, lz: -0.3 },
-  { id: "sys-voz", label: "Voz", lx: 0.12, ly: 0.02, lz: 0.58 },
+  { id: "sys-cerebro", label: "Cérebro" },
+  { id: "sys-codex", label: "Codex" },
+  { id: "sys-cursor", label: "Cursor" },
+  { id: "sys-claude", label: "Claude" },
+  { id: "sys-clima", label: "Clima" },
+  { id: "sys-noticias", label: "Notícias" },
+  { id: "sys-busca", label: "Busca" },
+  { id: "sys-lembretes", label: "Lembretes" },
+  { id: "sys-voz", label: "Voz" },
 ];
+const INNER_RING = ["sys-codex", "sys-cursor", "sys-claude"];
+const OUTER_RING = ["sys-clima", "sys-noticias", "sys-busca", "sys-lembretes", "sys-voz"];
 const SYSTEM_LINKS = [
   ["sys-cerebro", "sys-codex"], ["sys-cerebro", "sys-cursor"], ["sys-cerebro", "sys-claude"],
   ["sys-codex", "sys-cursor"], ["sys-cursor", "sys-claude"], ["sys-claude", "sys-codex"],
@@ -303,30 +306,63 @@ const systemText = {
   "sys-lembretes": "Notas deste céu.",
   "sys-voz": "Voz george, ritmo 1.08.",
 };
-function notePos(index, total) {
-  const g = GROUPS.notas;
-  const n = Math.max(total, 1);
-  const y = ((index + 0.5) / n - 0.5) * 1.2;
-  const ring = 0.38 + (index % 3) * 0.14;
-  const theta = index * 2.399963 + 0.5;
+function sceneScale(rect) {
+  return Math.max(1, Math.min(rect.width, rect.height) * 0.92);
+}
+function fitScene(rect) {
+  const scale = sceneScale(rect);
+  const persp = 2.55 / 4.15;
+  const k = persp * scale;
+  const at = (sx, sy) => ({ x: sx / k, y: -sy / k, z: 0 });
+  const wide = rect.width >= 700;
+  if (wide) {
+    const radiusPx = Math.max(96, Math.min(rect.height * 0.4, rect.width * 0.24, (rect.height - 72) / 2));
+    const reach = Math.max(radiusPx * 0.85, rect.width / 2 - radiusPx - 56);
+    const offset = Math.min(rect.width * 0.28, reach);
+    return {
+      notas: Object.assign(at(-offset, 0), { radius: radiusPx / k, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
+      sistemas: Object.assign(at(offset, 0), { radius: radiusPx / k, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
+    };
+  }
+  const radiusPx = Math.max(72, Math.min(rect.width * 0.36, rect.height * 0.2, (rect.width - 48) / 2));
+  const reach = Math.max(radiusPx * 0.9, rect.height / 2 - radiusPx - 48);
+  const offset = Math.min(rect.height * 0.24, reach);
   return {
-    x: g.x + Math.cos(theta) * ring,
-    y: g.y + y,
-    z: g.z + Math.sin(theta) * ring,
+    notas: Object.assign(at(0, -offset), { radius: radiusPx / k, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
+    sistemas: Object.assign(at(0, offset), { radius: radiusPx / k, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
   };
 }
-function systemPos(star) {
-  const g = GROUPS.sistemas;
-  return { x: g.x + star.lx, y: g.y + star.ly, z: g.z + star.lz };
+function ringPos(index, total, center, radius) {
+  const n = Math.max(total, 1);
+  if (n === 1 || radius <= 0) return { x: center.x, y: center.y, z: center.z || 0 };
+  const theta = -Math.PI / 2 + (index / n) * Math.PI * 2;
+  return {
+    x: center.x + Math.cos(theta) * radius,
+    y: center.y + Math.sin(theta) * radius,
+    z: (center.z || 0) + ((index % 2) * 2 - 1) * radius * 0.08,
+  };
 }
-function buildWorld() {
+function notePos(index, total, center) {
+  const n = Math.max(total, 1);
+  const ring = n === 1 ? 0 : center.radius * 0.72;
+  return ringPos(index, n, center, ring);
+}
+function systemPos(star, center) {
+  if (star.id === "sys-cerebro") return { x: center.x, y: center.y, z: center.z || 0 };
+  const ringIds = INNER_RING.indexOf(star.id) >= 0 ? INNER_RING : OUTER_RING;
+  const index = Math.max(0, ringIds.indexOf(star.id));
+  const ring = (ringIds === INNER_RING ? 0.48 : 0.95) * center.radius;
+  return ringPos(index, ringIds.length, center, ring);
+}
+function buildWorld(fit) {
+  const scene = fit || fitScene(well.getBoundingClientRect());
   const notes = memory.map((star, index) => ({
     star: { id: star.id, label: star.label, text: star.text, kind: "nota" },
-    pos: notePos(index, memory.length),
+    pos: notePos(index, memory.length, scene.notas),
   }));
   const systems = SYSTEMS.map((star) => ({
     star: { id: star.id, label: star.label, text: systemText[star.id] || star.label, kind: "sistema" },
-    pos: systemPos(star),
+    pos: systemPos(star, scene.sistemas),
   }));
   const all = notes.concat(systems);
   const byId = {};
@@ -384,6 +420,26 @@ function labelBox(x, y, align, width) {
 function boxesHit(a, b) {
   return !(a.r < b.l || a.l > b.r || a.b < b.t || a.t > b.b);
 }
+function labelSpots(x, y, cx0, cy0) {
+  const spots = [
+    { x: x + 14, y, align: "left" },
+    { x: x - 14, y, align: "right" },
+    { x, y: y - 18, align: "center" },
+    { x, y: y + 18, align: "center" },
+  ];
+  if (cx0 != null) {
+    const dx = x - cx0;
+    const dy = y - cy0;
+    const len = Math.hypot(dx, dy) || 1;
+    const align = dx >= 0 ? "left" : "right";
+    spots.unshift({
+      x: x + (dx / len) * 18 + (align === "left" ? 6 : -6),
+      y: y + (dy / len) * 14,
+      align,
+    });
+  }
+  return spots;
+}
 function drawPlate() {
   const w = canvas.width / DPR, h = canvas.height / DPR;
   const rect = well.getBoundingClientRect();
@@ -393,54 +449,62 @@ function drawPlate() {
   if (rect.width < 40 || rect.height < 40) return;
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height * 0.5;
-  const minSide = Math.min(rect.width, rect.height);
-  const scale = Math.max(rect.width, rect.height) * 0.22 * zoom;
+  const fit = fitScene(rect);
+  const scale = sceneScale(rect) * zoom;
   const yaw = yawUser;
   const pitch = pitchUser;
-  const world = buildWorld();
+  const world = buildWorld(fit);
   ctx.save();
   ctx.beginPath();
   ctx.rect(rect.left, rect.top, rect.width, rect.height);
   ctx.clip();
-  const clouds = Object.values(GROUPS).map((group) => ({
-    group,
-    p: project(rotate(group, yaw, pitch), cx, cy, scale),
-  })).sort((a, b) => b.p.z - a.p.z);
-  for (const cloud of clouds) {
-    const rad = Math.max(56, cloud.group.r * cloud.p.persp * scale);
-    const g = ctx.createRadialGradient(cloud.p.x, cloud.p.y, 0, cloud.p.x, cloud.p.y, rad);
-    g.addColorStop(0, "rgba(" + cloud.group.rgb + ",0.5)");
-    g.addColorStop(0.45, "rgba(" + cloud.group.rgb + ",0.16)");
-    g.addColorStop(1, "rgba(" + cloud.group.rgb + ",0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(cloud.p.x, cloud.p.y, rad, 0, Math.PI * 2);
-    ctx.fill();
-  }
   const view = world.all.map((node) => {
     const rot = rotate(node.pos, yaw, pitch);
     return { star: node.star, pos: node.pos, p: project(rot, cx, cy, scale) };
   }).sort((a, b) => b.p.z - a.p.z);
+  const centroids = {};
+  for (const key of ["nota", "sistema"]) {
+    const pts = view.filter((item) => item.star.kind === key);
+    if (!pts.length) continue;
+    let sx = 0, sy = 0, sz = 0;
+    for (const item of pts) { sx += item.p.x; sy += item.p.y; sz += item.p.z; }
+    sx /= pts.length; sy /= pts.length; sz /= pts.length;
+    let maxD = 0;
+    for (const item of pts) maxD = Math.max(maxD, Math.hypot(item.p.x - sx, item.p.y - sy));
+    const meta = key === "nota" ? fit.notas : fit.sistemas;
+    centroids[key] = { x: sx, y: sy, z: sz, maxD, name: meta.name, rgb: meta.rgb };
+  }
+  const clouds = Object.values(centroids).sort((a, b) => b.z - a.z);
+  for (const cloud of clouds) {
+    const rad = Math.max(80, cloud.maxD * 1.55);
+    const g = ctx.createRadialGradient(cloud.x, cloud.y, 0, cloud.x, cloud.y, rad);
+    g.addColorStop(0, "rgba(" + cloud.rgb + ",0.55)");
+    g.addColorStop(0.42, "rgba(" + cloud.rgb + ",0.2)");
+    g.addColorStop(1, "rgba(" + cloud.rgb + ",0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(cloud.x, cloud.y, rad, 0, Math.PI * 2);
+    ctx.fill();
+  }
   const byId = {};
   for (const item of view) byId[item.star.id] = item;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.35;
+  ctx.setLineDash([]);
   for (const pair of world.links) {
     const a = byId[pair[0].star.id];
     const b = byId[pair[1].star.id];
     if (!a || !b) continue;
     const hot = picked && (a.star.id === picked || b.star.id === picked);
-    ctx.strokeStyle = hot ? ink.accent : ink.ink2;
-    ctx.globalAlpha = hot ? 0.95 : 0.55;
-    ctx.setLineDash(hot ? [] : [1.5, 4.5]);
+    ctx.strokeStyle = hot ? ink.accent : ink.ink;
+    ctx.globalAlpha = hot ? 1 : 0.72;
     ctx.beginPath();
     ctx.moveTo(a.p.x, a.p.y);
     ctx.lineTo(b.p.x, b.p.y);
     ctx.stroke();
   }
-  ctx.setLineDash([]);
   namedOnScreen = [];
   for (const item of view) {
-    const inside = item.p.x >= rect.left + 4 && item.p.x <= rect.right - 4 && item.p.y >= rect.top + 20 && item.p.y <= rect.bottom - 4;
+    const inside = item.p.x >= rect.left + 4 && item.p.x <= rect.right - 4 && item.p.y >= rect.top + 8 && item.p.y <= rect.bottom - 28;
     const chosen = item.star.id === picked;
     const near = item.p.persp;
     const pulse = chosen ? 1 + level * 0.65 : 1;
@@ -448,19 +512,18 @@ function drawPlate() {
     ctx.globalAlpha = (dim ? 0.16 : 1) * Math.max(0.4, Math.min(1, 0.3 + near * 0.65));
     if (item.star.kind === "sistema") {
       ctx.strokeStyle = chosen ? ink.accent : ink.ink;
-      ctx.lineWidth = 1.25;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(item.p.x, item.p.y, Math.max(5, 8 * near) * pulse, 0, Math.PI * 2);
+      ctx.arc(item.p.x, item.p.y, Math.max(7, 11 * near) * pulse, 0, Math.PI * 2);
       ctx.stroke();
       ctx.fillStyle = chosen ? ink.accent : ink.ink;
       ctx.beginPath();
-      ctx.arc(item.p.x, item.p.y, Math.max(1.6, 2.2 * near), 0, Math.PI * 2);
+      ctx.arc(item.p.x, item.p.y, Math.max(2.4, 3.2 * near), 0, Math.PI * 2);
       ctx.fill();
     } else {
-      const mag = 3.2;
       ctx.fillStyle = (chosen || item.star.warm) ? ink.accent : ink.ink;
       ctx.beginPath();
-      ctx.arc(item.p.x, item.p.y, Math.max(1.8, mag * 0.9 * near) * pulse, 0, Math.PI * 2);
+      ctx.arc(item.p.x, item.p.y, Math.max(4.2, 6.5 * near) * pulse, 0, Math.PI * 2);
       ctx.fill();
       if (chosen) {
         ctx.strokeStyle = ink.accent;
@@ -477,8 +540,21 @@ function drawPlate() {
     });
   }
   const boxes = [];
-  ctx.font = "400 14px " + ink.body;
   ctx.textBaseline = "middle";
+  ctx.font = "600 14px " + ink.body;
+  ctx.textAlign = "center";
+  for (const cloud of Object.values(centroids)) {
+    const y = cloud.y - Math.max(36, cloud.maxD) - 10;
+    if (y < rect.top + 12 || y > rect.bottom - 36) continue;
+    const width = ctx.measureText(cloud.name).width;
+    const box = labelBox(cloud.x, y, "center", width);
+    if (box.l < rect.left + 4 || box.r > rect.right - 4) continue;
+    boxes.push(box);
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = ink.ink2;
+    ctx.fillText(cloud.name, cloud.x, y);
+  }
+  ctx.font = "400 14px " + ink.body;
   const ranked = view.slice().sort((a, b) => {
     const af = a.star.id === picked || a.star.id === hovered;
     const bf = b.star.id === picked || b.star.id === hovered;
@@ -491,19 +567,16 @@ function drawPlate() {
     if (item.star.kind === "nota" && noteQuery && !noteHit(item.star) && item.star.id !== picked) continue;
     const focus = item.star.id === picked || item.star.id === hovered;
     if (item.p.persp < 0.42 && !focus) continue;
-    const onStage = item.p.x >= rect.left + 8 && item.p.x <= rect.right - 8 && item.p.y >= rect.top + 28 && item.p.y <= rect.bottom - 8;
+    const onStage = item.p.x >= rect.left + 8 && item.p.x <= rect.right - 8 && item.p.y >= rect.top + 12 && item.p.y <= rect.bottom - 36;
     if (!onStage && item.star.id !== picked) continue;
     const width = ctx.measureText(item.star.label).width;
-    const options = [
-      { x: item.p.x + 12, y: item.p.y, align: "left" },
-      { x: item.p.x - 12, y: item.p.y, align: "right" },
-      { x: item.p.x, y: item.p.y - 16, align: "center" },
-    ];
+    const home = centroids[item.star.kind];
+    const options = labelSpots(item.p.x, item.p.y, home && home.x, home && home.y);
     let spot = null;
     let box = null;
     for (const opt of options) {
       const trial = labelBox(opt.x, opt.y, opt.align, width);
-      if (trial.l < rect.left + 4 || trial.r > rect.right - 4) continue;
+      if (trial.l < rect.left + 4 || trial.r > rect.right - 4 || trial.t < rect.top + 4 || trial.b > rect.bottom - 28) continue;
       if (boxes.some((held) => boxesHit(trial, held))) continue;
       spot = opt;
       box = trial;
@@ -521,21 +594,6 @@ function drawPlate() {
     ctx.fillStyle = item.star.id === picked ? ink.accent : ink.ink;
     ctx.textAlign = spot.align;
     ctx.fillText(item.star.label, spot.x, spot.y);
-  }
-  ctx.font = "600 14px " + ink.body;
-  ctx.textAlign = "center";
-  for (const group of Object.values(GROUPS)) {
-    const above = { x: group.x, y: group.y + group.r * 0.55, z: group.z };
-    const p = project(rotate(above, yaw, pitch), cx, cy, scale);
-    if (p.persp < 0.4) continue;
-    if (p.x < rect.left + 28 || p.x > rect.right - 28 || p.y < rect.top + 24 || p.y > rect.bottom - 12) continue;
-    const width = ctx.measureText(group.name).width;
-    const box = labelBox(p.x, p.y, "center", width);
-    if (boxes.some((held) => boxesHit(box, held))) continue;
-    boxes.push(box);
-    ctx.globalAlpha = 0.82;
-    ctx.fillStyle = ink.ink2;
-    ctx.fillText(group.name, p.x, p.y);
   }
   ctx.restore();
   ctx.globalAlpha = 1;
@@ -706,7 +764,7 @@ function focusStar(id) {
   if (!star) return;
   picked = id;
   skyRead.textContent = star.text || star.label;
-  const node = buildWorld().all.find((item) => item.star.id === id);
+  const node = buildWorld(fitScene(well.getBoundingClientRect())).all.find((item) => item.star.id === id);
   if (node) {
     const aim = anglesToward(node.pos);
     yawTarget = aim.yaw;
