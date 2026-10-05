@@ -115,7 +115,7 @@ _PAGE = r"""<!DOCTYPE html>
     margin: 0; font-size: var(--text-body); line-height: 1.2; text-align: left; white-space: nowrap;
     font-variant-numeric: tabular-nums; color: var(--color-ink); overflow-wrap: normal;
   }
-  .systems .is-down { color: var(--color-ink); }
+  .systems .is-down { color: var(--color-ink-2); }
   .systems button.fact:not(:has(.v)) .k { font-size: var(--text-body); line-height: 1.25; }
   .talk { display: flex; flex-direction: column; gap: 16px; }
   #note { display: flex; flex-direction: column; gap: 8px; max-width: 72ch; }

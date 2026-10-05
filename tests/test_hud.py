@@ -255,6 +255,7 @@ def test_page_has_microphone_and_no_camera():
     assert 'data-brain="cursor"' in page
     assert 'data-brain="claude"' in page
     assert "buscar nota" in page
+    assert ".systems .is-down { color: var(--color-ink-2); }" in page
     assert ".well { grid-row: 2; min-height: 0; }" in page
     assert ".telemetry { grid-row: 2" not in page
     assert "quietLink ? 0.16 : 1" in page
