@@ -850,6 +850,9 @@ def _topic_of(norm: str) -> str:
     )
     if fresh_round:
         return _usable_topic(fresh_round.group(1) or "") or "brasil"
+    told = re.fullmatch(r"(?:me\s+)?atualiza\s+sobre\s+(.+)", norm)
+    if told:
+        return _usable_topic(told.group(1))
     for prefix in (
         "noticias sobre ", "noticia sobre ",
         "noticias de ", "noticia de ",
@@ -1408,6 +1411,7 @@ def house_reply(
                 r")$",
                 norm,
             )
+            or re.match(r"^(?:me\s+)?atualiza\s+sobre\s+\S", norm)
             or re.match(
                 r"^(?:me\s+(?:conta|fala|diz)\s+)?o que (?:esta|ta) rolando"
                 r"(?:\s+(?:sobre|de|do|da|em|no|na)\s+\S.*)?(?:\s+(?:hoje|agora))?$",
