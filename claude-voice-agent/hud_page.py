@@ -571,6 +571,14 @@ function readSkyFit(line) {
   const cut = shown && skyRead.scrollWidth > skyRead.clientWidth + 1;
   if (wide || cut) readSky("");
 }
+function askSky(line) {
+  readSky(line);
+  if (!line || line === orbitHint) return;
+  if (getComputedStyle(skyRead).display !== "none") return;
+  const last = logLines && logLines.querySelector("p:last-child");
+  if (last && last.textContent === line) return;
+  addLine("agent", line);
+}
 const GROUPS = {
   notas: { name: "Notas", rgb: "214, 78, 112", link: "255, 220, 226" },
   sistemas: { name: "Sistemas", rgb: "64, 112, 196", link: "186, 214, 242" },
@@ -2029,21 +2037,21 @@ function runSystem(id) {
   if (id === "sys-clima") {
     text.value = "tempo em ";
     text.focus();
-    readSky("De qual lugar, Senhor?");
+    askSky("De qual lugar, Senhor?");
     return;
   }
   if (id === "sys-noticias") {
     text.value = "notícias sobre ";
     text.focus();
-    readSky("Sobre o que, Senhor?");
+    askSky("Sobre o que, Senhor?");
     return;
   }
   if (id === "sys-lembretes") { sendText("quais lembretes"); return; }
-  if (id === "sys-voz") { voiceBtn.click(); return; }
+  if (id === "sys-voz") { askSky(systemText["sys-voz"]); voiceBtn.click(); return; }
   if (id === "sys-busca") {
     text.value = "busque ";
     text.focus();
-    readSky("O que devo procurar, Senhor?");
+    askSky("O que devo procurar, Senhor?");
   }
 }
 function pointStar(ev, choose) {
@@ -2285,12 +2293,12 @@ voiceBtn.addEventListener("click", async () => {
 for (const btn of document.querySelectorAll(".fact")) {
   btn.addEventListener("click", () => {
     if (btn.dataset.brain) { closeNote(); readSky(""); chooseBrain(btn.dataset.brain); return; }
-    if (btn.dataset.voice) { closeNote(); readSky(systemText["sys-voz"]); voiceBtn.click(); return; }
+    if (btn.dataset.voice) { closeNote(); askSky(systemText["sys-voz"]); voiceBtn.click(); return; }
     if (btn.dataset.draft) {
       closeNote();
       text.value = btn.dataset.draft;
       text.focus();
-      readSky(draftAsk[btn.dataset.draft] || "");
+      askSky(draftAsk[btn.dataset.draft] || "");
       return;
     }
     if (btn.dataset.ask) { closeNote(); readSky(""); sendText(btn.dataset.ask); }
