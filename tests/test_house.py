@@ -323,6 +323,33 @@ def test_humidity_names_the_city(tmp_path):
     assert "graus" not in _reply("umidade em recife", fetch, path)
 
 
+def test_feels_like_names_the_city(tmp_path):
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "geocoding" in url:
+            assert "curitiba" in url.lower() or "recife" in url.lower()
+            name = "Curitiba" if "curitiba" in url.lower() else "Recife"
+            return (
+                '{"results":[{"latitude":-25.4,"longitude":-49.2,"name":"%s"}]}' % name
+            )
+        assert "apparent_temperature" in url
+        assert "temperature_2m" not in url
+        assert "relative_humidity" not in url
+        return '{"current":{"apparent_temperature":14.2}}'
+
+    path = tmp_path / "n.json"
+    assert _reply("sensação térmica", fetch, path) == "De qual lugar, Senhor."
+    assert seen == []
+    assert _reply("sensação térmica em curitiba", fetch, path) == (
+        "Em Curitiba, sensação de 14 graus, Senhor."
+    )
+    assert _reply("qual a sensação térmica em recife", fetch, path) == (
+        "Em Recife, sensação de 14 graus, Senhor."
+    )
+
+
 def test_unrelated_tempo_is_not_weather(tmp_path):
     def fetch(_url):
         raise AssertionError("não devia buscar o clima")
@@ -929,6 +956,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
     def fake_weather(place, _fetch, day="", field=""):
         if field == "umidade":
             return f"Em {place}, umidade de 80 por cento, Senhor."
+        if field == "sensacao":
+            return f"Em {place}, sensação de 14 graus, Senhor."
         if day == "amanha":
             return f"Amanhã em {place}, máxima de 27 graus, nublado, Senhor."
         return f"Em {place}, 19 graus, nublado, Senhor."
@@ -970,6 +999,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert reply("Recife", []) == "Em Recife, umidade de 80 por cento, Senhor."
     assert reply("qual o tempo", []) == "De qual lugar, Senhor."
     assert reply("Recife", []) == "Em Recife, 19 graus, nublado, Senhor."
+    assert reply("sensação térmica", []) == "De qual lugar, Senhor."
+    assert reply("Curitiba", []) == "Em Curitiba, sensação de 14 graus, Senhor."
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):

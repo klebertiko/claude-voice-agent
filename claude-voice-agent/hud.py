@@ -54,6 +54,15 @@ def brazil_now() -> datetime:
     return datetime.now(ZoneInfo("America/Sao_Paulo"))
 
 
+def _weather_field(text: str) -> str:
+    """Qual leitura o pedido quer. Vazio é a temperatura de sempre."""
+    if _has_word(text, "umidade") or _has_word(text, "umido"):
+        return "umidade"
+    if _has_word(text, "sensacao") and _has_word(text, "termica"):
+        return "sensacao"
+    return ""
+
+
 def _has_word(text: str, word: str) -> bool:
     norm = _plain(text)
     return f" {word} " in f" {norm} "
@@ -240,10 +249,8 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
                 pending["day"] = "amanha"
             else:
                 pending["day"] = ""
-            if pending["kind"] == "weather" and (
-                _has_word(cleaned, "umidade") or _has_word(cleaned, "umido")
-            ):
-                pending["field"] = "umidade"
+            if pending["kind"] == "weather":
+                pending["field"] = _weather_field(cleaned)
             else:
                 pending["field"] = ""
             if housed == "O que devo escrever, Senhor?":
@@ -275,10 +282,8 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
                 day = "amanha"
             elif kind == "weather" and _has_word(cleaned, "hoje"):
                 day = ""
-            if kind == "weather" and (
-                _has_word(cleaned, "umidade") or _has_word(cleaned, "umido")
-            ):
-                field = "umidade"
+            if kind == "weather" and _weather_field(cleaned):
+                field = _weather_field(cleaned)
             try:
                 spoken = continue_house(
                     kind,

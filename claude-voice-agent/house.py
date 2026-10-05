@@ -89,6 +89,17 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
             return "Não alcancei o clima, Senhor."
         pct = int(round(float(humid)))
         return f"Em {label}, umidade de {pct} por cento, Senhor."
+    if field == "sensacao":
+        url = (
+            "https://api.open-meteo.com/v1/forecast?current=apparent_temperature"
+            f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        feels = (data.get("current") or {}).get("apparent_temperature")
+        if feels is None:
+            return "Não alcancei o clima, Senhor."
+        graus = int(round(float(feels)))
+        return f"Em {label}, sensação de {graus} graus, Senhor."
     if day == "amanha":
         url = (
             "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max,weather_code"
@@ -820,6 +831,18 @@ def _humidity_place(norm: str) -> str | None:
     return None
 
 
+def _feels_place(norm: str) -> str | None:
+    """None quando não é sensação térmica. Vazio quando falta a cidade."""
+    match = re.fullmatch(
+        r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?sensacao\s+termica"
+        r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if not match:
+        return None
+    return _city_name(match.group(1) or "")
+
+
 def _wants_weather(norm: str) -> bool:
     if "faz tempo" in norm:
         return False
@@ -1081,6 +1104,11 @@ def house_reply(
             norm,
         ):
             return _list_notes(reminders_path)
+        feels_place = _feels_place(norm)
+        if feels_place is not None:
+            if not feels_place:
+                return "De qual lugar, Senhor."
+            return _weather(feels_place, fetch, field="sensacao")
         humid_place = _humidity_place(norm)
         if humid_place is not None:
             if not humid_place:
