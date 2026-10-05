@@ -818,6 +818,18 @@ def _place_of(norm: str) -> str:
     return _bare_sky_place(norm)
 
 
+def _update_subject(topic: str) -> str:
+    """Tira o artigo. «as notícias» e «o brasil» são o Brasil."""
+    topic = _usable_topic(topic)
+    for article in ("as ", "os ", "a ", "o "):
+        if topic.startswith(article):
+            topic = topic[len(article) :].strip()
+            break
+    if topic in {"noticia", "noticias", "brasil"}:
+        return "brasil"
+    return topic
+
+
 def _usable_topic(topic: str) -> str:
     topic = topic.strip(" .")
     if topic in {"sobre", "de", "do", "da", "em", "no", "na"}:
@@ -860,9 +872,12 @@ def _topic_of(norm: str) -> str:
     )
     if fresh_round:
         return _usable_topic(fresh_round.group(1) or "") or "brasil"
-    told = re.fullmatch(r"(?:me\s+)?atualiza\s+sobre\s+(.+)", norm)
+    told = re.fullmatch(
+        r"(?:me\s+)?atualiza\s+(?:sobre|a\s+respeito\s+(?:de|do|da))\s+(.+)",
+        norm,
+    )
     if told:
-        return _usable_topic(told.group(1))
+        return _update_subject(told.group(1))
     for prefix in (
         "noticias sobre ", "noticia sobre ",
         "noticias de ", "noticia de ",
@@ -1426,7 +1441,10 @@ def house_reply(
                 r")$",
                 norm,
             )
-            or re.match(r"^(?:me\s+)?atualiza\s+sobre\s+\S", norm)
+            or re.match(
+                r"^(?:me\s+)?atualiza\s+(?:sobre|a\s+respeito\s+(?:de|do|da))\s+\S",
+                norm,
+            )
             or re.match(
                 r"^(?:me\s+(?:conta|fala|diz)\s+)?o que (?:esta|ta) rolando"
                 r"(?:\s+(?:sobre|de|do|da|em|no|na)\s+\S.*)?(?:\s+(?:hoje|agora))?$",
