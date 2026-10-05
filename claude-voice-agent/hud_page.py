@@ -294,8 +294,8 @@ let drag = null;
 let dragMoved = 0;
 const orbitHint = "Arraste para orbitar. A roda aproxima.";
 const GROUPS = {
-  notas: { name: "Notas", rgb: "186, 92, 140" },
-  sistemas: { name: "Sistemas", rgb: "64, 112, 196" },
+  notas: { name: "Notas", rgb: "186, 92, 140", link: "236, 196, 214" },
+  sistemas: { name: "Sistemas", rgb: "64, 112, 196", link: "186, 214, 242" },
 };
 const SYSTEMS = [
   { id: "sys-cerebro", label: "Cérebro" },
@@ -677,11 +677,11 @@ function drawPlate() {
     const uy = dy / len;
     const depth = Math.max(0.45, Math.min(1, ((a.p.persp + b.p.persp) / 2) / 0.62));
     const tone = a.star.kind === b.star.kind
-      ? "rgb(" + (a.star.kind === "nota" ? GROUPS.notas.rgb : GROUPS.sistemas.rgb) + ")"
+      ? "rgb(" + (a.star.kind === "nota" ? GROUPS.notas.link : GROUPS.sistemas.link) + ")"
       : ink.ink;
     ctx.strokeStyle = hot ? ink.accent : tone;
-    ctx.globalAlpha = (hot ? 1 : aside ? 0.14 : 0.9) * depth;
-    ctx.lineWidth = (hot ? 1.6 : 1.25) * depth;
+    ctx.globalAlpha = (hot ? 1 : aside ? 0.22 : 1) * depth;
+    ctx.lineWidth = (hot ? 1.7 : 1.5) * depth;
     ctx.setLineDash(hot ? [5, 6] : [8, 10]);
     ctx.beginPath();
     ctx.moveTo(a.p.x + ux * pad, a.p.y + uy * pad);
