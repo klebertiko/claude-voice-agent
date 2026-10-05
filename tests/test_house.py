@@ -445,6 +445,9 @@ def test_feels_like_names_the_city(tmp_path):
     assert _reply("sensação térmica", fetch, path) == "De qual lugar, Senhor."
     assert _reply("me fala a sensação térmica", fetch, path) == "De qual lugar, Senhor."
     assert _reply("sensação térmica amanhã", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("sensação", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("qual a sensação", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("sensação do projeto", fetch, path) is None
     assert seen == []
     assert _reply("sensação térmica em curitiba", fetch, path) == (
         "Em Curitiba, sensação de 14 graus, Senhor."
@@ -455,8 +458,17 @@ def test_feels_like_names_the_city(tmp_path):
     assert _reply("me fala a sensação térmica em recife", fetch, path) == (
         "Em Recife, sensação de 14 graus, Senhor."
     )
+    assert _reply("qual a sensação em recife", fetch, path) == (
+        "Em Recife, sensação de 14 graus, Senhor."
+    )
+    assert _reply("me fala a sensação em curitiba", fetch, path) == (
+        "Em Curitiba, sensação de 14 graus, Senhor."
+    )
     assert "daily=" not in seen[-1]
     assert _reply("sensação térmica amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, sensação de 21 graus, Senhor."
+    )
+    assert _reply("sensação amanhã em recife", fetch, path) == (
         "Amanhã em Recife, sensação de 21 graus, Senhor."
     )
     assert "apparent_temperature_mean" in seen[-1]
@@ -2086,6 +2098,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert reply("Recife", []) == "Em Recife, 19 graus, nublado, Senhor."
     assert reply("sensação térmica", []) == "De qual lugar, Senhor."
     assert reply("Curitiba", []) == "Em Curitiba, sensação de 14 graus, Senhor."
+    assert reply("qual a sensação", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Em Recife, sensação de 14 graus, Senhor."
     assert reply("vento", []) == "De qual lugar, Senhor."
     assert reply("Recife", []) == "Em Recife, vento de 18 quilômetros por hora, Senhor."
     assert reply("nascer do sol", []) == "De qual lugar, Senhor."

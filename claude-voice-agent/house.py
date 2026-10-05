@@ -1278,7 +1278,7 @@ def _feels_place(norm: str) -> str | None:
     """None quando não é sensação térmica. Vazio quando falta a cidade."""
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
-        r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?sensacao\s+termica"
+        r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?sensacao(?:\s+termica)?"
         r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
         r"(?:\s+(?:amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
