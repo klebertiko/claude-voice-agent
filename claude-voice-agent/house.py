@@ -212,6 +212,8 @@ def _note_subject(norm: str) -> str | None:
         "procurar nas minhas notas", "procure nas minhas notas", "procura nas minhas notas",
         "pesquisar nas minhas notas", "pesquise nas minhas notas", "pesquisa nas minhas notas",
         "nas notas", "tem nota", "tem nota sobre", "tem alguma nota",
+        "nas minhas notas", "nas minhas notas tem",
+        "o que anotei sobre", "o que eu anotei sobre",
     }:
         return ""
     if norm.startswith("buscar nota "):
@@ -241,6 +243,12 @@ def _note_subject(norm: str) -> str | None:
     )
     if held:
         return _clean_subject(held.group(1) or "")
+    mine = re.match(r"^nas minhas notas(?:\s+tem)?(?:\s+(.*))?$", norm)
+    if mine:
+        return _clean_subject(mine.group(1) or "")
+    asked = re.match(r"^o que (?:eu )?anotei\s+(?:sobre|de|do|da)\s+(.+)$", norm)
+    if asked:
+        return _clean_subject(asked.group(1))
     return None
 
 

@@ -225,6 +225,8 @@ def test_note_query_is_only_the_search():
     assert note_query_of("tem nota sobre voz", "Nas notas, Senhor. revisar.") == "voz"
     assert note_query_of("pesquise nas notas o projeto", "Nas notas, Senhor. entregar.") == "projeto"
     assert note_query_of("buscar o projeto nas notas", "Nas notas, Senhor. entregar.") == "projeto"
+    assert note_query_of("o que eu anotei sobre projeto", "Nas notas, Senhor. entregar.") == "projeto"
+    assert note_query_of("o que eu anotei", "Lembretes, Senhor. entregar.") == ""
     assert note_query_of("voz", "Nas notas, Senhor. revisar o projeto de voz.") == "voz"
     assert note_query_of("buscar nota marte", "Não há nota com isso, Senhor.") == "marte"
     assert note_query_of("buscar nota", "O que devo buscar nas notas, Senhor?") == ""
@@ -277,6 +279,13 @@ def test_note_search_stays_in_the_vault(tmp_path):
     )
     assert _reply("busca nas minhas notas a voz", fetch, voice) == (
         "Nas notas, Senhor. revisar o projeto de voz."
+    )
+    assert _reply("o que eu anotei", fetch, path).startswith("Lembretes, Senhor.")
+    assert _reply("o que eu anotei sobre projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("nas minhas notas tem projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
     )
     assert _reply("buscar nota marte", fetch, path) == "Não há nota com isso, Senhor."
 
