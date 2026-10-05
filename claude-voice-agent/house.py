@@ -493,7 +493,7 @@ def _wants_weather(norm: str) -> bool:
 _SEARCH_COMMAND = re.compile(
     r"^(?:(?:por favor|pode|posso|quero|queria|vamos|da)\s+(?:que\s+|uma\s+)?)*"
     r"(?:me\s+)?"
-    r"(?:pesquisada|pesquisar|pesquise|pesquisa|buscar|busque|busca|procurar|procure|procura)"
+    r"(?:pesquisada|pesquisar|pesquise|pesquisa|buscar|busque|busca|procurar|procure|procura|google)"
     r"(?:\s+(.*))?$"
 )
 _QUERY_FILLERS = (
@@ -504,7 +504,7 @@ _QUERY_FILLERS = (
 
 
 def _search_query(rest: str) -> str:
-    """Tira o convite da busca. «sobre o café» vira «café»."""
+    """Tira o convite da busca. «sobre o café» e «café no google» viram «café»."""
     query = (rest or "").strip(" ?.")
     while query:
         for prefix in _QUERY_FILLERS:
@@ -513,6 +513,8 @@ def _search_query(rest: str) -> str:
                 break
         else:
             break
+    if query.endswith(" no google"):
+        query = query[: -len(" no google")].strip()
     return query
 
 
