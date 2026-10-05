@@ -47,6 +47,7 @@ def test_weather_asks_for_the_place(tmp_path):
     assert _reply("vai dar chuva", fetch, path) == "De qual lugar, Senhor."
     assert _reply("risco de chuva", fetch, path) == "De qual lugar, Senhor."
     assert _reply("pode chover", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("vai chover à noite", fetch, path) == "De qual lugar, Senhor."
 
 
 def test_weather_names_the_city(tmp_path):
@@ -290,6 +291,22 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
         "Em São Paulo, 22 graus, quase limpo, Senhor."
     )
     assert "name=recife" in seen[-2]
+    assert _reply("vai chover à noite em recife", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "noite" not in seen[-2]
+    assert "daily=" not in seen[-1]
+    assert _reply("vai chover amanhã à noite em recife", fetch, path) == (
+        "Amanhã em São Paulo, máxima de 27 graus, nublado, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "daily=" in seen[-1]
+    assert _reply("faz frio à noite em curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    assert "daily=" not in seen[-1]
 
 
 def test_humidity_names_the_city(tmp_path):

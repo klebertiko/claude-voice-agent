@@ -546,6 +546,12 @@ def _spoken_place(text: str) -> str:
     return place
 
 
+_SKY_WHEN = (
+    r"(?:\s+(?:hoje|agora|la|muito|amanha|depois))?"
+    r"(?:\s+(?:a noite|de noite|a tarde|de tarde|de manha|a manha|de madrugada))?"
+)
+
+
 def _heat_place(norm: str) -> str | None:
     """Cidade numa frase de calor, frio, sol ou nuvem. None se não for essa frase."""
     match = re.match(
@@ -555,8 +561,8 @@ def _heat_place(norm: str) -> str | None:
         r"|(?:esta|ta)(?:\s+fazendo)?(?:\s+muito)?\s+(?:calor|quente|frio|sol|nublado)"
         r"|vai (?:esfriar|esquentar|gear)"
         r"|vai fazer(?:\s+muito)?\s+(?:calor|frio|quente|sol))"
-        r"(?:\s+(?:hoje|agora|la|muito|amanha|depois))?"
-        r"(?:\s+(?:em|no|na)\s+(.+))?$",
+        + _SKY_WHEN
+        + r"(?:\s+(?:em|no|na)\s+(.+))?$",
         norm,
     )
     if match:
@@ -573,8 +579,8 @@ def _rain_place(norm: str) -> str | None:
         r"^(?:(?:amanha|hoje|depois)\s+)?"
         r"(?:vai chover|(?:esta|ta)\s+(?:chovendo|garoando)|chove|garoa"
         r"|vai dar(?:\s+uma)?\s+chuva|risco de chuva|pode chover)"
-        r"(?:\s+(?:hoje|agora|la|muito|amanha|depois))?"
-        r"(?:\s+(?:em|no|na)\s+(.+))?$",
+        + _SKY_WHEN
+        + r"(?:\s+(?:em|no|na)\s+(.+))?$",
         norm,
     )
     if match:
@@ -592,8 +598,8 @@ def _graus_place(norm: str) -> str | None:
     """Cidade em «quantos graus faz em Recife». None se não for essa frase."""
     match = re.match(
         r"^quantos graus(?:\s+(?:faz|esta|ta|sao|tem))?(?:\s+fazendo)?"
-        r"(?:\s+(?:agora|hoje|la|muito|amanha|depois))?"
-        r"(?:\s+(?:em|no|na|de)\s+(.+))?$",
+        + _SKY_WHEN
+        + r"(?:\s+(?:em|no|na|de)\s+(.+))?$",
         norm,
     )
     if not match:
@@ -605,8 +611,8 @@ def _quanto_place(norm: str) -> str | None:
     """Cidade em «tá quanto em Recife». None se não for essa frase."""
     match = re.match(
         r"^(?:(?:ta|esta)\s+quanto|quanto\s+(?:ta|esta|faz))"
-        r"(?:\s+(?:agora|hoje|la|muito|amanha|depois))?"
-        r"(?:\s+(?:em|no|na|de)\s+(.+))?$",
+        + _SKY_WHEN
+        + r"(?:\s+(?:em|no|na|de)\s+(.+))?$",
         norm,
     )
     if not match:
