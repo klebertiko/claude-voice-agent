@@ -12,17 +12,12 @@ def _reply(text, fetch, path):
     return house_reply(text, WHEN, reminders_path=path, fetch=fetch)
 
 
-def test_weather_defaults_to_sao_paulo(tmp_path):
-    def fetch(url):
-        assert "forecast" in url
-        return '{"current":{"temperature_2m":23.4,"weather_code":1}}'
+def test_weather_asks_for_the_place(tmp_path):
+    def fetch(_url):
+        raise AssertionError("sem lugar, não busca o clima")
 
-    assert _reply("que tempo faz", fetch, tmp_path / "n.json") == (
-        "Em São Paulo, 23 graus, quase limpo, Senhor."
-    )
-    assert _reply("qual o tempo", fetch, tmp_path / "n.json") == (
-        "Em São Paulo, 23 graus, quase limpo, Senhor."
-    )
+    assert _reply("que tempo faz", fetch, tmp_path / "n.json") == "De qual lugar, Senhor."
+    assert _reply("qual o tempo", fetch, tmp_path / "n.json") == "De qual lugar, Senhor."
 
 
 def test_weather_names_the_city(tmp_path):
@@ -43,19 +38,24 @@ def test_unrelated_tempo_is_not_weather(tmp_path):
     assert _reply("faz tempo que não falo", fetch, tmp_path / "n.json") is None
 
 
-def test_news_reads_two_titles(tmp_path):
+def test_news_asks_then_reads_the_topic(tmp_path):
     rss = (
         '<?xml version="1.0"?><rss><channel><title>Google News</title>'
         "<item><title>Alpha sobe</title></item>"
         "<item><title>Beta cai</title></item></channel></rss>"
     )
+    seen = []
 
-    def fetch(_url):
+    def fetch(url):
+        seen.append(url)
         return rss
 
-    assert _reply("quais as noticias", fetch, tmp_path / "n.json") == (
+    assert _reply("quais as noticias", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
+    assert seen == []
+    assert _reply("noticias sobre economia", fetch, tmp_path / "n.json") == (
         "Nas notícias, Senhor. Alpha sobe. Beta cai."
     )
+    assert "economia" in seen[0]
 
 
 def test_search_speaks_the_abstract(tmp_path):
@@ -122,6 +122,34 @@ def test_whatsapp_is_a_link_with_permission(tmp_path):
     reply = _reply("mande whatsapp para 5511999998888 dizendo cheguei", fetch, path)
     assert reply.startswith("ACAO: xdg-open 'https://wa.me/5511999998888?text=cheguei'")
     assert _reply("mande um whatsapp", fetch, path) == "Diga o número, Senhor."
+
+
+def test_the_next_line_answers_the_question(monkeypatch):
+    from claude_agent_voice.hud import make_reply_fn
+    from claude_agent_voice.personas import get_persona
+    from claude_agent_voice.settings import Settings
+
+    monkeypatch.setattr(
+        "claude_agent_voice.house._weather",
+        lambda place, fetch: f"Em {place}, 19 graus, nublado, Senhor.",
+    )
+    reply = make_reply_fn(
+        Settings.from_env(
+            env={
+                "CLAUDE_VOICE_CODEX_CLI": "missing-codex",
+                "CLAUDE_VOICE_CURSOR_CLI": "missing-cursor",
+                "CLAUDE_VOICE_CLAUDE_CLI": "missing-claude",
+                "OLLAMA_HOST": "",
+                "CLAUDE_VOICE_OLLAMA_HOST": "",
+            }
+        ),
+        get_persona("orion"),
+        lambda: WHEN,
+    )
+    assert reply("qual o tempo", []) == "De qual lugar, Senhor."
+    assert "15 horas" in reply("que horas são", [])
+    assert reply("qual o tempo", []) == "De qual lugar, Senhor."
+    assert reply("Campinas", []) == "Em Campinas, 19 graus, nublado, Senhor."
 
 
 def test_network_failure_is_spoken(tmp_path):

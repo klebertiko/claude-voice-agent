@@ -14,8 +14,6 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
 
-_SAO_PAULO = (-23.55, -46.63, "São Paulo")
-_NEWS = "https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419"
 _WX = {
     0: "céu limpo",
     1: "quase limpo",
@@ -67,19 +65,19 @@ def _save(path: Path, items: list[dict]) -> None:
 
 
 def _weather(place: str, fetch) -> str:
-    name = place.strip() or _SAO_PAULO[2]
-    lat, lon, label = _SAO_PAULO
-    if place.strip():
-        geo = json.loads(
-            fetch(
-                "https://geocoding-api.open-meteo.com/v1/search?count=1&language=pt&format=json&name="
-                + urllib.parse.quote(place.strip())
-            )
+    name = place.strip(" .?")
+    if not name:
+        return "De qual lugar, Senhor."
+    geo = json.loads(
+        fetch(
+            "https://geocoding-api.open-meteo.com/v1/search?count=1&language=pt&format=json&name="
+            + urllib.parse.quote(name)
         )
-        hit = (geo.get("results") or [None])[0]
-        if not hit:
-            return "Não achei essa cidade, Senhor."
-        lat, lon, label = hit["latitude"], hit["longitude"], hit.get("name") or name
+    )
+    hit = (geo.get("results") or [None])[0]
+    if not hit:
+        return "Não achei essa cidade, Senhor."
+    lat, lon, label = hit["latitude"], hit["longitude"], hit.get("name") or name
     url = (
         "https://api.open-meteo.com/v1/forecast?current=temperature_2m,weather_code"
         f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
@@ -94,8 +92,15 @@ def _weather(place: str, fetch) -> str:
     return f"Em {label}, {graus} graus, {sky}, Senhor."
 
 
-def _news(fetch) -> str:
-    raw = fetch(_NEWS)
+def _news(topic: str, fetch) -> str:
+    topic = topic.strip(" .?")
+    if not topic:
+        return "Sobre o que, Senhor."
+    url = (
+        "https://news.google.com/rss/search?hl=pt-BR&gl=BR&ceid=BR:pt-419&q="
+        + urllib.parse.quote(topic)
+    )
+    raw = fetch(url)
     root = ET.fromstring(raw)
     titles = []
     for node in root.iter("title"):
@@ -162,6 +167,60 @@ def _list_notes(path: Path) -> str:
     return f"Lembretes, Senhor. {spoken}."
 
 
+def _place_of(norm: str) -> str:
+    for prefix in (
+        "tempo em ", "clima em ", "previsao em ", "previsao para ",
+        "clima de ", "tempo de ", "clima no ", "tempo no ", "clima na ", "tempo na ",
+    ):
+        if norm.startswith(prefix):
+            return norm[len(prefix) :].strip(" .")
+    match = re.search(r"\b(?:tempo|clima|previsao)\s+em\s+(.+)$", norm)
+    if match:
+        return match.group(1).strip(" .")
+    return ""
+
+
+def _topic_of(norm: str) -> str:
+    for prefix in (
+        "noticias sobre ", "noticia sobre ",
+        "noticias de ", "noticia de ",
+        "noticias do ", "noticia do ",
+        "noticias da ", "noticia da ",
+        "o que esta acontecendo em ",
+        "o que esta acontecendo sobre ",
+    ):
+        if norm.startswith(prefix):
+            return norm[len(prefix) :].strip(" .")
+    match = re.search(r"noticias?\s+(?:sobre|de|do|da)\s+(.+)$", norm)
+    if match:
+        return match.group(1).strip(" .")
+    return ""
+
+
+def _answer_text(text: str) -> str:
+    norm = _plain(text)
+    for prefix in ("em ", "no ", "na ", "de ", "sobre ", "do ", "da "):
+        if norm.startswith(prefix):
+            return text.strip()[len(prefix) :].strip() or norm[len(prefix) :].strip()
+    return text.strip()
+
+
+def continue_house(kind: str, text: str, *, fetch=None) -> str:
+    """A resposta curta depois de Orion pedir lugar, assunto ou busca."""
+    fetch = fetch or _http_get
+    said = _answer_text(text)
+    try:
+        if kind == "weather":
+            return _weather(said, fetch)
+        if kind == "news":
+            return _news(said, fetch)
+        if kind == "search":
+            return _search(said, fetch)
+    except (OSError, ValueError, json.JSONDecodeError, ET.ParseError, KeyError, TimeoutError):
+        return "Não alcancei isso agora, Senhor."
+    return "Não entendi, Senhor."
+
+
 def _wants_weather(norm: str) -> bool:
     if "faz tempo" in norm:
         return False
@@ -215,7 +274,7 @@ def house_reply(
             return _whatsapp(text)
         if norm in {"resumo do dia", "briefing", "como esta o dia", "como vai o dia"}:
             clock_h = moment.hour
-            sky = _weather("", fetch)
+            sky = _weather("São Paulo", fetch)
             return f"São {clock_h} horas, Senhor. {sky}"
         if norm.startswith(("lembrete ", "me lembre de ", "me lembra de ", "anote ", "anota ")):
             match = re.search(
@@ -226,13 +285,18 @@ def house_reply(
             return _remember(match.group(1) if match else "", reminders_path, moment)
         if norm in {"quais lembretes", "meus lembretes", "o que anotei"}:
             return _list_notes(reminders_path)
-        if norm.startswith(("tempo em ", "clima em ")):
-            place = norm.split(" em ", 1)[1]
-            return _weather(place, fetch)
         if _wants_weather(norm):
-            return _weather("", fetch)
-        if "noticia" in norm or "noticias" in norm or "o que esta acontecendo" in norm:
-            return _news(fetch)
+            place = _place_of(norm)
+            if not place:
+                return "De qual lugar, Senhor."
+            return _weather(place, fetch)
+        if "noticia" in norm or norm == "o que esta acontecendo":
+            topic = _topic_of(norm)
+            if not topic:
+                return "Sobre o que, Senhor."
+            return _news(topic, fetch)
+        if norm in {"busque", "pesquise", "procure", "busca", "pesquisa"}:
+            return "O que devo procurar, Senhor?"
         if norm.startswith("buscar nota ") or norm.startswith("notas sobre "):
             query = norm.split(" ", 2)[-1] if norm.startswith("buscar nota ") else norm[len("notas sobre ") :]
             return _find_notes(query, reminders_path)
