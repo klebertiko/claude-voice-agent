@@ -805,8 +805,8 @@ function drawPlate() {
     const lean = item.disc.tilt;
     const zScale = center.zScale == null ? 1 : center.zScale;
     const narrow = rect.width < 700;
-    const forward = item.disc.strong ? (narrow ? 1.15 : 0.62) : 0.8;
-    const lobe = item.disc.strong ? (narrow ? 1.15 : 0.62) : (narrow ? 0.72 : 0.74);
+    const forward = item.disc.strong ? (narrow ? 1.15 : 0.9) : 0.8;
+    const lobe = item.disc.strong ? (narrow ? 1.15 : 0.78) : (narrow ? 0.72 : 0.74);
     const near = Object.assign({}, center, {
       z: (center.z || 0) - Math.sin(lean) * center.radius * DEPTH * zScale * forward,
     });
