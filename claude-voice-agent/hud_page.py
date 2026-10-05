@@ -1287,23 +1287,33 @@ function mark(btn, state) {
 }
 function settleLog() {
   if (!logEl || !logLines) return;
-  const probe = logLines.querySelector("p");
-  if (!probe) return;
-  const line = parseFloat(getComputedStyle(probe).lineHeight);
+  const paras = [...logLines.querySelectorAll("p")];
+  if (!paras.length) return;
+  const line = parseFloat(getComputedStyle(paras[0]).lineHeight);
   if (!line) return;
   logLines.style.paddingBottom = "0px";
+  logEl.style.maxHeight = "";
   logEl.scrollTop = logEl.scrollHeight;
   const box = logEl.getBoundingClientRect();
-  let pad = 0;
-  for (const p of logLines.querySelectorAll("p")) {
-    const r = p.getBoundingClientRect();
+  let drop = 0;
+  let align = 0;
+  for (let i = 0; i < paras.length; i++) {
+    const r = paras[i].getBoundingClientRect();
     if (r.top >= box.top - 0.5 || r.bottom <= box.top + 0.5) continue;
-    const phase = (box.top - r.top) % line;
-    if (phase > 0.75 && phase < line - 0.75) pad = line - phase;
+    const visible = r.bottom - box.top;
+    const later = i < paras.length - 1;
+    if (later && visible + 1 < logEl.clientHeight) drop = visible;
+    else {
+      const phase = (box.top - r.top) % line;
+      if (phase > 0.75 && phase < line - 0.75) align = line - phase;
+    }
     break;
   }
-  if (pad > 0 && line + pad <= logEl.clientHeight) {
-    logLines.style.paddingBottom = pad + "px";
+  if (drop > 0 && logEl.clientHeight - drop >= line) {
+    logEl.style.maxHeight = Math.floor(logEl.clientHeight - drop) + "px";
+    logEl.scrollTop = logEl.scrollHeight;
+  } else if (align > 0 && line + align <= logEl.clientHeight) {
+    logLines.style.paddingBottom = align + "px";
     logEl.scrollTop = logEl.scrollHeight;
   }
 }
