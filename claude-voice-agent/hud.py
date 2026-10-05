@@ -71,6 +71,10 @@ def _weather_field(text: str) -> str:
         return "sensacao"
     if _has_word(text, "vento") or _has_word(text, "ventando"):
         return "vento"
+    if _has_word(text, "maxima"):
+        return "maxima"
+    if _has_word(text, "minima"):
+        return "minima"
     return ""
 
 

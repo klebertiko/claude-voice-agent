@@ -142,6 +142,23 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         level = int(round(float(values[index])))
         when = "Amanhã em" if day == "amanha" else "Em"
         return f"{when} {label}, índice UV de {level}, Senhor."
+    if field in {"maxima", "minima"}:
+        key = "temperature_2m_max" if field == "maxima" else "temperature_2m_min"
+        days = 2 if day == "amanha" else 1
+        url = (
+            "https://api.open-meteo.com/v1/forecast?daily="
+            + key
+            + f"&forecast_days={days}&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+        )
+        data = json.loads(fetch(url))
+        values = (data.get("daily") or {}).get(key) or []
+        index = 1 if day == "amanha" else 0
+        if len(values) <= index or values[index] is None:
+            return "Não alcancei o clima, Senhor."
+        graus = int(round(float(values[index])))
+        word = "máxima" if field == "maxima" else "mínima"
+        when = "Amanhã em" if day == "amanha" else "Em"
+        return f"{when} {label}, {word} de {graus} graus, Senhor."
     if field == "pressao":
         url = (
             "https://api.open-meteo.com/v1/forecast?current=surface_pressure"
@@ -1003,6 +1020,21 @@ def _sun_place(norm: str) -> tuple[str, str] | None:
     return None
 
 
+def _extreme_place(norm: str) -> tuple[str, str] | None:
+    """(«maxima» ou «minima», cidade). None quando não é o extremo."""
+    match = re.fullmatch(
+        r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?(?:temperatura\s+)?"
+        r"(maxima|minima)"
+        r"(?:\s+de\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
+        norm,
+    )
+    if not match:
+        return None
+    return match.group(1), _city_name(match.group(2) or "")
+
+
 def _pressure_place(norm: str) -> str | None:
     """None quando não é pressão. Vazio quando falta a cidade."""
     match = re.fullmatch(
@@ -1311,6 +1343,13 @@ def house_reply(
             norm,
         ):
             return _list_notes(reminders_path)
+        extreme = _extreme_place(norm)
+        if extreme is not None:
+            kind, place = extreme
+            if not place:
+                return "De qual lugar, Senhor."
+            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            return _weather(place, fetch, day=day, field=kind)
         pressure_place = _pressure_place(norm)
         if pressure_place is not None:
             if not pressure_place:

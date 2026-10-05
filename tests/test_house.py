@@ -500,6 +500,48 @@ def test_pressure_names_the_city(tmp_path):
     )
 
 
+def test_extreme_names_the_city(tmp_path):
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        if "geocoding" in url:
+            assert "recife" in url.lower() or "curitiba" in url.lower()
+            name = "Recife" if "recife" in url.lower() else "Curitiba"
+            return (
+                '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
+            )
+        if "temperature_2m_min" in url:
+            assert "temperature_2m_max" not in url
+            assert "weather_code" not in url
+            return '{"daily":{"temperature_2m_min":[21.2,16.4]}}'
+        assert "temperature_2m_max" in url
+        assert "weather_code" not in url
+        return '{"daily":{"temperature_2m_max":[31.6,29.2]}}'
+
+    path = tmp_path / "n.json"
+    assert _reply("qual a máxima", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("qual a mínima", fetch, path) == "De qual lugar, Senhor."
+    assert seen == []
+    assert _reply("qual a máxima em recife", fetch, path) == (
+        "Em Recife, máxima de 32 graus, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "forecast_days=1" in seen[-1]
+    assert _reply("qual a mínima em curitiba", fetch, path) == (
+        "Em Curitiba, mínima de 21 graus, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    assert _reply("máxima de amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, máxima de 29 graus, Senhor."
+    )
+    assert "forecast_days=2" in seen[-1]
+    assert "amanha" not in seen[-2]
+    assert _reply("mínima amanhã em curitiba", fetch, path) == (
+        "Amanhã em Curitiba, mínima de 16 graus, Senhor."
+    )
+
+
 def test_unrelated_tempo_is_not_weather(tmp_path):
     def fetch(_url):
         raise AssertionError("não devia buscar o clima")
@@ -1201,6 +1243,12 @@ def test_the_next_line_answers_the_question(monkeypatch):
             return f"{when} {place}, índice UV de 11, Senhor."
         if field == "pressao":
             return f"Em {place}, pressão de 1013 milibares, Senhor."
+        if field == "maxima":
+            when = "Amanhã em" if day == "amanha" else "Em"
+            return f"{when} {place}, máxima de 31 graus, Senhor."
+        if field == "minima":
+            when = "Amanhã em" if day == "amanha" else "Em"
+            return f"{when} {place}, mínima de 18 graus, Senhor."
         if day == "amanha":
             return f"Amanhã em {place}, máxima de 27 graus, nublado, Senhor."
         return f"Em {place}, 19 graus, nublado, Senhor."
@@ -1256,6 +1304,12 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert reply("Recife", []) == "Em Recife, índice UV de 11, Senhor."
     assert reply("pressão atmosférica", []) == "De qual lugar, Senhor."
     assert reply("Curitiba", []) == "Em Curitiba, pressão de 1013 milibares, Senhor."
+    assert reply("qual a máxima", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Em Recife, máxima de 31 graus, Senhor."
+    assert reply("qual o tempo", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Em Recife, 19 graus, nublado, Senhor."
+    assert reply("mínima amanhã", []) == "De qual lugar, Senhor."
+    assert reply("Curitiba", []) == "Amanhã em Curitiba, mínima de 18 graus, Senhor."
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):
