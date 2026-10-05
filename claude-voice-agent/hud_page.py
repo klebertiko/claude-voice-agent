@@ -1219,6 +1219,96 @@ function drawPlate() {
         break;
       }
     }
+    const nearerGuest = (box, item, other) => {
+      const x = (box.l + box.r) / 2;
+      const y = (box.t + box.b) / 2;
+      const guest = Math.hypot(item.p.x - x, item.p.y - y);
+      const own = Math.hypot(other.p.x - x, other.p.y - y);
+      return guest + 8 < own;
+    };
+    const seatFresh = (item, chosen) => {
+      const spot = chosen.opt;
+      const box = chosen.trial;
+      const lines = chosen.wrapped;
+      boxes.push(box);
+      const row = namedOnScreen.find((entry) => entry.star.id === item.star.id);
+      if (row) {
+        row.align = spot.align;
+        row.lx = spot.x;
+        row.ly = spot.y;
+        row.labelW = lines ? Math.max(ctx.measureText(lines[0]).width, ctx.measureText(lines[1]).width) : ctx.measureText(item.star.label).width;
+      }
+      paints.push({
+        item, box, contrast: chosen.contrast, lines, full: item.star.label, spot,
+        halo: chosen.contrast < 4.5, alpha: 0.92, fill: ink.ink, font: "400 14px " + ink.body,
+      });
+    };
+    const holeOf = (box, kind) => {
+      let hole = 0;
+      let seen = 0;
+      for (let y = box.t + 2; y <= box.b - 2; y += 4) {
+        for (let x = box.l + 2; x <= box.r - 2; x += 4) {
+          if (!plate) return 0;
+          const px = Math.floor(x * DPR) - plateX;
+          const py = Math.floor(y * DPR) - plateY;
+          if (px < 0 || py < 0 || px >= plateW || py >= plateH) continue;
+          const i = (py * plateW + px) * 4;
+          seen++;
+          if (!toneAt(x, y, kind) && plate[i] + plate[i + 1] + plate[i + 2] < 80) hole++;
+        }
+      }
+      return seen ? hole / seen : 0;
+    };
+    const needs = view.filter((item) => {
+      if (!eligible(item)) return false;
+      const paint = paints.find((entry) => entry.item.star.id === item.star.id);
+      return !paint || holeOf(paint.box, item.star.kind) > 0.35;
+    });
+    const claimed = new Set();
+    for (const item of needs) {
+      if (claimed.has(item.star.id)) continue;
+      const open = candidatesFor(item, []).pool.filter(usable);
+      for (const spot of open) {
+        const blockers = paints.filter((other) => other.item.star.id !== item.star.id && boxesHit(spot.trial, other.box));
+        if (blockers.length !== 1) continue;
+        const blocker = blockers[0];
+        if (claimed.has(blocker.item.star.id)) continue;
+        if (blocker.item.star.kind !== item.star.kind) continue;
+        if (!nearerGuest(spot.trial, item, blocker.item) || !nearerGuest(blocker.box, item, blocker.item)) continue;
+        const parkedX = (blocker.box.l + blocker.box.r) / 2;
+        const parkedY = (blocker.box.t + blocker.box.b) / 2;
+        if (Math.hypot(item.p.x - parkedX, item.p.y - parkedY) > 16) continue;
+        const held = boxes.filter((box) => box !== blocker.box).concat([spot.trial]);
+        const ownsSeat = (chosen, owner) => {
+          const box = chosen.trial;
+          const x = (box.l + box.r) / 2;
+          const y = (box.t + box.b) / 2;
+          const own = Math.hypot(owner.p.x - x, owner.p.y - y);
+          let other = Infinity;
+          for (const node of view) {
+            if (node.star.id === owner.star.id) continue;
+            other = Math.min(other, Math.hypot(node.p.x - x, node.p.y - y));
+          }
+          return own <= other + 8;
+        };
+        const next = candidatesFor(blocker.item, held).pool.find((chosen) => usable(chosen) && ownsSeat(chosen, blocker.item));
+        if (next) applySeat(blocker, next);
+        else {
+          const index = boxes.indexOf(blocker.box);
+          if (index >= 0) boxes.splice(index, 1);
+          const paintIndex = paints.indexOf(blocker);
+          if (paintIndex >= 0) paints.splice(paintIndex, 1);
+          const row = namedOnScreen.find((entry) => entry.star.id === blocker.item.star.id);
+          if (row) row.labelW = 0;
+        }
+        const existing = paints.find((entry) => entry.item.star.id === item.star.id);
+        if (existing) applySeat(existing, spot);
+        else seatFresh(item, spot);
+        claimed.add(item.star.id);
+        claimed.add(blocker.item.star.id);
+        break;
+      }
+    }
   }
   ctx.lineCap = "round";
   for (const stroke of strokes) {
