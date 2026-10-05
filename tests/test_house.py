@@ -73,6 +73,11 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
     )
     assert any("recife" in url for url in seen)
     assert _reply("qual a temperatura", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("vai chover", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("vai chover em curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "curitiba" in seen[-2]
 
 
 def test_unrelated_tempo_is_not_weather(tmp_path):
@@ -133,6 +138,8 @@ def test_search_speaks_the_abstract(tmp_path):
         "busque sobre o café",
         "busca aí café",
         "pesquisa pra mim o café",
+        "quero que pesquise café",
+        "dá uma pesquisada no café",
     ):
         assert _reply(said, fetch, path) == "O café é uma bebida, Senhor."
     assert all("q=cafe" in url and "sobre" not in url for url in seen)
@@ -170,6 +177,10 @@ def test_reminder_roundtrip(tmp_path):
     assert "aí" not in path.read_text(encoding="utf-8")
     assert _reply("lembra de pagar a luz", fetch, path) == "Anotado, Senhor."
     assert '"text": "pagar a luz"' in path.read_text(encoding="utf-8")
+    assert _reply("anota pra mim comprar pão", fetch, path) == "Anotado, Senhor."
+    saved = path.read_text(encoding="utf-8")
+    assert '"text": "comprar pão"' in saved
+    assert "pra mim" not in saved
     assert "pagar a luz" in _reply("quais são os lembretes", fetch, path)
     assert _reply("liste os arquivos", fetch, path) is None
 
@@ -179,6 +190,9 @@ def test_note_query_is_only_the_search():
 
     assert note_query_of("buscar nota projeto", "Nas notas, Senhor. entregar.") == "projeto"
     assert note_query_of("buscar nas notas projeto", "Nas notas, Senhor. entregar.") == "projeto"
+    assert note_query_of("procure nas minhas notas projeto", "Nas notas, Senhor. entregar.") == "projeto"
+    assert note_query_of("notas do projeto", "Nas notas, Senhor. entregar.") == "projeto"
+    assert note_query_of("tem nota sobre voz", "Nas notas, Senhor. revisar.") == "voz"
     assert note_query_of("voz", "Nas notas, Senhor. revisar o projeto de voz.") == "voz"
     assert note_query_of("buscar nota marte", "Não há nota com isso, Senhor.") == "marte"
     assert note_query_of("buscar nota", "O que devo buscar nas notas, Senhor?") == ""
@@ -201,6 +215,23 @@ def test_note_search_stays_in_the_vault(tmp_path):
         "Nas notas, Senhor. entregar o projeto na sexta."
     )
     assert _reply("procura nas notas projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("procure nas minhas notas projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("notas do projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
+    )
+    voice = tmp_path / "voice.json"
+    voice.write_text(
+        '[{"text": "revisar o projeto de voz", "at": "a"}]',
+        encoding="utf-8",
+    )
+    assert _reply("tem nota sobre voz", fetch, voice) == (
+        "Nas notas, Senhor. revisar o projeto de voz."
+    )
+    assert _reply("nas notas projeto", fetch, path) == (
         "Nas notas, Senhor. entregar o projeto na sexta."
     )
     assert _reply("buscar nota marte", fetch, path) == "Não há nota com isso, Senhor."

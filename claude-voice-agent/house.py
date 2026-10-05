@@ -138,7 +138,7 @@ def _note_text(note: str) -> str:
     while raw:
         plain = _plain(raw)
         dropped = False
-        for filler in ("ai ", "por favor ", "por gentileza "):
+        for filler in ("ai ", "por favor ", "por gentileza ", "para mim ", "pra mim "):
             if plain.startswith(filler):
                 words = len(filler.split())
                 raw = " ".join(raw.split()[words:]).strip(" .")
@@ -162,21 +162,34 @@ def _remember(note: str, path: Path, moment: datetime) -> str:
 def _note_subject(norm: str) -> str | None:
     """Assunto da busca nas notas. None quando a fala não é essa busca."""
     if norm in {
-        "buscar nota", "notas sobre",
+        "buscar nota", "notas sobre", "notas de", "notas do", "notas da",
         "buscar nas notas", "busque nas notas", "busca nas notas",
         "procurar nas notas", "procure nas notas", "procura nas notas",
+        "buscar nas minhas notas", "busque nas minhas notas", "busca nas minhas notas",
+        "procurar nas minhas notas", "procure nas minhas notas", "procura nas minhas notas",
+        "nas notas", "tem nota", "tem nota sobre", "tem alguma nota",
     }:
         return ""
     if norm.startswith("buscar nota "):
         return norm.split(" ", 2)[-1].strip()
-    if norm.startswith("notas sobre "):
-        return norm[len("notas sobre ") :].strip()
+    owned = re.match(r"^notas\s+(?:sobre|de|do|da)\s+(.+)$", norm)
+    if owned:
+        return owned.group(1).strip()
     found = re.match(
-        r"^(?:buscar|busque|busca|procurar|procure|procura)\s+nas\s+notas(?:\s+(.*))?$",
+        r"^(?:buscar|busque|busca|procurar|procure|procura)\s+nas\s+(?:minhas\s+)?notas(?:\s+(.*))?$",
         norm,
     )
     if found:
         return (found.group(1) or "").strip()
+    plain = re.match(r"^nas\s+notas(?:\s+(.*))?$", norm)
+    if plain:
+        return (plain.group(1) or "").strip()
+    held = re.match(
+        r"^tem\s+(?:alguma\s+)?nota(?:\s+(?:sobre|de|do|da))?(?:\s+(.*))?$",
+        norm,
+    )
+    if held:
+        return (held.group(1) or "").strip()
     return None
 
 
@@ -252,6 +265,9 @@ def _place_of(norm: str) -> str:
     heat = re.search(r"\btemperatura\s+em\s+(.+)$", norm)
     if heat:
         return heat.group(1).strip(" .")
+    rain = re.match(r"^vai chover\s+em\s+(.+)$", norm)
+    if rain:
+        return rain.group(1).strip(" .")
     forecast = re.search(r"\bprevisao\s+para\s+(.+)$", norm)
     if forecast:
         return forecast.group(1).strip(" .")
@@ -334,6 +350,8 @@ def _wants_weather(norm: str) -> bool:
         return True
     if "qual a temperatura" in norm or "qual e a temperatura" in norm or norm.startswith("temperatura"):
         return True
+    if re.match(r"^vai chover(?:\s+em\s+\S.*)?$", norm):
+        return True
     if norm.startswith("tempo ") and _bare_sky_place(norm):
         return True
     if re.search(r"\b(?:tempo|clima|previsao)\s+em\s+\S", norm):
@@ -355,9 +373,9 @@ def _wants_weather(norm: str) -> bool:
 
 
 _SEARCH_COMMAND = re.compile(
-    r"^(?:(?:por favor|pode|posso|quero|queria|vamos)\s+)*"
+    r"^(?:(?:por favor|pode|posso|quero|queria|vamos|da)\s+(?:que\s+|uma\s+)?)*"
     r"(?:me\s+)?"
-    r"(?:pesquisar|pesquise|pesquisa|buscar|busque|busca|procurar|procure|procura)"
+    r"(?:pesquisada|pesquisar|pesquise|pesquisa|buscar|busque|busca|procurar|procure|procura)"
     r"(?:\s+(.*))?$"
 )
 _QUERY_FILLERS = (
