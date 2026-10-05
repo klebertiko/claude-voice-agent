@@ -725,7 +725,7 @@ function drawPlate() {
   ctx.fillRect(0, 0, w, h);
   if (rect.width < 40 || rect.height < 40) return;
   const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height * 0.5;
+  const cy = rect.top + rect.height * (rect.width >= 700 ? 0.48 : 0.545);
   const fit = fitScene(rect);
   let scale = sceneScale(rect) * zoom;
   const yaw = yawUser;
