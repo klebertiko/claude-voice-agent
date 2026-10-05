@@ -706,6 +706,14 @@ function drawPlate() {
     paintDisc(far, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, false, reach * 0.7);
     ctx.globalAlpha = 0.88;
     paintDisc(center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, reach);
+    const lean = item.disc.tilt;
+    const shift = center.radius * 0.16;
+    const near = Object.assign({}, center, {
+      y: center.y - Math.cos(lean) * shift,
+      z: (center.z || 0) - Math.sin(lean) * shift * 0.65,
+    });
+    ctx.globalAlpha = 0.4;
+    paintDisc(near, lean, item.disc.rgb, yaw, pitch, cx, cy, scale, true, reach * 0.38);
   }
   ctx.restore();
   const byId = {};
