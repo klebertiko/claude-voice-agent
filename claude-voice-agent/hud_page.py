@@ -1775,6 +1775,7 @@ function settleLog() {
   if (!line) return;
   logLines.style.paddingBottom = "0px";
   logEl.style.maxHeight = "";
+  logEl.scrollLeft = 0;
   logEl.scrollTop = logEl.scrollHeight;
   const box = logEl.getBoundingClientRect();
   let drop = 0;
