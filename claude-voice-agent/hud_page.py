@@ -374,7 +374,7 @@ function fitScene(rect) {
   const offset = Math.min(rect.height * 0.22, reach);
   return {
     notas: Object.assign(at(0, -offset), { radius: radiusPx / k, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
-    sistemas: Object.assign(at(0, offset), { radius: radiusPx * 0.74 / k, zScale: 0.45, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
+    sistemas: Object.assign(at(0, offset * 0.55), { radius: radiusPx * 0.62 / k, zScale: 0.18, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
   };
 }
 function ringPos(index, total, center, radius, tilt) {
@@ -391,7 +391,7 @@ function ringPos(index, total, center, radius, tilt) {
 function notePos(index, total, center) {
   const n = Math.max(total, 1);
   const ring = n === 1 ? 0 : center.radius * 0.72;
-  return ringPos(index, n, center, ring, 0.95);
+  return ringPos(index, n, center, ring, 1.22);
 }
 function systemPos(star, center) {
   if (star.id === "sys-cerebro") return { x: center.x, y: center.y, z: center.z || 0 };
@@ -649,8 +649,8 @@ function drawPlate() {
   if (rect.width < 700) {
     const padX = 12;
     const padTop = 14;
-    const padBottom = 14;
-    for (let step = 0; step < 6; step++) {
+    const padBottom = 32;
+    for (let step = 0; step < 3; step++) {
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
       for (const item of view) {
         minX = Math.min(minX, item.p.x);
@@ -687,7 +687,7 @@ function drawPlate() {
     centroids[key] = { x: sx, y: sy, z: sz, maxD, name: meta.name, rgb: meta.rgb };
   }
   const discs = [
-    { center: fit.notas, tilt: 0.95, rgb: GROUPS.notas.rgb, strong: true },
+    { center: fit.notas, tilt: 1.22, rgb: GROUPS.notas.rgb, strong: true },
     { center: fit.sistemas, tilt: 0.9, rgb: GROUPS.sistemas.rgb, strong: false },
   ].map((disc) => {
     const rot = rotate(disc.center, yaw, pitch);
