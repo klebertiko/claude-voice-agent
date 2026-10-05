@@ -589,10 +589,12 @@ function drawReactor(now) {
 }
 function starAt(x, y) {
   let best = null;
-  let bestD = 28;
+  let bestD = 46;
   for (const item of namedOnScreen) {
     if (!item.outside) continue;
-    const d = Math.hypot(item.x - x, item.y - y);
+    const dot = Math.hypot(item.x - x, item.y - y);
+    const label = Math.hypot(item.x - x, item.y - 14 - y);
+    const d = Math.min(dot, label);
     if (d < bestD) { best = item; bestD = d; }
   }
   return best;
