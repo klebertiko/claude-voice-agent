@@ -70,6 +70,7 @@ def spoken_voice(spec: str) -> str:
     head = spec.split("+", 1)[0].split("*", 1)[0].strip()
     return head.rsplit("_", 1)[-1] or head
 
+
 PERSONAS: dict[str, Persona] = {p.key: p for p in (LILITH, ORION)}
 
 
