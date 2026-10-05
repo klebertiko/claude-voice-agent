@@ -272,7 +272,7 @@ _PAGE = r"""<!DOCTYPE html>
     .talk { grid-row: 4; padding-top: 4px; padding-bottom: 4px; }
     #permit { grid-row: 5; }
     .floor { grid-row: 6; padding-top: 4px; padding-bottom: 12px; flex-wrap: nowrap; gap: 8px; }
-    .floor .act { padding-left: 4px; padding-right: 4px; }
+    .floor .act { min-width: 44px; padding-left: 4px; padding-right: 4px; }
     #text { flex: 1 1 auto; min-width: 0; }
     .meta { gap: 16px; }
     .systems { flex-flow: row nowrap; overflow-x: auto; }
