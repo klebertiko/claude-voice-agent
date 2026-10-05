@@ -552,7 +552,7 @@ def _last_note(path: Path) -> str:
 
 
 _LATEST_NOTE = re.compile(
-    r"^(?:(?:me\s+)?(?:mostra|mostre|mostrar|le|leia|ler|qual(?:\s+(?:e|foi))?|cade)\s+)?"
+    r"^(?:(?:me\s+)?(?:mostra|mostre|mostrar|le|leia|ler|diz|fala|conta|qual(?:\s+(?:e|foi))?|cade)\s+)?"
     r"(?:(?:a|o)\s+)?"
     r"(?:(?:ultima|ultimo)\s+(?:nota|lembrete|recado)"
     r"|(?:nota|lembrete|recado)\s+mais\s+recente)$"
@@ -592,7 +592,7 @@ def _count_notes(path: Path) -> str:
 
 
 _FIRST_NOTE = re.compile(
-    r"^(?:(?:me\s+)?(?:mostra|mostre|mostrar|le|leia|ler|qual(?:\s+(?:e|foi))?|cade)\s+)?"
+    r"^(?:(?:me\s+)?(?:mostra|mostre|mostrar|le|leia|ler|diz|fala|conta|qual(?:\s+(?:e|foi))?|cade)\s+)?"
     r"(?:(?:a|o)\s+)?"
     r"(?:(?:primeira|primeiro)\s+(?:nota|lembrete|recado)"
     r"|(?:nota|lembrete|recado)\s+mais\s+antig[oa])$"

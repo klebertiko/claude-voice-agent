@@ -1207,6 +1207,9 @@ def test_note_search_stays_in_the_vault(tmp_path):
         "lembrete mais recente",
         "o último recado",
         "me mostra a nota mais recente",
+        "me conta a última nota",
+        "me diz a última nota",
+        "me fala o último lembrete",
     ):
         assert _reply(phrase, fetch, latest) == heard
     assert "mais recente" not in latest.read_text(encoding="utf-8")
@@ -1252,6 +1255,16 @@ def test_note_search_stays_in_the_vault(tmp_path):
     assert _reply("lembrete mais antigo", fetch, latest) == (
         "A primeira nota, Senhor. entregar o projeto na sexta."
     )
+    assert _reply("me diz a primeira nota", fetch, latest) == (
+        "A primeira nota, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("me conta o primeiro lembrete", fetch, latest) == (
+        "A primeira nota, Senhor. entregar o projeto na sexta."
+    )
+    assert _reply("me fala a nota mais antiga", fetch, latest) == (
+        "A primeira nota, Senhor. entregar o projeto na sexta."
+    )
+    assert "primeira" not in latest.read_text(encoding="utf-8")
     assert "mais antigo" not in latest.read_text(encoding="utf-8")
     assert _reply("as primeiras notas", fetch, latest) is None
     assert _reply("quantas notas eu tenho", fetch, latest) == "São 2 notas, Senhor."
