@@ -79,6 +79,19 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         return "Não achei essa cidade, Senhor."
     lat, lon, label = hit["latitude"], hit["longitude"], hit.get("name") or name
     if field == "umidade":
+        if day == "amanha":
+            key = "relative_humidity_2m_mean"
+            url = (
+                "https://api.open-meteo.com/v1/forecast?daily="
+                + key
+                + f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+            )
+            data = json.loads(fetch(url))
+            values = (data.get("daily") or {}).get(key) or []
+            if len(values) <= 1 or values[1] is None:
+                return "Não alcancei o clima, Senhor."
+            pct = int(round(float(values[1])))
+            return f"Amanhã em {label}, umidade de {pct} por cento, Senhor."
         url = (
             "https://api.open-meteo.com/v1/forecast?current=relative_humidity_2m"
             f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
@@ -90,6 +103,19 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         pct = int(round(float(humid)))
         return f"Em {label}, umidade de {pct} por cento, Senhor."
     if field == "sensacao":
+        if day == "amanha":
+            key = "apparent_temperature_mean"
+            url = (
+                "https://api.open-meteo.com/v1/forecast?daily="
+                + key
+                + f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+            )
+            data = json.loads(fetch(url))
+            values = (data.get("daily") or {}).get(key) or []
+            if len(values) <= 1 or values[1] is None:
+                return "Não alcancei o clima, Senhor."
+            graus = int(round(float(values[1])))
+            return f"Amanhã em {label}, sensação de {graus} graus, Senhor."
         url = (
             "https://api.open-meteo.com/v1/forecast?current=apparent_temperature"
             f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
@@ -101,6 +127,19 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         graus = int(round(float(feels)))
         return f"Em {label}, sensação de {graus} graus, Senhor."
     if field == "vento":
+        if day == "amanha":
+            key = "wind_speed_10m_mean"
+            url = (
+                "https://api.open-meteo.com/v1/forecast?daily="
+                + key
+                + f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+            )
+            data = json.loads(fetch(url))
+            values = (data.get("daily") or {}).get(key) or []
+            if len(values) <= 1 or values[1] is None:
+                return "Não alcancei o clima, Senhor."
+            km = int(round(float(values[1])))
+            return f"Amanhã em {label}, vento de {km} quilômetros por hora, Senhor."
         url = (
             "https://api.open-meteo.com/v1/forecast?current=wind_speed_10m"
             f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
@@ -160,6 +199,19 @@ def _weather(place: str, fetch, *, day: str = "", field: str = "") -> str:
         when = "Amanhã em" if day == "amanha" else "Em"
         return f"{when} {label}, {word} de {graus} graus, Senhor."
     if field == "pressao":
+        if day == "amanha":
+            key = "surface_pressure_mean"
+            url = (
+                "https://api.open-meteo.com/v1/forecast?daily="
+                + key
+                + f"&forecast_days=2&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
+            )
+            data = json.loads(fetch(url))
+            values = (data.get("daily") or {}).get(key) or []
+            if len(values) <= 1 or values[1] is None:
+                return "Não alcancei o clima, Senhor."
+            mb = int(round(float(values[1])))
+            return f"Amanhã em {label}, pressão de {mb} milibares, Senhor."
         url = (
             "https://api.open-meteo.com/v1/forecast?current=surface_pressure"
             f"&latitude={lat}&longitude={lon}&timezone=America%2FSao_Paulo"
@@ -1011,7 +1063,9 @@ def _humidity_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?umidade(?:\s+do\s+ar)?"
-        r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
     if match:
@@ -1031,7 +1085,9 @@ def _feels_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?sensacao\s+termica"
-        r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
     if not match:
@@ -1086,7 +1142,9 @@ def _pressure_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?pressao(?:\s+atmosferica)?"
-        r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
     if not match:
@@ -1112,7 +1170,9 @@ def _wind_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:(?:o|a)\s+)?(?:velocidade\s+do\s+)?vento"
-        r"(?:\s+(?:agora|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?",
+        r"(?:\s+(?:de|para)\s+(?:amanha|hoje))?"
+        r"(?:\s+(?:amanha|hoje|agora))?"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
     if match:
@@ -1403,7 +1463,8 @@ def house_reply(
         if pressure_place is not None:
             if not pressure_place:
                 return "De qual lugar, Senhor."
-            return _weather(pressure_place, fetch, field="pressao")
+            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            return _weather(pressure_place, fetch, day=day, field="pressao")
         uv_place = _uv_place(norm)
         if uv_place is not None:
             if not uv_place:
@@ -1421,17 +1482,20 @@ def house_reply(
         if wind_place is not None:
             if not wind_place:
                 return "De qual lugar, Senhor."
-            return _weather(wind_place, fetch, field="vento")
+            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            return _weather(wind_place, fetch, day=day, field="vento")
         feels_place = _feels_place(norm)
         if feels_place is not None:
             if not feels_place:
                 return "De qual lugar, Senhor."
-            return _weather(feels_place, fetch, field="sensacao")
+            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            return _weather(feels_place, fetch, day=day, field="sensacao")
         humid_place = _humidity_place(norm)
         if humid_place is not None:
             if not humid_place:
                 return "De qual lugar, Senhor."
-            return _weather(humid_place, fetch, field="umidade")
+            day = "amanha" if re.search(r"\bamanha\b", norm) else ""
+            return _weather(humid_place, fetch, day=day, field="umidade")
         if _wants_weather(norm):
             place = _place_of(norm)
             if not place:

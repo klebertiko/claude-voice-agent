@@ -320,7 +320,12 @@ def test_humidity_names_the_city(tmp_path):
             return (
                 '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
             )
+        if "relative_humidity_2m_mean" in url:
+            assert "forecast_days=2" in url
+            assert "temperature_2m" not in url
+            return '{"daily":{"relative_humidity_2m_mean":[80,64]}}'
         assert "relative_humidity_2m" in url
+        assert "current=" in url
         assert "temperature_2m" not in url
         return '{"current":{"relative_humidity_2m":80}}'
 
@@ -328,6 +333,7 @@ def test_humidity_names_the_city(tmp_path):
     assert _reply("umidade", fetch, path) == "De qual lugar, Senhor."
     assert _reply("tá úmido", fetch, path) == "De qual lugar, Senhor."
     assert _reply("me fala a umidade", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("umidade amanhã", fetch, path) == "De qual lugar, Senhor."
     assert seen == []
     assert _reply("umidade em recife", fetch, path) == (
         "Em Recife, umidade de 80 por cento, Senhor."
@@ -340,6 +346,16 @@ def test_humidity_names_the_city(tmp_path):
     )
     assert _reply("me fala a umidade em recife", fetch, path) == (
         "Em Recife, umidade de 80 por cento, Senhor."
+    )
+    assert "daily=" not in seen[-1]
+    assert _reply("umidade amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, umidade de 64 por cento, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "relative_humidity_2m_mean" in seen[-1]
+    assert "forecast_days=2" in seen[-1]
+    assert _reply("umidade para amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, umidade de 64 por cento, Senhor."
     )
     assert "graus" not in _reply("umidade em recife", fetch, path)
 
@@ -355,7 +371,13 @@ def test_feels_like_names_the_city(tmp_path):
             return (
                 '{"results":[{"latitude":-25.4,"longitude":-49.2,"name":"%s"}]}' % name
             )
+        if "apparent_temperature_mean" in url:
+            assert "forecast_days=2" in url
+            assert "temperature_2m" not in url
+            assert "relative_humidity" not in url
+            return '{"daily":{"apparent_temperature_mean":[14.2,21.4]}}'
         assert "apparent_temperature" in url
+        assert "current=" in url
         assert "temperature_2m" not in url
         assert "relative_humidity" not in url
         return '{"current":{"apparent_temperature":14.2}}'
@@ -363,6 +385,7 @@ def test_feels_like_names_the_city(tmp_path):
     path = tmp_path / "n.json"
     assert _reply("sensação térmica", fetch, path) == "De qual lugar, Senhor."
     assert _reply("me fala a sensação térmica", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("sensação térmica amanhã", fetch, path) == "De qual lugar, Senhor."
     assert seen == []
     assert _reply("sensação térmica em curitiba", fetch, path) == (
         "Em Curitiba, sensação de 14 graus, Senhor."
@@ -373,6 +396,12 @@ def test_feels_like_names_the_city(tmp_path):
     assert _reply("me fala a sensação térmica em recife", fetch, path) == (
         "Em Recife, sensação de 14 graus, Senhor."
     )
+    assert "daily=" not in seen[-1]
+    assert _reply("sensação térmica amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, sensação de 21 graus, Senhor."
+    )
+    assert "apparent_temperature_mean" in seen[-1]
+    assert "forecast_days=2" in seen[-1]
 
 
 def test_wind_names_the_city(tmp_path):
@@ -386,7 +415,14 @@ def test_wind_names_the_city(tmp_path):
             return (
                 '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
             )
+        if "wind_speed_10m_mean" in url:
+            assert "forecast_days=2" in url
+            assert "temperature_2m" not in url
+            assert "apparent_temperature" not in url
+            assert "relative_humidity" not in url
+            return '{"daily":{"wind_speed_10m_mean":[18.4,12.2]}}'
         assert "wind_speed_10m" in url
+        assert "current=" in url
         assert "temperature_2m" not in url
         assert "apparent_temperature" not in url
         assert "relative_humidity" not in url
@@ -396,6 +432,7 @@ def test_wind_names_the_city(tmp_path):
     assert _reply("vento", fetch, path) == "De qual lugar, Senhor."
     assert _reply("tá ventando", fetch, path) == "De qual lugar, Senhor."
     assert _reply("me diz o vento", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("vento para amanhã", fetch, path) == "De qual lugar, Senhor."
     assert seen == []
     assert _reply("vento em recife", fetch, path) == (
         "Em Recife, vento de 18 quilômetros por hora, Senhor."
@@ -409,6 +446,13 @@ def test_wind_names_the_city(tmp_path):
     assert _reply("me diz o vento em curitiba", fetch, path) == (
         "Em Curitiba, vento de 18 quilômetros por hora, Senhor."
     )
+    assert "daily=" not in seen[-1]
+    assert _reply("vento amanhã em curitiba", fetch, path) == (
+        "Amanhã em Curitiba, vento de 12 quilômetros por hora, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    assert "wind_speed_10m_mean" in seen[-1]
+    assert "forecast_days=2" in seen[-1]
 
 
 def test_sun_names_the_city(tmp_path):
@@ -506,7 +550,12 @@ def test_pressure_names_the_city(tmp_path):
             return (
                 '{"results":[{"latitude":-8.0,"longitude":-34.9,"name":"%s"}]}' % name
             )
+        if "surface_pressure_mean" in url:
+            assert "forecast_days=2" in url
+            assert "temperature_2m" not in url
+            return '{"daily":{"surface_pressure_mean":[1013.4,1008.2]}}'
         assert "surface_pressure" in url
+        assert "current=" in url
         assert "temperature_2m" not in url
         return '{"current":{"surface_pressure":1013.4}}'
 
@@ -514,6 +563,7 @@ def test_pressure_names_the_city(tmp_path):
     assert _reply("pressão", fetch, path) == "De qual lugar, Senhor."
     assert _reply("pressão atmosférica", fetch, path) == "De qual lugar, Senhor."
     assert _reply("me conta a pressão", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("pressão amanhã", fetch, path) == "De qual lugar, Senhor."
     assert seen == []
     assert _reply("pressão em recife", fetch, path) == (
         "Em Recife, pressão de 1013 milibares, Senhor."
@@ -524,6 +574,13 @@ def test_pressure_names_the_city(tmp_path):
     assert _reply("me conta a pressão em recife", fetch, path) == (
         "Em Recife, pressão de 1013 milibares, Senhor."
     )
+    assert "daily=" not in seen[-1]
+    assert _reply("pressão amanhã em recife", fetch, path) == (
+        "Amanhã em Recife, pressão de 1008 milibares, Senhor."
+    )
+    assert "name=recife" in seen[-2]
+    assert "surface_pressure_mean" in seen[-1]
+    assert "forecast_days=2" in seen[-1]
 
 
 def test_extreme_names_the_city(tmp_path):
@@ -1446,11 +1503,14 @@ def test_the_next_line_answers_the_question(monkeypatch):
 
     def fake_weather(place, _fetch, day="", field=""):
         if field == "umidade":
-            return f"Em {place}, umidade de 80 por cento, Senhor."
+            when = "Amanhã em" if day == "amanha" else "Em"
+            return f"{when} {place}, umidade de 80 por cento, Senhor."
         if field == "sensacao":
-            return f"Em {place}, sensação de 14 graus, Senhor."
+            when = "Amanhã em" if day == "amanha" else "Em"
+            return f"{when} {place}, sensação de 14 graus, Senhor."
         if field == "vento":
-            return f"Em {place}, vento de 18 quilômetros por hora, Senhor."
+            when = "Amanhã em" if day == "amanha" else "Em"
+            return f"{when} {place}, vento de 18 quilômetros por hora, Senhor."
         if field == "nascer":
             when = "Amanhã em" if day == "amanha" else "Em"
             return f"{when} {place}, o sol nasce às 5 horas e 12 minutos, Senhor."
@@ -1461,7 +1521,8 @@ def test_the_next_line_answers_the_question(monkeypatch):
             when = "Amanhã em" if day == "amanha" else "Em"
             return f"{when} {place}, índice UV de 11, Senhor."
         if field == "pressao":
-            return f"Em {place}, pressão de 1013 milibares, Senhor."
+            when = "Amanhã em" if day == "amanha" else "Em"
+            return f"{when} {place}, pressão de 1013 milibares, Senhor."
         if field == "maxima":
             when = "Amanhã em" if day == "amanha" else "Em"
             return f"{when} {place}, máxima de 31 graus, Senhor."
@@ -1533,6 +1594,16 @@ def test_the_next_line_answers_the_question(monkeypatch):
     assert reply("Recife", []) == "Em Recife, máxima de 31 graus, Senhor."
     assert reply("máxima para amanhã", []) == "De qual lugar, Senhor."
     assert reply("Recife", []) == "Amanhã em Recife, máxima de 31 graus, Senhor."
+    assert reply("umidade amanhã", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Amanhã em Recife, umidade de 80 por cento, Senhor."
+    assert reply("vento para amanhã", []) == "De qual lugar, Senhor."
+    assert reply("Curitiba", []) == (
+        "Amanhã em Curitiba, vento de 18 quilômetros por hora, Senhor."
+    )
+    assert reply("sensação térmica amanhã", []) == "De qual lugar, Senhor."
+    assert reply("Recife", []) == "Amanhã em Recife, sensação de 14 graus, Senhor."
+    assert reply("pressão amanhã", []) == "De qual lugar, Senhor."
+    assert reply("Curitiba", []) == "Amanhã em Curitiba, pressão de 1013 milibares, Senhor."
 
 
 def test_typed_search_keeps_orion_as_the_subject(monkeypatch):
