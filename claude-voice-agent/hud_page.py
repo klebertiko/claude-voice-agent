@@ -457,7 +457,7 @@ _PAGE = r"""<!DOCTYPE html>
 <canvas id="field" aria-label="constelação"></canvas>
 <div class="room">
   <header class="strip">
-    <h1><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path stroke-width="1.7" d="M21.5 3.2C6.2 6.2 3.6 15.2 5.6 24.2c1.5 5.2 7.2 7.2 13.4 5.2"/><path stroke-width="1.15" d="M23.2 5.4v21.2"/><path stroke-width="1.15" d="M14.6 18.4v4.2"/></g><g fill="currentColor"><path d="M10.2 16.15l1.45 1.45-1.45 1.45-1.45-1.45z"/><path d="M14.6 13.25l1.95 1.95-1.95 1.95-1.95-1.95z"/><path d="M19 11.35l1.45 1.45-1.45 1.45-1.45-1.45z"/><path d="M14.6 23.05l1.15 1.15-1.15 1.15-1.15-1.15z"/></g></svg>__NAME__</h1>
+    <h1><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linejoin="round"><path stroke-linecap="round" stroke-width="1.7" d="M22.5 3.4C8.8 7.4 7.4 12.2 9.4 16 7.4 19.8 8.8 24.6 22.5 28.6"/><path stroke-linecap="butt" stroke-width="1.1" d="M22.5 3.4Q20.6 16 22.5 28.6"/></g><g fill="currentColor"><path d="M12.7 18.7l.85.85-.85.85-.85-.85z"/><path d="M15 15.85l1.15 1.15L15 18.15l-1.15-1.15z"/><path d="M17.3 13.05l.85.85-.85.85-.85-.85z"/></g></svg>__NAME__</h1>
     <div class="meta">
       <p id="status">pronto</p>
       <p id="clock">00:00:00</p>
