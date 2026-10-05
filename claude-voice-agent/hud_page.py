@@ -1860,7 +1860,7 @@ async function refreshBrain() {
     if (pinnedSky === null && picked && String(picked).indexOf("sys-") === 0) {
       readSky(systemText[picked] || skyRead.textContent);
     }
-    refreshSky();
+    await refreshSky();
   } catch (err) {
     brainEl.textContent = "ausente";
   }
@@ -2278,11 +2278,10 @@ async function showTurn(data, sourceBtn) {
     else pinnedSky = null;
   }
   if (data.output) addLine("meta", data.output);
+  if (sourceBtn && data.reply) mark(sourceBtn, "success");
+  await refreshBrain();
   if (data.audio_b64) await playWav(data.audio_b64);
   else setState("idle");
-  if (sourceBtn && data.reply) mark(sourceBtn, "success");
-  refreshSky();
-  refreshBrain();
 }
 async function decide(allow) {
   if (!permitId) return;
