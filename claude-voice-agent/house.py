@@ -783,8 +783,18 @@ def _search_query(rest: str) -> str:
                 break
         else:
             break
-    if query.endswith(" no google"):
-        query = query[: -len(" no google")].strip()
+    changed = True
+    while changed and query:
+        changed = False
+        for tail in (" no google", " no youtube"):
+            if query.endswith(tail):
+                query = query[: -len(tail)].strip()
+                changed = True
+        if query.startswith("youtube "):
+            query = query[len("youtube ") :].strip()
+            changed = True
+        elif query == "youtube":
+            query = ""
     return query
 
 
@@ -1014,9 +1024,13 @@ def house_reply(
             norm,
         )
         who = re.match(r"^quem\s+(?:e|eh|foi|era|sao)(?:\s+(.*))?$", norm)
-        if about or defined or told or of or want or who:
+        gloss = re.match(
+            r"^(?:define|defina|definicao)(?:\s+(?:de|do|da))?(?:\s+(.*))?$",
+            norm,
+        )
+        if about or defined or told or of or want or who or gloss:
             asked = ""
-            for match in (about, defined, told, of, want, who):
+            for match in (about, defined, told, of, want, who, gloss):
                 if match:
                     asked = match.group(1) or ""
                     break

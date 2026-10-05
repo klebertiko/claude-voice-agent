@@ -403,6 +403,10 @@ def test_search_speaks_the_abstract(tmp_path):
         "me explica o café",
         "me fala do café",
         "quero saber sobre o café",
+        "pesquisa no youtube café",
+        "pesquisa café no youtube",
+        "define café",
+        "definição de café",
     ):
         assert _reply(said, fetch, path) == "O café é uma bebida, Senhor."
     assert all(url.endswith("q=cafe") for url in seen)
@@ -412,6 +416,8 @@ def test_search_speaks_the_abstract(tmp_path):
     assert _reply("me fala sobre", fetch, path) == "O que devo procurar, Senhor?"
     assert _reply("quero saber", fetch, path) == "O que devo procurar, Senhor?"
     assert _reply("quem é", fetch, path) == "O que devo procurar, Senhor?"
+    assert _reply("define", fetch, path) == "O que devo procurar, Senhor?"
+    assert _reply("pesquisa youtube", fetch, path) == "O que devo procurar, Senhor?"
     assert _reply("o que é você", fetch, path) is None
     assert _reply("quem é você", fetch, path) is None
     assert _reply("quem é santos dumont", fetch, path) == "O café é uma bebida, Senhor."
