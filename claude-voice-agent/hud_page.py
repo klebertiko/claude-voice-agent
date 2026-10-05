@@ -626,18 +626,41 @@ function drawPlate() {
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height * 0.5;
   const fit = fitScene(rect);
-  const scale = sceneScale(rect) * zoom;
+  let scale = sceneScale(rect) * zoom;
   const yaw = yawUser;
   const pitch = pitchUser;
   const world = buildWorld(fit);
+  const projectView = (amount) => world.all.map((node) => {
+    const rot = rotate(node.pos, yaw, pitch);
+    return { star: node.star, pos: node.pos, p: project(rot, cx, cy, amount) };
+  }).sort((a, b) => b.p.z - a.p.z);
+  let view = projectView(scale);
+  if (rect.width < 700) {
+    const pad = 36;
+    for (let step = 0; step < 8; step++) {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const item of view) {
+        minX = Math.min(minX, item.p.x);
+        maxX = Math.max(maxX, item.p.x);
+        minY = Math.min(minY, item.p.y);
+        maxY = Math.max(maxY, item.p.y);
+      }
+      const overflow = Math.max(
+        pad - (minY - rect.top),
+        pad - (rect.bottom - maxY),
+        pad - (minX - rect.left),
+        pad - (rect.right - maxX),
+        0
+      );
+      if (overflow < 2) break;
+      scale *= 0.88;
+      view = projectView(scale);
+    }
+  }
   ctx.save();
   ctx.beginPath();
   ctx.rect(rect.left, rect.top, rect.width, rect.height);
   ctx.clip();
-  const view = world.all.map((node) => {
-    const rot = rotate(node.pos, yaw, pitch);
-    return { star: node.star, pos: node.pos, p: project(rot, cx, cy, scale) };
-  }).sort((a, b) => b.p.z - a.p.z);
   const centroids = {};
   for (const key of ["nota", "sistema"]) {
     const pts = view.filter((item) => item.star.kind === key);
