@@ -375,14 +375,13 @@ function fitScene(rect) {
       sistemas: Object.assign(at(offset, 0), { radius: radiusPx / k, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
     };
   }
-  const room = Math.max(120, rect.height - 8);
-  const radiusPx = Math.max(48, Math.min(rect.width * 0.36, room * 0.34, (rect.width - 40) / 2));
+  const radiusPx = Math.max(48, Math.min(rect.width * 0.32, rect.height * 0.2, (rect.width - 40) / 2));
   const reach = Math.max(radiusPx * 0.70, rect.height / 2 - radiusPx - 16);
-  const offset = Math.min(rect.height * 0.24, reach);
+  const offset = Math.min(rect.height * 0.26, reach);
   const up = rect.height < 280 ? offset * 0.45 : offset;
   return {
     notas: Object.assign(at(0, -up), { radius: radiusPx / k, zScale: 0.36, name: GROUPS.notas.name, rgb: GROUPS.notas.rgb }),
-    sistemas: Object.assign(at(0, offset * 0.55), { radius: radiusPx * 0.62 / k, zScale: 0.18, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
+    sistemas: Object.assign(at(0, offset * 0.8), { radius: radiusPx * 0.72 / k, zScale: 0.18, name: GROUPS.sistemas.name, rgb: GROUPS.sistemas.rgb }),
   };
 }
 function ringPos(index, total, center, radius, tilt) {
