@@ -273,6 +273,42 @@ _PAGE = r"""<!DOCTYPE html>
     #permit { grid-row: 5; }
     .floor { grid-row: 6; padding-top: 4px; padding-bottom: 12px; flex-wrap: nowrap; gap: 8px; }
     .floor .act { min-width: 44px; padding-left: 4px; padding-right: 4px; }
+    /* A permissão cobre o piso. O céu não encolhe. */
+    #permit:not([hidden]) {
+      position: fixed;
+      z-index: 6;
+      left: 0;
+      right: 0;
+      bottom: var(--permit-bottom, 0px);
+      height: var(--permit-height, 65px);
+      margin: 0;
+      padding: 0 16px;
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      background: var(--color-bg);
+      max-width: none;
+    }
+    #permit:not([hidden]) p {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #permit:not([hidden]) #permit-cmd {
+      flex: 1 1 auto;
+      min-width: 4.5rem;
+      overflow-x: auto;
+      overflow-y: hidden;
+      text-overflow: clip;
+      white-space: nowrap;
+      scrollbar-width: none;
+    }
+    #permit:not([hidden]) #permit-cmd::-webkit-scrollbar { height: 0; display: none; }
+    #permit:not([hidden]) .act { flex: none; min-width: 44px; padding-left: 4px; padding-right: 4px; }
     #text { flex: 1 1 auto; min-width: 0; }
     .meta { gap: 16px; }
     .systems { flex-flow: row nowrap; overflow-x: auto; }
@@ -1678,8 +1714,9 @@ function showPermit(id, command) {
   permitId = id || "";
   permitCmd.textContent = command || "";
   permitEl.hidden = !permitId;
+  seatPermit();
   wake();
-  requestAnimationFrame(() => { seatNote(); seatLog(); settleLog(); });
+  requestAnimationFrame(() => { seatNote(); seatLog(); seatPermit(); settleLog(); });
 }
 async function refreshBrain() {
   try {
@@ -1773,6 +1810,14 @@ function seatLog() {
   if (!sky) return;
   const lift = Math.round(window.innerHeight - sky.getBoundingClientRect().bottom);
   document.documentElement.style.setProperty("--log-bottom", lift + "px");
+}
+function seatPermit() {
+  const floor = document.querySelector(".floor");
+  if (!floor) return;
+  const box = floor.getBoundingClientRect();
+  const root = document.documentElement.style;
+  root.setProperty("--permit-bottom", Math.round(window.innerHeight - box.bottom) + "px");
+  root.setProperty("--permit-height", Math.max(44, Math.round(box.height)) + "px");
 }
 function closeNote() {
   if (!noteEl || noteEl.hidden) return;
@@ -2220,7 +2265,7 @@ function markMore() {
   tel.style.setProperty("--more-x", moreX + "px");
 }
 systemsEl.addEventListener("scroll", markMore, { passive: true });
-addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); markMore(); seatNote(); seatLog(); });
+addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); markMore(); seatNote(); seatLog(); seatPermit(); });
 resize();
 seatLog();
 markMore();
