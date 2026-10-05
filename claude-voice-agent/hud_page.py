@@ -544,6 +544,7 @@ let memoryLinks = [];
 let noteQuery = "";
 let namedOnScreen = [];
 let picked = "";
+let pinnedSky = null;
 let hovered = "";
 let yawUser = 0;
 let pitchUser = -0.3;
@@ -564,14 +565,19 @@ const draftAsk = {
 };
 function readSkyFit(line) {
   readSky(line);
-  if (!line) return;
+  if (!line) {
+    pinnedSky = "";
+    return;
+  }
   const shown = getComputedStyle(skyRead).display !== "none";
   ctx.font = getComputedStyle(skyRead).font;
   const wide = ctx.measureText(line).width > 480;
   const cut = shown && skyRead.scrollWidth > skyRead.clientWidth + 1;
   if (wide || cut) readSky("");
+  pinnedSky = skyRead.hidden ? "" : skyRead.textContent;
 }
 function askSky(line) {
+  pinnedSky = null;
   readSky(line);
   if (!line || line === orbitHint) return;
   if (getComputedStyle(skyRead).display !== "none") return;
@@ -1841,7 +1847,7 @@ async function refreshBrain() {
       btn.setAttribute("aria-pressed", btn.dataset.brain === choice ? "true" : "false");
     }
     revealChoice();
-    if (picked && String(picked).indexOf("sys-") === 0) {
+    if (pinnedSky === null && picked && String(picked).indexOf("sys-") === 0) {
       readSky(systemText[picked] || skyRead.textContent);
     }
     refreshSky();
@@ -1994,6 +2000,7 @@ function focusStar(id) {
   const star = memory.find((item) => item.id === id);
   if (!star) return;
   picked = id;
+  pinnedSky = null;
   readSky(star.text || star.label);
   const node = buildWorld(fitScene(well.getBoundingClientRect())).all.find((item) => item.star.id === id);
   if (node) {
@@ -2022,7 +2029,7 @@ async function chooseBrain(id) {
     revealChoice();
     if (data.reply) {
       addLine("agent", data.reply);
-      readSky(data.reply);
+      readSkyFit(data.reply);
     }
     if (data.audio_b64) await playWav(data.audio_b64);
     else setState("idle");
@@ -2061,15 +2068,23 @@ function pointStar(ev, choose) {
     if (choose) {
       picked = "";
       closeNote();
+      pinnedSky = null;
       readSky(orbitHint);
+    } else if (pinnedSky !== null) {
+      readSky(pinnedSky);
     } else if (picked) {
       const held = namedOnScreen.find((item) => item.star.id === picked);
       if (held) readSky(held.star.kind === "sistema" ? (systemText[held.star.id] || held.star.text) : held.star.text);
     }
     return;
   }
+  if (!choose && pinnedSky !== null && hit.star.id === picked) {
+    readSky(pinnedSky);
+    return;
+  }
   if (choose) {
     picked = hit.star.id;
+    pinnedSky = null;
     const aim = anglesToward(hit.pos);
     yawTarget = aim.yaw;
     pitchTarget = aim.pitch;
@@ -2108,6 +2123,7 @@ function nearestStar(key) {
 }
 function focusStarItem(item, open) {
   picked = item.star.id;
+  pinnedSky = null;
   const aim = anglesToward(item.pos);
   yawTarget = aim.yaw;
   pitchTarget = aim.pitch;
@@ -2125,6 +2141,7 @@ addEventListener("keydown", (ev) => {
     picked = "";
     hovered = "";
     closeNote();
+    pinnedSky = null;
     readSky("");
     wake();
     return;
@@ -2170,7 +2187,8 @@ well.addEventListener("pointerup", () => {
 });
 well.addEventListener("pointerleave", () => {
   if (!drag) hovered = "";
-  if (!drag && !picked) readSky(orbitHint);
+  if (!drag && pinnedSky !== null) readSky(pinnedSky);
+  else if (!drag && !picked) readSky(orbitHint);
   wake();
 });
 well.addEventListener("wheel", (ev) => {
@@ -2247,6 +2265,7 @@ async function showTurn(data, sourceBtn) {
   if (data.reply) {
     addLine("agent", data.reply);
     if (noteEl.hidden) readSkyFit(data.reply);
+    else pinnedSky = null;
   }
   if (data.output) addLine("meta", data.output);
   if (data.audio_b64) await playWav(data.audio_b64);
@@ -2293,7 +2312,7 @@ voiceBtn.addEventListener("click", async () => {
 });
 for (const btn of document.querySelectorAll(".fact")) {
   btn.addEventListener("click", () => {
-    if (btn.dataset.brain) { closeNote(); readSky(""); chooseBrain(btn.dataset.brain); return; }
+    if (btn.dataset.brain) { closeNote(); pinnedSky = null; readSky(""); chooseBrain(btn.dataset.brain); return; }
     if (btn.dataset.voice) { closeNote(); askSky(systemText["sys-voz"]); voiceBtn.click(); return; }
     if (btn.dataset.draft) {
       closeNote();
@@ -2302,7 +2321,7 @@ for (const btn of document.querySelectorAll(".fact")) {
       askSky(draftAsk[btn.dataset.draft] || "");
       return;
     }
-    if (btn.dataset.ask) { closeNote(); readSky(""); sendText(btn.dataset.ask); }
+    if (btn.dataset.ask) { closeNote(); pinnedSky = null; readSky(""); sendText(btn.dataset.ask); }
   });
 }
 allowBtn.addEventListener("click", () => decide(true));
