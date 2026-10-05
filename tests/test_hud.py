@@ -66,6 +66,50 @@ def test_turn_without_wake_is_ignored():
     assert result.reply == ""
 
 
+def test_repeat_says_the_last_answer(tmp_path, monkeypatch):
+    reply = make_reply_fn(
+        Settings.from_env(
+            env={
+                "CLAUDE_VOICE_CODEX_CLI": "missing-codex",
+                "CLAUDE_VOICE_CURSOR_CLI": "missing-cursor",
+                "CLAUDE_VOICE_CLAUDE_CLI": "missing-claude",
+                "OLLAMA_HOST": "",
+                "CLAUDE_VOICE_OLLAMA_HOST": "",
+                "CLAUDE_VOICE_REMINDERS": str(tmp_path / "n.json"),
+            }
+        ),
+        get_persona("orion"),
+        lambda: WHEN,
+    )
+    assert reply("repete", []) == "Não tenho o que repetir, Senhor."
+    clock = reply("que horas são", [])
+    heard = [("user", "que horas são"), ("assistant", clock)]
+    assert reply("repete", heard) == clock
+    assert reply("repita isso", heard) == clock
+    assert reply("pode repetir", heard) == clock
+    assert reply(
+        "repete",
+        [
+            ("user", "que horas são"),
+            ("assistant", clock),
+            ("user", "liste os arquivos"),
+            ("assistant", "ACAO: xdg-open 'https://exemplo'"),
+        ],
+    ) == clock
+    assert reply("tempo", []) == "De qual lugar, Senhor."
+    assert reply("repete", [("user", "tempo"), ("assistant", "De qual lugar, Senhor.")]) == (
+        "De qual lugar, Senhor."
+    )
+
+    def fake_weather(place, _fetch, day="", field=""):
+        return f"Em {place}, 19 graus, nublado, Senhor."
+
+    monkeypatch.setattr("claude_agent_voice.house._weather", fake_weather)
+    assert reply("recife", [("user", "repete"), ("assistant", "De qual lugar, Senhor.")]) == (
+        "Em recife, 19 graus, nublado, Senhor."
+    )
+
+
 def test_spoken_name_when_asked():
     assert spoken_fallback("Qual seu nome?", "Orion", WHEN) == "O nome é Orion, Senhor."
     assert spoken_fallback("Quem é você?", "Orion", WHEN) == "O nome é Orion, Senhor."

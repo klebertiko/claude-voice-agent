@@ -235,6 +235,26 @@ def _panel_fact(cleaned: str, persona: Persona) -> str | None:
     return None
 
 
+_REPEAT = {
+    "repete",
+    "repita",
+    "repete isso",
+    "repita isso",
+    "pode repetir",
+    "pode repetir isso",
+}
+
+
+def _repeat(cleaned: str, history: list[tuple[str, str]]) -> str | None:
+    """A última fala, sem repetir uma ordem de abrir o computador."""
+    if _plain(cleaned) not in _REPEAT:
+        return None
+    for role, text in reversed(history):
+        if role == "assistant" and text and not text.startswith("ACAO:"):
+            return text
+    return "Não tenho o que repetir, Senhor."
+
+
 def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict | None = None):
     """Ordem local, depois as assinaturas, depois o Ollama, depois a reserva.
 
@@ -285,6 +305,9 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
             else:
                 pending["number"] = ""
             return housed
+        repeated = _repeat(cleaned, history)
+        if repeated:
+            return repeated
         if pending["kind"]:
             fact = _panel_fact(cleaned, persona)
             local = spoken_fallback(cleaned, persona.name, moment)
