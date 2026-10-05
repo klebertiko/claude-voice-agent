@@ -1347,12 +1347,29 @@ function noteHit(star) {
   return fold(star.text || star.label).includes(noteQuery);
 }
 function linksOf(id) {
-  const ids = new Set();
+  const ids = [];
+  const seen = new Set();
+  const push = (other) => {
+    if (!other || other === id || seen.has(other)) return;
+    seen.add(other);
+    ids.push(other);
+  };
   for (const link of memoryLinks) {
-    if (link.a === id) ids.add(link.b);
-    if (link.b === id) ids.add(link.a);
+    if (link.a === id) push(link.b);
+    if (link.b === id) push(link.a);
   }
-  return memory.filter((star) => ids.has(star.id));
+  for (const link of SYSTEM_LINKS) {
+    if (link[0] === id) push(link[1]);
+    if (link[1] === id) push(link[0]);
+  }
+  if (memory.length > 0 && memory.length <= 12 && memory.some((star) => star.id === id)) push("sys-lembretes");
+  return ids.map((other) => {
+    const note = memory.find((star) => star.id === other);
+    if (note) return { id: other, label: note.label, kind: "nota" };
+    const system = SYSTEMS.find((star) => star.id === other);
+    if (system) return { id: other, label: system.label, kind: "sistema" };
+    return null;
+  }).filter(Boolean);
 }
 function closeNote() {
   if (!noteEl || noteEl.hidden) return;
@@ -1378,7 +1395,11 @@ function openNote(star) {
     btn.type = "button";
     btn.className = "act";
     btn.textContent = other.label;
-    btn.addEventListener("click", () => focusStar(other.id));
+    btn.addEventListener("click", () => {
+      if (other.kind === "nota") { focusStar(other.id); return; }
+      const hit = namedOnScreen.find((item) => item.star.id === other.id);
+      if (hit) focusStarItem(hit, true);
+    });
     noteLinks.appendChild(btn);
   }
   requestAnimationFrame(settleLog);
