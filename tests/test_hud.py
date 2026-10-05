@@ -134,6 +134,8 @@ def test_page_has_microphone_and_no_camera():
     assert "Glorious" not in page
     assert "Betelgeuse" not in page
     assert "Meissa" not in page
+    assert "M20 6 L7 18" not in page
+    assert "M40 12C18 17 14 32 17 46" in page
     assert "constelação" in page
     assert "Notas" in page
     assert "Sistemas" in page
