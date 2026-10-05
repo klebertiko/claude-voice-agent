@@ -563,32 +563,6 @@ function nebulaSprite(rgb, strong) {
   nebulaCache[key] = sprite;
   return sprite;
 }
-const dust = [];
-(function seedDust() {
-  let s = 2166136261;
-  for (let i = 0; i < 36; i++) {
-    s = Math.imul(s ^ (s >>> 16), 2246822519) >>> 0;
-    const u = (s % 10000) / 10000;
-    s = Math.imul(s ^ (s >>> 13), 3266489917) >>> 0;
-    const v = (s % 10000) / 10000;
-    const mag = 0.35 + ((s >>> 8) % 100) / 140;
-    dust.push({ u, v, mag });
-  }
-})();
-function paintDust(rect) {
-  if (rect.width < 700) return;
-  ctx.save();
-  ctx.fillStyle = ink.ink;
-  for (const star of dust) {
-    const x = rect.left + 28 + star.u * Math.max(0, rect.width - 56);
-    const y = rect.top + 24 + star.v * Math.max(0, rect.height - 48);
-    ctx.globalAlpha = 0.16 + star.mag * 0.22;
-    ctx.beginPath();
-    ctx.arc(x, y, star.mag > 0.9 ? 1.25 : 0.75, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
-}
 function glowSprite(rgb) {
   const cached = glowCache[rgb];
   if (cached) return cached;
@@ -759,7 +733,6 @@ function drawPlate() {
   ctx.beginPath();
   ctx.rect(rect.left, rect.top, rect.width, rect.height);
   ctx.clip();
-  paintDust(rect);
   const centroids = {};
   for (const key of ["nota", "sistema"]) {
     const pts = view.filter((item) => item.star.kind === key);
@@ -1240,6 +1213,58 @@ function pointStar(ev, choose) {
   }
   readSky(hit.star.kind === "sistema" ? (systemText[hit.star.id] || hit.star.text) : hit.star.text);
 }
+function visibleStars() {
+  return namedOnScreen.filter((item) => item.outside && item.star && item.star.label);
+}
+function nearestStar(key) {
+  if (key !== "ArrowLeft" && key !== "ArrowRight" && key !== "ArrowUp" && key !== "ArrowDown") return null;
+  const items = visibleStars();
+  if (!items.length) return null;
+  const cur = items.find((item) => item.star.id === (picked || hovered));
+  const rect = well.getBoundingClientRect();
+  const ox = cur ? cur.x : rect.left + rect.width / 2;
+  const oy = cur ? cur.y : rect.top + rect.height / 2;
+  let best = null;
+  let bestScore = Infinity;
+  for (const item of items) {
+    if (cur && item.star.id === cur.star.id) continue;
+    const dx = item.x - ox;
+    const dy = item.y - oy;
+    if (key === "ArrowRight" && dx <= 8) continue;
+    if (key === "ArrowLeft" && dx >= -8) continue;
+    if (key === "ArrowDown" && dy <= 8) continue;
+    if (key === "ArrowUp" && dy >= -8) continue;
+    const horizontal = key === "ArrowLeft" || key === "ArrowRight";
+    const score = (horizontal ? Math.abs(dx) : Math.abs(dy)) + (horizontal ? Math.abs(dy) : Math.abs(dx)) * 1.6;
+    if (score < bestScore) { best = item; bestScore = score; }
+  }
+  return best;
+}
+function focusStarItem(item, open) {
+  picked = item.star.id;
+  const aim = anglesToward(item.pos);
+  yawTarget = aim.yaw;
+  pitchTarget = aim.pitch;
+  readSky(item.star.kind === "sistema" ? (systemText[item.star.id] || item.star.text) : item.star.text);
+  if (open && item.star.kind === "nota") openNote(item.star);
+  if (open && item.star.kind === "sistema") runSystem(item.star.id);
+  wake();
+}
+addEventListener("keydown", (ev) => {
+  const el = document.activeElement;
+  if (el && el !== document.body && el !== document.documentElement && el !== well) return;
+  if (ev.key === "Enter" && picked) {
+    const item = visibleStars().find((star) => star.star.id === picked);
+    if (!item) return;
+    ev.preventDefault();
+    focusStarItem(item, true);
+    return;
+  }
+  const item = nearestStar(ev.key);
+  if (!item) return;
+  ev.preventDefault();
+  focusStarItem(item, item.star.kind === "nota");
+});
 well.addEventListener("pointerdown", (ev) => {
   drag = { x: ev.clientX, y: ev.clientY, yaw: yawUser, pitch: pitchUser };
   dragMoved = 0;
