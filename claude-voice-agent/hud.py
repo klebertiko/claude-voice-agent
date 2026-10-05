@@ -118,13 +118,24 @@ def spoken_fallback(cleaned: str, name: str, moment: datetime) -> str:
         return "Pois não, Senhor."
     if "seu nome" in norm or "se chama" in norm or "quem e voce" in norm or "o que e voce" in norm:
         return f"O nome é {name}, Senhor."
-    if {"hora", "horas"} & set(norm.split()) and "amanha" not in norm and "ontem" not in norm:
+    if (
+        {"hora", "horas"} & set(norm.split())
+        and "amanha" not in norm
+        and "ontem" not in norm
+        and "dois dias" not in norm
+    ):
         return _speak_clock(moment)
     if _asks_date(norm):
-        if "depois de amanha" in norm:
-            return _speak_date(moment + timedelta(days=2), "Depois de amanhã", "é")
-        if "anteontem" in norm or "antes de ontem" in norm:
-            label = "Anteontem" if "anteontem" in norm else "Antes de ontem"
+        if "depois de amanha" in norm or "daqui a dois dias" in norm:
+            label = "Depois de amanhã" if "depois de amanha" in norm else "Daqui a dois dias"
+            return _speak_date(moment + timedelta(days=2), label, "é")
+        if "anteontem" in norm or "antes de ontem" in norm or "ha dois dias" in norm:
+            if "anteontem" in norm:
+                label = "Anteontem"
+            elif "antes de ontem" in norm:
+                label = "Antes de ontem"
+            else:
+                label = "Há dois dias"
             return _speak_date(moment - timedelta(days=2), label, "foi")
         if "amanha" in norm:
             return _speak_date(moment + timedelta(days=1), "Amanhã", "é")
@@ -329,7 +340,9 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
         housed = house_reply(cleaned, moment, reminders_path=settings.reminders_path)
         if housed:
             pending["kind"] = asked.get(housed, "")
-            if pending["kind"] == "weather" and "depois de amanha" in _plain(cleaned):
+            if pending["kind"] == "weather" and (
+                "depois de amanha" in _plain(cleaned) or "daqui a dois dias" in _plain(cleaned)
+            ):
                 pending["day"] = "depois"
             elif pending["kind"] == "weather" and _has_word(cleaned, "amanha"):
                 pending["day"] = "amanha"
@@ -376,7 +389,9 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
                 pending["kind"] = asked.get(spoken, "")
                 return spoken
             pending["number"] = ""
-            if kind == "weather" and "depois de amanha" in _plain(cleaned):
+            if kind == "weather" and (
+                "depois de amanha" in _plain(cleaned) or "daqui a dois dias" in _plain(cleaned)
+            ):
                 day = "depois"
             elif kind == "weather" and _has_word(cleaned, "amanha"):
                 day = "amanha"

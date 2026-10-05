@@ -94,6 +94,14 @@ def test_day_after_tomorrow_is_not_tomorrow(tmp_path):
         "Em Recife, 22 graus, quase limpo, Senhor."
     )
     assert "daily=" not in seen[-1]
+    before = len(seen)
+    assert _reply("tempo daqui a dois dias", fetch, path) == "De qual lugar, Senhor."
+    assert len(seen) == before
+    assert _reply("tempo daqui a dois dias em recife", fetch, path) == (
+        "Depois de amanhã em Recife, máxima de 31 graus, parcialmente nublado, Senhor."
+    )
+    assert "forecast_days=3" in seen[-1]
+    assert "name=recife" in seen[-2]
 
 
 def test_weekend_names_saturday_and_sunday(tmp_path):

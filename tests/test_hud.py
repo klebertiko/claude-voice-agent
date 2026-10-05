@@ -58,7 +58,14 @@ def test_spoken_clock_and_date():
     antes = spoken_fallback("que dia foi antes de ontem", "Orion", WHEN)
     assert antes.startswith("Antes de ontem foi")
     assert "quarta-feira, 30 de setembro" in antes
+    daqui = spoken_fallback("que dia é daqui a dois dias", "Orion", WHEN)
+    assert daqui.startswith("Daqui a dois dias é")
+    assert "domingo, 4 de outubro" in daqui
+    ha = spoken_fallback("que dia foi há dois dias", "Orion", WHEN)
+    assert ha.startswith("Há dois dias foi")
+    assert "quarta-feira, 30 de setembro" in ha
     assert spoken_fallback("que horas são antes de ontem", "Orion", WHEN).startswith("Entendido")
+    assert spoken_fallback("que horas são daqui a dois dias", "Orion", WHEN).startswith("Entendido")
     assert spoken_fallback("que horas são amanhã", "Orion", WHEN).startswith("Entendido")
     assert spoken_fallback("", "Orion", WHEN).startswith("Pois não")
     assert spoken_fallback("bom dia", "Orion", WHEN) == "Bom dia, Senhor."
@@ -378,3 +385,34 @@ def test_http_turn_greeting_and_ignore():
         assert heard["status"] == "replied"
     finally:
         httpd.shutdown()
+
+
+def test_two_days_from_now_stays_two_days(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_weather(place, _fetch, day="", field=""):
+        seen["place"] = place
+        seen["day"] = day
+        return f"Em {place}, dia {day or 'hoje'}, Senhor."
+
+    monkeypatch.setattr("claude_agent_voice.house._weather", fake_weather)
+    reply = make_reply_fn(
+        Settings.from_env(
+            env={
+                "CLAUDE_VOICE_CODEX_CLI": "missing-codex",
+                "CLAUDE_VOICE_CURSOR_CLI": "missing-cursor",
+                "CLAUDE_VOICE_CLAUDE_CLI": "missing-claude",
+                "OLLAMA_HOST": "",
+                "CLAUDE_VOICE_OLLAMA_HOST": "",
+                "CLAUDE_VOICE_REMINDERS": str(tmp_path / "n.json"),
+            }
+        ),
+        get_persona("orion"),
+        lambda: WHEN,
+    )
+    assert reply("tempo daqui a dois dias", []) == "De qual lugar, Senhor."
+    assert reply(
+        "recife",
+        [("user", "tempo daqui a dois dias"), ("assistant", "De qual lugar, Senhor.")],
+    ) == "Em recife, dia depois, Senhor."
+    assert seen == {"place": "recife", "day": "depois"}

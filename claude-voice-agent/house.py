@@ -37,7 +37,7 @@ _WX = {
 
 def _forecast_day(norm: str) -> str:
     """«depois de amanhã» não é amanhã."""
-    if "depois de amanha" in norm:
+    if "depois de amanha" in norm or "daqui a dois dias" in norm:
         return "depois"
     if re.search(r"\bamanha\b", norm):
         return "amanha"
@@ -930,7 +930,7 @@ def _bare_sky_place(norm: str) -> str:
     if not match:
         return ""
     place = match.group(1).strip(" .?")
-    if not place or place in {"agora", "hoje", "amanha", "aqui", "o tempo"}:
+    if not place or place in {"agora", "hoje", "amanha", "aqui", "o tempo", "daqui a dois dias"}:
         return ""
     if re.search(r"\b(?:para|que|com|quando|porque|fazer|faz)\b", place):
         return ""
@@ -946,10 +946,11 @@ def _city_name(place: str) -> str:
     """Tira hoje, agora e um lugar vago. «curitiba hoje» fica «curitiba»."""
     place = (place or "").strip(" .")
     place = re.sub(
-        r"^(?:depois\s+de\s+amanha|hoje|agora|la|muito|amanha|depois)(?:\s+(?:em|no|na|de|do|da))?\s+",
+        r"^(?:daqui\s+a\s+dois\s+dias|depois\s+de\s+amanha|hoje|agora|la|muito|amanha|depois)(?:\s+(?:em|no|na|de|do|da))?\s+",
         "",
         place,
     )
+    place = re.sub(r"\s+daqui\s+a\s+dois\s+dias$", "", place)
     place = re.sub(r"\s+depois\s+de\s+amanha$", "", place)
     place = re.sub(r"\s+(?:hoje|agora|amanha)$", "", place).strip()
     if not place or place in _VAGUE_PLACE:
@@ -1055,7 +1056,7 @@ def _quanto_place(norm: str) -> str | None:
 def _later_place(norm: str) -> str | None:
     """Cidade em «tempo para amanhã em Curitiba». None se não for essa frase."""
     match = re.match(
-        r"^(?:tempo|clima)\s+para\s+(?:depois\s+de\s+amanha|amanha|hoje|depois)"
+        r"^(?:tempo|clima)\s+para\s+(?:daqui\s+a\s+dois\s+dias|depois\s+de\s+amanha|amanha|hoje|depois)"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?$",
         norm,
     )
@@ -1081,7 +1082,7 @@ def _place_of(norm: str) -> str:
     if quanto is not None:
         return quanto
     day_city = re.search(
-        r"\b(?:tempo|clima|previsao)\s+(?:para\s+)?(?:depois\s+de\s+amanha|amanha|hoje|depois)\s+(?:em|no|na|de)\s+(.+)$",
+        r"\b(?:tempo|clima|previsao)\s+(?:para\s+)?(?:daqui\s+a\s+dois\s+dias|depois\s+de\s+amanha|amanha|hoje|depois)\s+(?:em|no|na|de)\s+(.+)$",
         norm,
     )
     if day_city:
@@ -1097,6 +1098,9 @@ def _place_of(norm: str) -> str:
             rest = norm[len(prefix) :].strip(" .")
             if prefix == "previsao para ":
                 return _city_name(rest)
+            rest = re.sub(r"\s+daqui\s+a\s+dois\s+dias$", "", rest).strip()
+            if not rest or rest == "daqui a dois dias":
+                return ""
             return rest
     match = re.search(
         r"\b(?:tempo|clima|previsao)\s+(?:la\s+)?(?:em|no|na|de)\s+(.+)$",
@@ -1590,6 +1594,8 @@ def _wants_weather(norm: str) -> bool:
     if "qual a temperatura" in norm or "qual e a temperatura" in norm or norm.startswith("temperatura"):
         return True
     if norm.startswith("tempo ") and _bare_sky_place(norm):
+        return True
+    if "daqui a dois dias" in norm and re.search(r"\b(?:tempo|clima|previsao)\b", norm):
         return True
     if re.search(r"\b(?:tempo|clima|previsao)\s+em\s+\S", norm):
         return True
