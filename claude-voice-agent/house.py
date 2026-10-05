@@ -721,6 +721,13 @@ def _topic_of(norm: str) -> str:
     )
     if brief:
         return _usable_topic(brief.group(1) or "") or "brasil"
+    fresh_round = re.fullmatch(
+        r"(?:me\s+)?atualiza(?:\s+(?:as|os|das|de|dos))?\s+noticias"
+        r"(?:\s+(?:sobre|de|do|da)\s+(.+))?",
+        norm,
+    )
+    if fresh_round:
+        return _usable_topic(fresh_round.group(1) or "") or "brasil"
     for prefix in (
         "noticias sobre ", "noticia sobre ",
         "noticias de ", "noticia de ",
