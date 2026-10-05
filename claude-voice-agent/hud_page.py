@@ -337,6 +337,7 @@ _PAGE = r"""<!DOCTYPE html>
       scrollbar-width: none;
     }
     .room:not(:has(#empty)) #log::-webkit-scrollbar { height: 0; display: none; }
+    .room:not(:has(#empty)) #log p { white-space: nowrap; }
     .room:not(:has(#empty)) #sky-read { display: none; }
   }
   @media (max-height: 780px) and (min-width: 641px) {
