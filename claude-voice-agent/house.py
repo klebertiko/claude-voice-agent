@@ -495,7 +495,8 @@ def _rain_place(norm: str) -> str | None:
     """Cidade numa frase de chuva, garoa ou trovoada. None se não for essa frase."""
     match = re.match(
         r"^(?:(?:amanha|hoje|depois)\s+)?"
-        r"(?:vai chover|(?:esta|ta)\s+(?:chovendo|garoando)|chove|garoa)"
+        r"(?:vai chover|(?:esta|ta)\s+(?:chovendo|garoando)|chove|garoa"
+        r"|vai dar(?:\s+uma)?\s+chuva|risco de chuva|pode chover)"
         r"(?:\s+(?:hoje|agora|la|muito|amanha|depois))?"
         r"(?:\s+(?:em|no|na)\s+(.+))?$",
         norm,
