@@ -1104,12 +1104,21 @@ function drawPlate() {
     if (af !== bf) return af ? -1 : 1;
     return 0;
   };
+  const readable = (item) => {
+    let best = 0;
+    for (const spot of candidatesFor(item, []).pool) {
+      if (spot.share < 0.8 || spot.intrusion >= 16 || spot.self) continue;
+      if (spot.contrast > best) best = spot.contrast;
+    }
+    return best;
+  };
   queue.sort((a, b) => {
     const focus = byFocus(a, b);
     if (focus) return focus;
     const rank = { nota: 0, sistema: 1 };
     const kind = (rank[a.star.kind] || 3) - (rank[b.star.kind] || 3);
     if (kind) return kind;
+    if (rect.width < WIDE) return readable(a) - readable(b) || (b.p.persp - a.p.persp);
     const nearerFirst = a.star.kind === "sistema";
     return (nearerFirst ? distOf(a) - distOf(b) : distOf(b) - distOf(a)) || (b.p.persp - a.p.persp);
   });
