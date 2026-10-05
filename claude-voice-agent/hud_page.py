@@ -93,13 +93,28 @@ _PAGE = r"""<!DOCTYPE html>
     margin: 0; padding: 0; border: 0; background: transparent;
     font: inherit; color: inherit; cursor: pointer; text-align: left;
   }
+  .systems button.fact {
+    flex-direction: column; align-items: flex-start; justify-content: flex-end;
+    gap: 0; padding-bottom: 2px;
+  }
+  .telemetry { position: relative; }
+  .telemetry:has(.systems.has-more)::after {
+    content: "";
+    position: absolute; right: 6px; top: 50%;
+    width: 6px; height: 6px; margin-top: -3px;
+    border-right: 1.5px solid var(--color-ink-2);
+    border-bottom: 1.5px solid var(--color-ink-2);
+    transform: rotate(-45deg);
+    pointer-events: none;
+  }
   .systems button.fact[aria-pressed="true"] { color: var(--color-accent); }
-  .systems .k, .systems dt { font-size: var(--text-body); font-weight: 400; color: var(--color-ink-2); white-space: nowrap; }
+  .systems .k, .systems dt { font-size: var(--text-support); font-weight: 400; line-height: 1.2; color: var(--color-ink-2); white-space: nowrap; }
   .systems .v, .systems dd {
-    margin: 0; font-size: var(--text-body); line-height: 1.5; text-align: left; white-space: nowrap;
+    margin: 0; font-size: var(--text-body); line-height: 1.2; text-align: left; white-space: nowrap;
     font-variant-numeric: tabular-nums; color: var(--color-ink); overflow-wrap: normal;
   }
   .systems .is-down { color: var(--color-ink-2); }
+  .systems button.fact:not(:has(.v)) .k { font-size: var(--text-body); line-height: 1.25; }
   .talk { display: flex; flex-direction: column; gap: 16px; }
   #note { display: flex; flex-direction: column; gap: 8px; max-width: 72ch; }
   #note[hidden] { display: none; }
@@ -225,13 +240,6 @@ _PAGE = r"""<!DOCTYPE html>
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
   @media (max-width: 1399px) {
     .systems { flex-flow: row wrap; overflow: visible; row-gap: 0; }
-    .systems button.fact {
-      flex-direction: column; align-items: flex-start; justify-content: flex-end;
-      gap: 0; min-height: 44px; padding-bottom: 2px;
-    }
-    .systems .k { font-size: var(--text-support); line-height: 1.2; }
-    .systems .v { font-size: var(--text-body); line-height: 1.2; }
-    .systems button.fact:not(:has(.v)) .k { font-size: var(--text-body); line-height: 1.25; }
   }
   @media (max-width: 640px) {
     .systems { flex-flow: row nowrap; overflow-x: auto; }
@@ -1669,8 +1677,18 @@ async function stopMic(ev) {
 micBtn.addEventListener("pointerdown", startMic);
 micBtn.addEventListener("pointerup", stopMic);
 micBtn.addEventListener("pointerleave", stopMic);
-addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); });
+const systemsEl = document.querySelector(".systems");
+function markMore() {
+  if (!systemsEl) return;
+  const more = systemsEl.scrollWidth - systemsEl.clientWidth - systemsEl.scrollLeft > 8;
+  systemsEl.classList.toggle("has-more", more);
+}
+systemsEl.addEventListener("scroll", markMore, { passive: true });
+addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); markMore(); });
 resize();
+markMore();
+requestAnimationFrame(markMore);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(markMore);
 tickClock();
 setInterval(tickClock, 1000);
 refreshBrain();
