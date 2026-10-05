@@ -1042,6 +1042,75 @@ function paintDisc(center, tilt, rgb, yaw, pitch, cx, cy, scale, strong, reach) 
   ctx.restore();
   return { pc, pu, pv };
 }
+function hemEdge(ang, phase) {
+  let edge = 0.72
+    + 0.16 * Math.sin(ang * 3 + phase)
+    + 0.08 * Math.sin(ang * 2 + phase * 0.7)
+    + 0.05 * Math.sin(ang * 5 + 1.1);
+  if (edge < 0.48) edge = 0.48;
+  if (edge > 0.98) edge = 0.98;
+  return edge;
+}
+function trimCloud(marks, rect, boxes, stars) {
+  for (let n = 0; n < marks.length; n++) {
+    const item = marks[n];
+    const other = marks[1 - n];
+    const edgeAt = (ang) => hemEdge(ang, item.phase);
+    ctx.save();
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.beginPath();
+    ctx.rect(rect.left, rect.top, rect.width, rect.height);
+    for (let b = 0; b < boxes.length; b++) {
+      const box = boxes[b];
+      ctx.rect(box.l - 6, box.t - 6, (box.r - box.l) + 12, (box.b - box.t) + 12);
+    }
+    for (let s = 0; s < stars.length; s++) {
+      ctx.moveTo(stars[s].p.x + 22, stars[s].p.y);
+      ctx.arc(stars[s].p.x, stars[s].p.y, 22, 0, Math.PI * 2);
+    }
+    if (other) {
+      const pc = other.mark.pc;
+      const ux = other.mark.pu.x - pc.x;
+      const uy = other.mark.pu.y - pc.y;
+      const vx = other.mark.pv.x - pc.x;
+      const vy = other.mark.pv.y - pc.y;
+      ctx.moveTo(pc.x + ux * 0.9, pc.y + uy * 0.9);
+      for (let i = 1; i <= 40; i++) {
+        const a = (i / 40) * Math.PI * 2;
+        ctx.lineTo(pc.x + ux * Math.cos(a) * 0.9 + vx * Math.sin(a) * 0.9, pc.y + uy * Math.cos(a) * 0.9 + vy * Math.sin(a) * 0.9);
+      }
+      ctx.closePath();
+    }
+    ctx.clip("evenodd");
+    const pc = item.mark.pc;
+    const pu = item.mark.pu;
+    const pv = item.mark.pv;
+    ctx.setTransform(
+      (pu.x - pc.x) * DPR, (pu.y - pc.y) * DPR,
+      (pv.x - pc.x) * DPR, (pv.y - pc.y) * DPR,
+      pc.x * DPR, pc.y * DPR
+    );
+    ctx.fillStyle = ink.bg;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.moveTo(1, 0);
+    for (let i = 1; i <= 64; i++) {
+      const a = (i / 64) * Math.PI * 2;
+      ctx.lineTo(Math.cos(a), Math.sin(a));
+    }
+    ctx.closePath();
+    ctx.moveTo(edgeAt(0), 0);
+    for (let i = 1; i <= 64; i++) {
+      const a = (i / 64) * Math.PI * 2;
+      const e = edgeAt(a);
+      ctx.lineTo(Math.cos(a) * e, Math.sin(a) * e);
+    }
+    ctx.closePath();
+    ctx.fill("evenodd");
+    ctx.restore();
+  }
+}
 function paintLanes(marks, rect, boxes, stars) {
   if (!marks.length) return;
   ctx.save();
@@ -1173,6 +1242,7 @@ function drawPlate() {
     discMarks.push({
       mark: paintDisc(center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, reach),
       phase: item.disc.strong ? 0.4 : 2.2,
+      kind: item.disc.strong ? "nota" : "sistema",
     });
     const lean = item.disc.tilt;
     const zScale = center.zScale == null ? 1 : center.zScale;
@@ -1686,6 +1756,7 @@ function drawPlate() {
       liftSeats = false;
     }
   }
+  trimCloud(discMarks, rect, boxes, view);
   paintLanes(discMarks, rect, boxes, view);
   ctx.lineCap = "round";
   for (const stroke of strokes) {

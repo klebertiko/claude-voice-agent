@@ -249,6 +249,8 @@ def test_page_has_microphone_and_no_camera():
     assert "M22.5 3.4C8.8 7.4 7.4 12.2 9.4 16" in page
     assert "M15 14.7l2.3 2.3" in page
     assert "function paintLanes(" in page
+    assert "function hemEdge(" in page
+    assert "if (edge < 0.48) edge = 0.48;" in page
     assert "M12.7 18.7l.85.85" not in page
     assert "constelação" in page
     assert "Notas" in page
