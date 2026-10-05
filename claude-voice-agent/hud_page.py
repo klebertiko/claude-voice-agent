@@ -1704,7 +1704,7 @@ function focusStarItem(item, open) {
   pitchTarget = aim.pitch;
   readSky(item.star.kind === "sistema" ? (systemText[item.star.id] || item.star.text) : item.star.text);
   if (open && item.star.kind === "nota") openNote(item.star);
-  else if (item.star.kind !== "nota") closeNote();
+  else closeNote();
   if (open && item.star.kind === "sistema") runSystem(item.star.id);
   wake();
 }
@@ -1730,7 +1730,7 @@ addEventListener("keydown", (ev) => {
   const item = nearestStar(ev.key);
   if (!item) return;
   ev.preventDefault();
-  focusStarItem(item, item.star.kind === "nota");
+  focusStarItem(item, false);
 });
 well.addEventListener("pointerdown", (ev) => {
   drag = { x: ev.clientX, y: ev.clientY, yaw: yawUser, pitch: pitchUser };
