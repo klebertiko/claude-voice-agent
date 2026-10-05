@@ -519,6 +519,7 @@ _REMEMBER_PREFIXES = (
     "me lembra de ",
     "me lembre ",
     "me lembra ",
+    "lembrete de ",
     "lembrete ",
     "lembra de ",
     "lembra ",
@@ -1682,7 +1683,7 @@ def house_reply(
             sky = _weather("São Paulo", fetch)
             return f"São {clock_h} horas, Senhor. {sky}"
         if norm in {
-            "anote", "anota", "lembrete", "lembra", "lembra de",
+            "anote", "anota", "lembrete", "lembrete de", "lembra", "lembra de",
             "me lembre", "me lembra", "me lembre de", "me lembra de",
             "esquece de", "esquece", "nao esquece de", "nao esquece", "nao me deixa esquecer de",
             "guarda nas notas", "guarda na nota",

@@ -1374,6 +1374,11 @@ def test_reminder_roundtrip(tmp_path):
     assert _reply("lembrete comprar pão", fetch, path) == "Anotado, Senhor."
     saved = path.read_text(encoding="utf-8")
     assert '"text": "comprar pão"' in saved
+    assert _reply("lembrete de comprar pão", fetch, path) == "Anotado, Senhor."
+    saved = path.read_text(encoding="utf-8")
+    assert '"text": "comprar pão"' in saved
+    assert "de comprar" not in saved
+    assert _reply("lembrete de", fetch, path) == "O que devo anotar, Senhor?"
     assert _reply("quero anotar ligar amanhã", fetch, path) == "Anotado, Senhor."
     saved = path.read_text(encoding="utf-8")
     assert '"text": "ligar amanhã"' in saved
@@ -2182,6 +2187,9 @@ def test_the_next_line_is_the_note(tmp_path):
     assert reply("guarda isso", []) == "O que devo anotar, Senhor?"
     assert reply("ligar amanhã", []) == "Anotado, Senhor."
     assert "ligar amanhã" in notes.read_text(encoding="utf-8")
+    assert reply("lembrete de", []) == "O que devo anotar, Senhor?"
+    assert reply("pagar a luz", []) == "Anotado, Senhor."
+    assert '"text": "pagar a luz"' in notes.read_text(encoding="utf-8")
     assert reply("buscar nota", []) == "O que devo buscar nas notas, Senhor?"
     assert "comprar café" in reply("café", [])
 
