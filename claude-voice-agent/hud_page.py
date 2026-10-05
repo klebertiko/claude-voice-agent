@@ -762,10 +762,13 @@ function drawPlate() {
     ctx.strokeStyle = "rgb(7, 13, 22)";
     ctx.lineWidth = (hot ? 2.2 : 1.9) * depth + 2.6;
     ctx.stroke();
-    ctx.globalAlpha = alpha;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = Math.min(1, alpha);
     ctx.strokeStyle = hot ? ink.accent : tone;
-    ctx.lineWidth = (hot ? 2.2 : 1.9) * depth;
+    ctx.lineWidth = (hot ? 2.4 : 2.1) * depth;
     ctx.stroke();
+    ctx.restore();
   }
   ctx.setLineDash([]);
   namedOnScreen = [];
