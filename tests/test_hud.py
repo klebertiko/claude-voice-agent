@@ -137,6 +137,22 @@ def test_page_has_microphone_and_no_camera():
     assert 'id="brain-claude"' in page
 
 
+def test_status_notes_count_follows_the_file(tmp_path):
+    path = tmp_path / "n.json"
+    path.write_text("[]", encoding="utf-8")
+    hud = VoiceHud(
+        session=_session(),
+        reply_fn=_reply,
+        synth_fn=lambda text: (b"\x00\x00", 24000),
+        transcribe_fn=lambda pcm, rate: "",
+        clock=lambda: 0.0,
+        reminders_path=path,
+    )
+    assert hud.status_payload()["notes"] == 0
+    path.write_text(json.dumps([{"text": "comprar pao"}]), encoding="utf-8")
+    assert hud.status_payload()["notes"] == 1
+
+
 def test_wav_bytes_header():
     wav = wav_bytes(b"\x00\x00" * 4, 24000)
     assert wav.startswith(b"RIFF")

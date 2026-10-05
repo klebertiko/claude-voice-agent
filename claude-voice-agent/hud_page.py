@@ -2253,6 +2253,7 @@ async function showTurn(data, sourceBtn) {
   else setState("idle");
   if (sourceBtn && data.reply) mark(sourceBtn, "success");
   refreshSky();
+  refreshBrain();
 }
 async function decide(allow) {
   if (!permitId) return;

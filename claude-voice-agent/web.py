@@ -135,22 +135,25 @@ class VoiceHud:
             payload["code"] = code
             return payload
 
+    def _notes_count(self) -> int:
+        try:
+            raw = json.loads(Path(self.reminders_path).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, TypeError):
+            return 0
+        return len(raw) if isinstance(raw, list) else 0
+
     def status_payload(self) -> dict:
         now = time.monotonic()
         if self._status_cache is not None and now - self._status_at < 3:
-            return self._status_cache
+            payload = dict(self._status_cache)
+            payload["notes"] = self._notes_count()
+            return payload
         info = self.probe_fn() or {}
         try:
             load = [round(n, 2) for n in os.getloadavg()]
         except OSError:
             load = []
-        notes = 0
-        try:
-            raw = json.loads(Path(self.reminders_path).read_text(encoding="utf-8"))
-            if isinstance(raw, list):
-                notes = len(raw)
-        except (OSError, json.JSONDecodeError, TypeError):
-            notes = 0
+        notes = self._notes_count()
         brains = list(info.get("brains") or [])
         payload = {
             "up": bool(info.get("up")),
