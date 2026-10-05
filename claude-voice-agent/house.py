@@ -701,6 +701,13 @@ def _topic_of(norm: str) -> str:
     )
     if fresh:
         return _usable_topic(fresh.group(1) or "") or "brasil"
+    rolling = re.match(
+        r"^(?:me\s+(?:conta|fala|diz)\s+)?o que (?:esta|ta) rolando"
+        r"(?:\s+(?:sobre|de|do|da|em|no|na)\s+(.+?))?(?:\s+(?:hoje|agora))?$",
+        norm,
+    )
+    if rolling:
+        return _usable_topic(rolling.group(1) or "") or "brasil"
     if re.fullmatch(
         r"(?:(?:quais|me da|me fala|me conta)\s+(?:as|os)\s+)?(?:as\s+)?ultimas\s+noticias",
         norm,
@@ -1051,6 +1058,11 @@ def house_reply(
             or re.match(
                 r"^(?:me\s+(?:conta|fala|diz)\s+)?o que (?:ha|houve) de novo"
                 r"(?:\s+(?:sobre|de|do|da)\s+\S.*)?(?:\s+(?:hoje|agora))?$",
+                norm,
+            )
+            or re.match(
+                r"^(?:me\s+(?:conta|fala|diz)\s+)?o que (?:esta|ta) rolando"
+                r"(?:\s+(?:sobre|de|do|da|em|no|na)\s+\S.*)?(?:\s+(?:hoje|agora))?$",
                 norm,
             )
         ):
