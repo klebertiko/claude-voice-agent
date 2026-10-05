@@ -644,8 +644,24 @@ def test_news_asks_then_reads_the_topic(tmp_path):
     )
     assert "brasil" in seen[-1].lower()
     assert "hoje" not in seen[-1].lower()
+    assert _reply("o que houve hoje", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=brasil")
+    assert "hoje" not in seen[-1].lower()
+    assert _reply("o que houve agora", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert seen[-1].endswith("q=brasil")
+    assert "agora" not in seen[-1].lower()
+    assert _reply("me conta o que houve hoje", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert "hoje" not in seen[-1].lower()
     before = len(seen)
     assert _reply("o que aconteceu", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
+    assert _reply("o que houve", fetch, tmp_path / "n.json") is None
+    assert _reply("o que houve na geladeira", fetch, tmp_path / "n.json") is None
     assert len(seen) == before
     assert _reply("o que aconteceu no brasil", fetch, tmp_path / "n.json") == (
         "Nas notícias, Senhor. Alpha sobe. Beta cai."
