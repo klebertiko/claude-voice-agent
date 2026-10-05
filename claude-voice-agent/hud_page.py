@@ -246,13 +246,49 @@ _PAGE = r"""<!DOCTYPE html>
     .systems button.fact { flex: none; }
   }
   @media (max-width: 640px) and (max-height: 700px) {
-    .room:has(#empty):not(:has(#note:not([hidden]))) {
+    .room:has(#empty) {
       grid-template-rows: auto minmax(0, 1fr) auto 0 auto auto;
     }
-    .room:has(#empty):not(:has(#note:not([hidden]))) .talk {
+    .room:has(#empty) .talk {
       padding-top: 0;
       padding-bottom: 0;
     }
+    /* A nota aberta fica na faixa dos instrumentos. O céu não encolhe. */
+    .room:has(#empty) #note:not([hidden]) {
+      position: fixed;
+      z-index: 4;
+      left: 0;
+      right: 0;
+      bottom: var(--note-bottom, 65px);
+      height: 52px;
+      margin: 0;
+      padding: 4px 16px;
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      gap: 16px;
+      overflow: hidden;
+      background: var(--color-bg);
+      max-width: none;
+    }
+    .room:has(#empty) #note:not([hidden]) #note-text {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.25;
+    }
+    .room:has(#empty) #note.is-links #note-text { display: none; }
+    .room:has(#empty) #note:not([hidden]) #note-links {
+      flex: none;
+      max-width: 100%;
+      min-width: 0;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .room:has(#empty) #note:not([hidden]) #note-links::-webkit-scrollbar { height: 0; display: none; }
   }
   @media (max-height: 780px) and (min-width: 641px) {
     #log, .room:has(#note:not([hidden])) #log { max-height: 3.5rem; }
@@ -1680,15 +1716,24 @@ function linksOf(id) {
     return null;
   }).filter(Boolean);
 }
+function seatNote() {
+  const tel = document.querySelector(".telemetry");
+  if (!tel) return;
+  const lift = Math.round(window.innerHeight - tel.getBoundingClientRect().bottom);
+  document.documentElement.style.setProperty("--note-bottom", lift + "px");
+}
 function closeNote() {
   if (!noteEl || noteEl.hidden) return;
   noteEl.hidden = true;
+  noteEl.classList.remove("is-links");
   noteText.textContent = "";
   noteLinks.replaceChildren();
   requestAnimationFrame(settleLog);
 }
 function openNote(star) {
   if (!noteEl) return;
+  seatNote();
+  noteEl.classList.remove("is-links");
   noteEl.hidden = false;
   noteText.textContent = star.text || star.label;
   noteLinks.replaceChildren();
@@ -1711,7 +1756,11 @@ function openNote(star) {
     });
     noteLinks.appendChild(btn);
   }
-  requestAnimationFrame(settleLog);
+  requestAnimationFrame(() => {
+    settleLog();
+    const sheet = window.matchMedia("(max-width: 640px) and (max-height: 700px)").matches && document.getElementById("empty");
+    noteEl.classList.toggle("is-links", !!(sheet && noteText.getBoundingClientRect().width < 24));
+  });
 }
 function focusStar(id) {
   const star = memory.find((item) => item.id === id);
@@ -2118,7 +2167,7 @@ function markMore() {
   tel.style.setProperty("--more-x", moreX + "px");
 }
 systemsEl.addEventListener("scroll", markMore, { passive: true });
-addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); markMore(); });
+addEventListener("resize", () => { resize(); wake(); requestAnimationFrame(settleLog); markMore(); seatNote(); });
 resize();
 markMore();
 requestAnimationFrame(markMore);
