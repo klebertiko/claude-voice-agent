@@ -353,18 +353,19 @@ def _city_name(place: str) -> str:
 
 
 def _heat_place(norm: str) -> str | None:
-    """Cidade numa frase de calor ou frio. None se não for essa frase."""
+    """Cidade numa frase de calor, frio, sol ou nuvem. None se não for essa frase."""
     match = re.match(
-        r"^(?:faz calor"
-        r"|(?:esta|ta)(?:\s+fazendo)?(?:\s+muito)?\s+(?:calor|quente|frio)"
-        r"|vai fazer(?:\s+muito)?\s+(?:calor|frio|quente))"
+        r"^(?:faz (?:calor|sol)"
+        r"|(?:esta|ta)(?:\s+fazendo)?(?:\s+muito)?\s+(?:calor|quente|frio|sol|nublado)"
+        r"|vai (?:esfriar|esquentar)"
+        r"|vai fazer(?:\s+muito)?\s+(?:calor|frio|quente|sol))"
         r"(?:\s+(?:hoje|agora|la|muito))?"
         r"(?:\s+(?:em|no|na)\s+(.+))?$",
         norm,
     )
     if match:
         return _city_name(match.group(1) or "")
-    bare = re.match(r"^(?:calor|frio)\s+(?:em|no|na)\s+(.+)$", norm)
+    bare = re.match(r"^(?:calor|frio|sol|nublado)\s+(?:em|no|na)\s+(.+)$", norm)
     if bare:
         return _city_name(bare.group(1))
     return None
