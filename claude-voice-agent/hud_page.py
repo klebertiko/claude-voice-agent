@@ -755,6 +755,7 @@ function boxHitsSegment(box, seg) {
   return false;
 }
 let liftSeats = false;
+let fineSeats = false;
 function labelSpots(x, y, cx0, cy0) {
   const spots = [
     { x: x + 14, y, align: "left" },
@@ -804,6 +805,15 @@ function labelSpots(x, y, cx0, cy0) {
       { x, y: y - 44, align: "center" },
       { x, y: y + 44, align: "center" }
     );
+  }
+  if (fineSeats) {
+    for (const dy of [-40, -32, -24, 24, 32, 40]) {
+      for (const dx of [-40, -24, -16, 0, 16, 24, 40]) {
+        spots.push({ x: x + dx, y: y + dy, align: "center" });
+        if (dx > 0) spots.push({ x: x + dx, y: y + dy, align: "right" });
+        if (dx < 0) spots.push({ x: x + dx, y: y + dy, align: "left" });
+      }
+    }
   }
   return spots;
 }
@@ -1057,8 +1067,10 @@ function drawPlate() {
       let seen = 0;
       let worst = plate ? 99 : 8;
       const fillLum = toneLum(232, 238, 246);
-      for (let y = trial.t + 2; y <= trial.b - 2; y += 4) {
-        for (let x = trial.l + 2; x <= trial.r - 2; x += 6) {
+      const stepY = fineSeats ? 2 : 4;
+      const stepX = fineSeats ? 2 : 6;
+      for (let y = trial.t + 2; y <= trial.b - 2; y += stepY) {
+        for (let x = trial.l + 2; x <= trial.r - 2; x += stepX) {
           seen++;
           tone += toneAt(x, y, item.star.kind);
           if (!plate) continue;
@@ -1325,6 +1337,73 @@ function drawPlate() {
         claimed.add(blocker.item.star.id);
         break;
       }
+    }
+    const coverOf = (box, kind) => {
+      let tone = 0;
+      let hole = 0;
+      let seen = 0;
+      let worst = 99;
+      const fillLum = toneLum(232, 238, 246);
+      for (let y = box.t + 2; y <= box.b - 2; y += 2) {
+        for (let x = box.l + 2; x <= box.r - 2; x += 2) {
+          if (!plate) return { tone: 0, hole: 1, contrast: 1 };
+          const px = Math.floor(x * DPR) - plateX;
+          const py = Math.floor(y * DPR) - plateY;
+          if (px < 0 || py < 0 || px >= plateW || py >= plateH) continue;
+          const i = (py * plateW + px) * 4;
+          const r = plate[i];
+          const g = plate[i + 1];
+          const b = plate[i + 2];
+          seen++;
+          if (toneAt(x, y, kind)) tone++;
+          else if (r + g + b < 80) hole++;
+          const lum = toneLum(r, g, b);
+          const hi = Math.max(fillLum, lum);
+          const lo = Math.min(fillLum, lum);
+          worst = Math.min(worst, (hi + 0.05) / (lo + 0.05));
+        }
+      }
+      return {
+        tone: seen ? tone / seen : 0,
+        hole: seen ? hole / seen : 1,
+        contrast: worst,
+      };
+    };
+    const owned = (spot, item) => {
+      const box = spot.trial;
+      const x = (box.l + box.r) / 2;
+      const y = (box.t + box.b) / 2;
+      const own = Math.hypot(item.p.x - x, item.p.y - y);
+      let other = Infinity;
+      for (const node of view) {
+        if (node.star.id === item.star.id) continue;
+        other = Math.min(other, Math.hypot(node.p.x - x, node.p.y - y));
+      }
+      return own <= 48 && own + 8 < other;
+    };
+    fineSeats = true;
+    try {
+      const failing = paints.filter((paint) => {
+        const cover = coverOf(paint.box, paint.item.star.kind);
+        return cover.contrast < 4.5 || cover.tone < 0.8 || cover.hole > 0.2;
+      });
+      failing.sort((a, b) => coverOf(a.box, a.item.star.kind).tone - coverOf(b.box, b.item.star.kind).tone);
+      for (const paint of failing) {
+        const rest = boxes.filter((box) => box !== paint.box);
+        const pool = candidatesFor(paint.item, rest).pool.filter((spot) => {
+          if (spot.contrast < 4.5 || spot.share < 0.78 || spot.intrusion >= 16 || spot.self) return false;
+          if (!owned(spot, paint.item)) return false;
+          const cover = coverOf(spot.trial, paint.item.star.kind);
+          return cover.hole <= 0.2 && cover.tone >= 0.78 && cover.contrast >= 4.5;
+        });
+        pool.sort((a, b) => {
+          const dist = (spot) => Math.hypot(paint.item.p.x - (spot.trial.l + spot.trial.r) / 2, paint.item.p.y - (spot.trial.t + spot.trial.b) / 2);
+          return (b.share - a.share) || (b.contrast - a.contrast) || (dist(a) - dist(b));
+        });
+        if (pool[0]) applySeat(paint, pool[0]);
+      }
+    } finally {
+      fineSeats = false;
     }
   }
   if (rect.width >= WIDE) {
