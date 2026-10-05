@@ -419,6 +419,32 @@ def _list_notes(path: Path) -> str:
     return "Lembretes, Senhor. " + ". ".join(spoken) + "."
 
 
+def _last_note(path: Path) -> str:
+    """A nota mais nova, a última que foi gravada. Não apaga nada."""
+    spoken = []
+    for item in _load(path):
+        if not isinstance(item, dict):
+            continue
+        text = " ".join(str(item.get("text") or "").split())
+        if text:
+            spoken.append(text)
+    if not spoken:
+        return "Nada anotado, Senhor."
+    return "A última nota, Senhor. " + spoken[-1] + "."
+
+
+_LATEST_NOTE = re.compile(
+    r"^(?:(?:me\s+)?(?:mostra|mostre|mostrar|le|leia|ler|qual(?:\s+(?:e|foi))?|cade)\s+)?"
+    r"(?:(?:a|o)\s+)?"
+    r"(?:(?:ultima|ultimo)\s+(?:nota|lembrete|recado)"
+    r"|(?:nota|lembrete|recado)\s+mais\s+recente)$"
+)
+
+
+def _wants_latest_note(norm: str) -> bool:
+    return _LATEST_NOTE.fullmatch(norm) is not None
+
+
 def _bare_sky_place(norm: str) -> str:
     """Cidade depois de tempo, clima ou previsão, sem a preposição."""
     match = re.match(
@@ -965,6 +991,8 @@ def house_reply(
             "coloca nas notas", "coloca na nota",
         }:
             return "O que devo anotar, Senhor?"
+        if _wants_latest_note(norm):
+            return _last_note(reminders_path)
         body = _remember_body(text)
         if body:
             return _remember(body, reminders_path, moment)

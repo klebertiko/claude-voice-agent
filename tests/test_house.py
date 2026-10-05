@@ -598,6 +598,7 @@ def test_note_query_is_only_the_search():
         "procure alguma coisa sobre voz nas notas", "Nas notas, Senhor. revisar."
     ) == "voz"
     assert note_query_of("o que eu anotei", "Lembretes, Senhor. entregar.") == ""
+    assert note_query_of("mostra a última nota", "A última nota, Senhor. revisar.") == ""
     assert note_query_of("voz", "Nas notas, Senhor. revisar o projeto de voz.") == "voz"
     assert note_query_of("buscar nota marte", "Não há nota com isso, Senhor.") == "marte"
     assert note_query_of("buscar nota", "O que devo buscar nas notas, Senhor?") == ""
@@ -696,6 +697,32 @@ def test_note_search_stays_in_the_vault(tmp_path):
     )
     assert _reply("procura o recado da voz", fetch, voice) == (
         "Nas notas, Senhor. revisar o projeto de voz."
+    )
+    latest = tmp_path / "latest.json"
+    latest.write_text(
+        '[{"text": "entregar o projeto na sexta"}, {"text": "revisar o projeto de voz"}]',
+        encoding="utf-8",
+    )
+    heard = "A última nota, Senhor. revisar o projeto de voz."
+    for phrase in (
+        "mostra a última nota",
+        "última nota",
+        "qual foi a última nota",
+        "lê a última nota",
+        "lembrete mais recente",
+        "o último recado",
+        "me mostra a nota mais recente",
+    ):
+        assert _reply(phrase, fetch, latest) == heard
+    assert "mais recente" not in latest.read_text(encoding="utf-8")
+    empty = tmp_path / "empty.json"
+    empty.write_text("[]", encoding="utf-8")
+    assert _reply("mostra a última nota", fetch, empty) == "Nada anotado, Senhor."
+    assert _reply("mostra as notas", fetch, latest).startswith("Lembretes, Senhor.")
+    assert "entregar o projeto na sexta" in _reply("mostra as notas", fetch, latest)
+    assert _reply("as últimas notas", fetch, latest) is None
+    assert _reply("lembrete do projeto", fetch, path) == (
+        "Nas notas, Senhor. entregar o projeto na sexta."
     )
     assert _reply("procura lembrete", fetch, path) == "O que devo buscar nas notas, Senhor?"
     assert _reply("tem recado sobre projeto", fetch, path) == (
