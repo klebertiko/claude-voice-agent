@@ -604,6 +604,44 @@ function labelBox(x, y, align, width) {
 function boxesHit(a, b) {
   return !(a.r < b.l || a.l > b.r || a.b < b.t || a.t > b.b);
 }
+function boxHitsSegment(box, seg) {
+  let x1 = seg.x1, y1 = seg.y1, x2 = seg.x2, y2 = seg.y2;
+  const l = box.l, r = box.r, t = box.t, b = box.b;
+  const code = (x, y) => (x < l ? 1 : x > r ? 2 : 0) | (y < t ? 4 : y > b ? 8 : 0);
+  let c1 = code(x1, y1);
+  let c2 = code(x2, y2);
+  for (let n = 0; n < 8; n++) {
+    if (!(c1 | c2)) return true;
+    if (c1 & c2) return false;
+    const c = c1 || c2;
+    let x = x1;
+    let y = y1;
+    if (c & 8) {
+      const dy = y2 - y1;
+      if (!dy) return false;
+      y = b;
+      x = x1 + (x2 - x1) * (b - y1) / dy;
+    } else if (c & 4) {
+      const dy = y2 - y1;
+      if (!dy) return false;
+      y = t;
+      x = x1 + (x2 - x1) * (t - y1) / dy;
+    } else if (c & 2) {
+      const dx = x2 - x1;
+      if (!dx) return false;
+      x = r;
+      y = y1 + (y2 - y1) * (r - x1) / dx;
+    } else {
+      const dx = x2 - x1;
+      if (!dx) return false;
+      x = l;
+      y = y1 + (y2 - y1) * (l - x1) / dx;
+    }
+    if (c === c1) { x1 = x; y1 = y; c1 = code(x1, y1); }
+    else { x2 = x; y2 = y; c2 = code(x2, y2); }
+  }
+  return false;
+}
 function labelSpots(x, y, cx0, cy0) {
   const spots = [
     { x: x + 14, y, align: "left" },
@@ -746,6 +784,7 @@ function drawPlate() {
       if (b === focusId) neigh.add(a);
     }
   }
+  const segments = [];
   ctx.lineCap = "round";
   for (const pair of world.links) {
     const a = byId[pair[0].star.id];
@@ -765,10 +804,15 @@ function drawPlate() {
       ? "rgb(" + (a.star.kind === "nota" ? GROUPS.notas.link : GROUPS.sistemas.link) + ")"
       : "rgb(232, 220, 196)";
     const alpha = (hot ? 1 : aside ? 0.22 : 1) * depth;
+    const x1 = a.p.x + ux * pad;
+    const y1 = a.p.y + uy * pad;
+    const x2 = b.p.x - ux * pad;
+    const y2 = b.p.y - uy * pad;
+    segments.push({ x1, y1, x2, y2 });
     ctx.setLineDash(hot ? [5, 6] : [8, 10]);
     ctx.beginPath();
-    ctx.moveTo(a.p.x + ux * pad, a.p.y + uy * pad);
-    ctx.lineTo(b.p.x - ux * pad, b.p.y - uy * pad);
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
     ctx.globalAlpha = alpha * 0.85;
     ctx.strokeStyle = "rgb(7, 13, 22)";
     ctx.lineWidth = (hot ? 2.2 : 1.9) * depth + 2.6;
@@ -843,17 +887,18 @@ function drawPlate() {
     const home = centroids[item.star.kind];
     const options = labelSpots(item.p.x, item.p.y, home && home.x, home && home.y);
     const fits = (trial) => trial.l >= rect.left + 4 && trial.r <= rect.right - 4 && trial.t >= rect.top + 4 && trial.b <= rect.bottom - 28 && !boxes.some((held) => boxesHit(trial, held));
+    const crosses = (trial) => segments.some((seg) => boxHitsSegment(trial, seg));
     let spot = null;
     let box = null;
     let lines = null;
+    let crossed = false;
     for (const opt of options) {
       const trial = labelBox(opt.x, opt.y, opt.align, width);
       if (!fits(trial)) continue;
-      spot = opt;
-      box = trial;
-      break;
+      if (!spot) { spot = opt; box = trial; crossed = crosses(trial); }
+      if (!crosses(trial)) { spot = opt; box = trial; crossed = false; break; }
     }
-    if (!spot && full.indexOf(" ") > 0) {
+    if ((!spot || crossed) && full.indexOf(" ") > 0) {
       const words = full.split(" ");
       let best = null;
       let bestW = Infinity;
@@ -862,15 +907,19 @@ function drawPlate() {
         const lineW = Math.max(ctx.measureText(pair[0]).width, ctx.measureText(pair[1]).width);
         if (lineW < bestW) { bestW = lineW; best = pair; }
       }
+      let wrapped = null;
       for (const opt of options) {
         const trial = labelBox(opt.x, opt.y, opt.align, bestW);
         trial.t -= 8;
         trial.b += 8;
         if (!fits(trial)) continue;
-        spot = opt;
-        box = trial;
+        if (!wrapped) wrapped = { opt, trial };
+        if (!crosses(trial)) { wrapped = { opt, trial }; break; }
+      }
+      if (wrapped && (!spot || !crosses(wrapped.trial))) {
+        spot = wrapped.opt;
+        box = wrapped.trial;
         lines = best;
-        break;
       }
     }
     if (!spot && item.star.id === picked) {
