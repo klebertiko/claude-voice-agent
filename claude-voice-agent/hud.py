@@ -12,7 +12,7 @@ import os
 import subprocess
 import unicodedata
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from .actions import local_command
@@ -67,16 +67,13 @@ def spoken_fallback(cleaned: str, name: str, moment: datetime) -> str:
         return "Pois não, Senhor."
     if "seu nome" in norm or "se chama" in norm or "quem e voce" in norm or "o que e voce" in norm:
         return f"O nome é {name}, Senhor."
-    if {"hora", "horas"} & set(norm.split()):
+    if {"hora", "horas"} & set(norm.split()) and "amanha" not in norm and "ontem" not in norm:
         return _speak_clock(moment)
-    if (
-        "que dia" in norm
-        or "qual a data" in norm
-        or "qual e a data" in norm
-        or "qual e o dia" in norm
-        or norm in {"data", "que data", "data de hoje", "a data"}
-        or norm.startswith(("me diz a data", "me fala a data"))
-    ):
+    if _asks_date(norm):
+        if "amanha" in norm:
+            return _speak_date(moment + timedelta(days=1), "Amanhã", "é")
+        if "ontem" in norm:
+            return _speak_date(moment - timedelta(days=1), "Ontem", "foi")
         return _speak_date(moment)
     return (
         "Entendido, Senhor. Ainda não consigo fazer isso "
@@ -94,10 +91,21 @@ def _speak_clock(moment: datetime) -> str:
     return f"São {hour} {horas} e {minute} {minutos}, Senhor."
 
 
-def _speak_date(moment: datetime) -> str:
+def _asks_date(norm: str) -> bool:
+    return (
+        "que dia" in norm
+        or "qual a data" in norm
+        or "qual e a data" in norm
+        or "qual e o dia" in norm
+        or norm in {"data", "que data", "data de hoje", "a data"}
+        or norm.startswith(("me diz a data", "me fala a data"))
+    )
+
+
+def _speak_date(moment: datetime, label: str = "Hoje", verb: str = "é") -> str:
     weekday = _WEEKDAYS[moment.weekday()]
     month = _MONTHS[moment.month - 1]
-    return f"Hoje é {weekday}, {moment.day} de {month}, Senhor."
+    return f"{label} {verb} {weekday}, {moment.day} de {month}, Senhor."
 
 
 @dataclass

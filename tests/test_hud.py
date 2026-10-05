@@ -43,6 +43,13 @@ def test_spoken_clock_and_date():
     assert "sexta-feira, 2 de outubro" in spoken_fallback("qual é a data", "Orion", WHEN)
     assert "sexta-feira, 2 de outubro" in spoken_fallback("me diz a data", "Orion", WHEN)
     assert "sexta-feira, 2 de outubro" in spoken_fallback("data de hoje", "Orion", WHEN)
+    amanha = spoken_fallback("que dia é amanhã", "Orion", WHEN)
+    assert amanha.startswith("Amanhã é")
+    assert "sábado, 3 de outubro" in amanha
+    ontem = spoken_fallback("que dia foi ontem", "Orion", WHEN)
+    assert ontem.startswith("Ontem foi")
+    assert "quinta-feira, 1 de outubro" in ontem
+    assert spoken_fallback("que horas são amanhã", "Orion", WHEN).startswith("Entendido")
     assert spoken_fallback("", "Orion", WHEN).startswith("Pois não")
 
 
