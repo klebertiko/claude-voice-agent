@@ -1,4 +1,4 @@
-"""Painel do Orion: o reator é o centro, a casa fica nas laterais.
+"""Painel do Orion: a constelação ocupa o centro, o reator fica na casa.
 
 Sem vídeo. Uma ordem no computador aparece inteira e espera permissão.
 """
@@ -15,6 +15,12 @@ _PAGE = r"""<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
 <style>
+  /* Hallmark · macrostructure: Workbench · tone: technical · anchor hue: cool
+   * theme: studied-DNA (source: image) · paper oklch(0.12 0.02 250)
+   * accent oklch(0.82 0.13 85) · display: Rajdhani · body: Rajdhani
+   * holo: esfera de fio dourado ao lado · céu ciano no centro
+   * pre-emit critique: P4 H4 E4 S4 R4 V4
+   */
   :root {
     color-scheme: dark;
     --color-paper: oklch(0.12 0.02 250);
@@ -25,10 +31,17 @@ _PAGE = r"""<!DOCTYPE html>
     --color-accent: oklch(0.82 0.13 85);
     --color-ring: oklch(0.82 0.08 220);
     --color-core: oklch(0.97 0.04 200);
-    --color-copper: oklch(0.55 0.11 68);
-    --color-copper-2: oklch(0.78 0.12 82);
-    --color-plasma: oklch(0.88 0.1 205);
+    --color-copper: oklch(0.68 0.13 70);
+    --color-copper-2: oklch(0.84 0.12 85);
+    --color-copper-deep: oklch(0.38 0.08 60);
+    --color-plasma: oklch(0.86 0.1 210);
+    --color-plasma-hot: oklch(0.97 0.03 200);
     --color-void: oklch(0.07 0.03 265);
+    --color-void-core: oklch(0.14 0.04 255);
+    --color-well: oklch(0.09 0.02 255);
+    --color-emitter: oklch(0.62 0.16 235);
+    --color-holo: oklch(0.84 0.14 82);
+    --color-holo-hot: oklch(0.97 0.05 95);
     --color-focus: oklch(0.86 0.08 220);
     --color-ok: oklch(0.8 0.1 165);
     --color-bad: oklch(0.7 0.15 25);
@@ -55,17 +68,20 @@ _PAGE = r"""<!DOCTYPE html>
   .room {
     position: relative; z-index: 1; min-height: 100vh; min-width: 0;
     display: grid;
-    grid-template-columns: 17rem minmax(0, 1fr) 24rem;
+    grid-template-columns: minmax(18rem, 34vw) minmax(0, 1fr) minmax(16rem, 22rem);
     grid-template-rows: auto minmax(0, 1fr) auto auto;
   }
-  .strip, .telemetry, .talk, .floor, #permit {
-    background: color-mix(in oklch, var(--color-paper) 86%, transparent);
+  .strip, .floor {
+    background: color-mix(in oklch, var(--color-paper) 28%, transparent);
+  }
+  .talk, #permit {
+    background: color-mix(in oklch, var(--color-paper) 58%, transparent);
   }
   .strip {
     grid-column: 1 / -1;
     display: flex; align-items: baseline; justify-content: space-between;
     gap: var(--space-sm); padding: var(--space-xs) var(--space-md);
-    border-bottom: 1px solid var(--color-rule);
+    border-bottom: 0;
   }
   .brand { display: flex; align-items: baseline; gap: var(--space-sm); min-width: 0; }
   .brand strong {
@@ -76,8 +92,13 @@ _PAGE = r"""<!DOCTYPE html>
   body[data-state="listening"] #status, body[data-state="speaking"] #status { color: var(--color-accent); }
   body[data-state="ignored"] #status { color: var(--color-bad); }
   #clock { margin: 0; font-family: var(--font-mono); font-size: var(--text-md); color: var(--color-ring); font-variant-numeric: tabular-nums; }
-  .telemetry { grid-column: 1; grid-row: 2; border-right: 1px solid var(--color-rule); padding: var(--space-sm) var(--space-md); }
-  .talk { grid-column: 3; grid-row: 2; border-left: 1px solid var(--color-rule); display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: var(--space-sm) var(--space-md); }
+  .telemetry {
+    grid-column: 1; grid-row: 2; border: 0; background: transparent;
+    min-height: 0; overflow: auto;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: var(--space-sm);
+  }
+  .talk { grid-column: 3; grid-row: 2; border: 0; display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: var(--space-sm) var(--space-md); }
   .well {
     grid-column: 2; grid-row: 2; position: relative; min-width: 0; min-height: 16rem;
     cursor: grab; touch-action: none;
@@ -89,17 +110,48 @@ _PAGE = r"""<!DOCTYPE html>
     font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.06em;
     color: var(--color-core);
   }
+  .mark { position: relative; width: min(100%, 20rem); }
+  .plate {
+    margin: var(--space-2xs) 0 0;
+    font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500;
+    font-style: normal; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--color-ring);
+  }
+  #reactor {
+    display: block; width: 100%; height: auto; aspect-ratio: 1;
+    margin: 0; background: transparent;
+  }
+  .mark-name {
+    position: absolute; left: 0; right: 0; top: 50%;
+    transform: translateY(-54%);
+    margin: 0; text-align: center; pointer-events: none;
+    font-family: var(--font-display); font-weight: 600; font-style: normal;
+    font-size: 1.35rem; letter-spacing: 0.42em; padding-left: 0.42em;
+  }
   h2 {
     margin: 0 0 var(--space-sm); font-family: var(--font-mono); font-size: var(--text-xs);
     font-weight: 500; font-style: normal; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-ink-2);
   }
-  .systems { margin: 0; }
-  .systems div {
-    display: flex; justify-content: space-between; gap: var(--space-xs);
-    padding: var(--space-2xs) 0; border-bottom: 1px solid color-mix(in oklch, var(--color-rule) 55%, transparent);
+  .systems {
+    margin: var(--space-sm) 0 0; width: min(100%, 20rem);
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem 0.55rem;
   }
-  .systems dt { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-ink-2); font-weight: 400; }
-  .systems dd { margin: 0; font-family: var(--font-mono); font-size: var(--text-xs); text-align: right; }
+  .systems div {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.12rem;
+    min-width: 0; padding: 0; border: 0;
+  }
+  .systems .span { grid-column: 1 / -1; }
+  .systems dt {
+    font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--color-ink-2); font-weight: 400;
+  }
+  .systems dd {
+    margin: 0; font-family: var(--font-display); font-weight: 600; font-style: normal;
+    font-size: 0.95rem; letter-spacing: 0.03em; color: var(--color-ring);
+    text-align: left; overflow-wrap: anywhere;
+  }
+  .systems dd.is-down { color: var(--color-ink-2); font-weight: 500; }
   #log { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--space-2xs); }
   #log p { margin: 0; line-height: 1.35; overflow-wrap: anywhere; min-width: 0; font-size: var(--text-md); }
   #log .empty, #log .meta { color: var(--color-ink-2); font-size: var(--text-sm); }
@@ -124,7 +176,7 @@ _PAGE = r"""<!DOCTYPE html>
     grid-column: 1 / -1;
     display: flex; align-items: center; gap: var(--space-sm);
     padding: var(--space-xs) var(--space-md);
-    border-top: 1px solid var(--color-rule);
+    border-top: 0;
   }
   #text {
     flex: 1; min-width: 0; background: transparent; color: var(--color-ink);
@@ -156,9 +208,9 @@ _PAGE = r"""<!DOCTYPE html>
   @media (max-width: 900px) {
     .room { grid-template-columns: 1fr; grid-template-rows: auto auto minmax(16rem, 48vh) minmax(8rem, 1fr) auto auto; }
     .telemetry, .well, .talk, .strip, #permit, .floor { grid-column: 1; grid-row: auto; }
-    .telemetry, .talk { border: 0; border-top: 1px solid var(--color-rule); }
-    .systems { display: flex; flex-wrap: wrap; gap: var(--space-2xs) var(--space-md); }
-    .systems div { border: 0; padding: 0; }
+    .telemetry, .talk { border: 0; }
+    .mark { width: min(100%, 16rem); }
+    .systems { width: min(100%, 22rem); grid-template-columns: 1fr 1fr; }
     #log { max-height: 24vh; }
     .floor { flex-wrap: wrap; }
     #text { flex: 1 1 100%; }
@@ -167,7 +219,7 @@ _PAGE = r"""<!DOCTYPE html>
 </style>
 </head>
 <body data-state="idle" data-name="__NAME__" data-load="0">
-<canvas id="field" aria-label="reator e constelação"></canvas>
+<canvas id="field" aria-label="constelação"></canvas>
 <div class="room">
   <header class="strip">
     <div class="brand">
@@ -177,20 +229,24 @@ _PAGE = r"""<!DOCTYPE html>
     <p id="clock">00:00:00</p>
   </header>
   <aside class="telemetry">
-    <h2>Casa</h2>
+    <div class="mark">
+      <canvas id="reactor" width="800" height="800" aria-label="reator"></canvas>
+      <strong class="mark-name">__NAME__</strong>
+    </div>
+    <p class="plate">reator</p>
     <dl class="systems">
-      <div><dt>cérebro</dt><dd id="brain">—</dd></div>
       <div><dt>codex</dt><dd id="brain-codex">ausente</dd></div>
       <div><dt>cursor</dt><dd id="brain-cursor">ausente</dd></div>
       <div><dt>claude</dt><dd id="brain-claude">ausente</dd></div>
-      <div><dt>carga</dt><dd id="load">—</dd></div>
-      <div><dt>voz</dt><dd id="voice-name">george</dd></div>
-      <div><dt>ritmo</dt><dd>1.08</dd></div>
+      <div><dt>cérebro</dt><dd id="brain">—</dd></div>
       <div><dt>céu</dt><dd id="sky">0</dd></div>
       <div><dt>lembretes</dt><dd id="notes">0</dd></div>
+      <div><dt>voz</dt><dd id="voice-name">george</dd></div>
+      <div><dt>ritmo</dt><dd>1.08</dd></div>
+      <div><dt>carga</dt><dd id="load">—</dd></div>
       <div><dt>fuso</dt><dd>Brasília</dd></div>
-      <div><dt>sessão</dt><dd id="sess">à espera do nome</dd></div>
       <div><dt>data</dt><dd id="date">—</dd></div>
+      <div class="span"><dt>sessão</dt><dd id="sess">à espera do nome</dd></div>
     </dl>
   </aside>
   <div class="well"><p id="sky-read">Arraste o céu.</p></div>
@@ -241,8 +297,13 @@ const tok = (name) => css.getPropertyValue(name).trim();
 const ink = {
   paper: tok("--color-paper"), paper2: tok("--color-paper-2"), ink2: tok("--color-ink-2"),
   ring: tok("--color-ring"), accent: tok("--color-accent"), core: tok("--color-core"), mono: tok("--font-mono"),
-  copper: tok("--color-copper"), copper2: tok("--color-copper-2"), plasma: tok("--color-plasma"), void: tok("--color-void"),
+  copper: tok("--color-copper"), copper2: tok("--color-copper-2"), copperDeep: tok("--color-copper-deep"),
+  plasma: tok("--color-plasma"), plasmaHot: tok("--color-plasma-hot"),
+  void: tok("--color-void"), voidCore: tok("--color-void-core"), well: tok("--color-well"),
+  emitter: tok("--color-emitter"), holo: tok("--color-holo"), holoHot: tok("--color-holo-hot"),
 };
+const reactor = document.getElementById("reactor");
+const rctx = reactor.getContext("2d");
 const well = document.querySelector(".well");
 const skyRead = document.getElementById("sky-read");
 let permitId = "";
@@ -335,158 +396,68 @@ function resize() {
   canvas.style.width = w + "px";
   canvas.style.height = h + "px";
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const box = reactor.getBoundingClientRect();
+  const side = Math.max(1, Math.floor(Math.min(box.width, box.height) * DPR));
+  reactor.width = side;
+  reactor.height = side;
 }
-function sector(r0, r1, a0, a1) {
-  ctx.beginPath();
-  ctx.arc(0, 0, r1, a0, a1);
-  ctx.arc(0, 0, r0, a1, a0, true);
-  ctx.closePath();
-}
-function drawArc(cx, cy, R, now) {
-  const state = document.body.dataset.state;
-  const beat = reduce ? 1 : 0.86 + 0.14 * Math.sin(now / 340);
-  const hot = beat + (state === "speaking" ? level * 0.35 : state === "thinking" ? 0.12 : 0);
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.beginPath();
-  ctx.arc(0, 0, R, 0, Math.PI * 2);
-  const metal = ctx.createRadialGradient(-R * 0.25, -R * 0.3, R * 0.1, 0, 0, R);
-  metal.addColorStop(0, ink.copper2);
-  metal.addColorStop(0.45, ink.copper);
-  metal.addColorStop(1, "oklch(0.32 0.06 60)");
-  ctx.fillStyle = metal;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 0.9, 0, Math.PI * 2);
-  ctx.fillStyle = "oklch(0.1 0.02 250)";
-  ctx.fill();
-  ctx.strokeStyle = ink.copper2;
-  ctx.globalAlpha = 0.85;
-  ctx.lineWidth = Math.max(2, R * 0.018);
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 0.96, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 0.9, 0, Math.PI * 2);
-  ctx.lineWidth = Math.max(1, R * 0.008);
-  ctx.stroke();
-  const count = 10;
-  const pitch = (Math.PI * 2) / count;
-  const span = pitch * 0.58;
-  for (let i = 0; i < count; i++) {
-    const a = -Math.PI / 2 + i * pitch;
-    const glow = reduce ? 1 : 0.78 + 0.22 * (0.5 + 0.5 * Math.sin(now / 460 - i * 0.55));
-    sector(R * 0.5, R * 0.8, a - span / 2, a + span / 2);
-    ctx.globalAlpha = Math.min(1, 0.72 + glow * 0.28);
-    ctx.fillStyle = ink.plasma;
-    ctx.fill();
-    ctx.globalAlpha = 0.95;
-    ctx.strokeStyle = ink.core;
-    ctx.lineWidth = 1;
-    ctx.stroke();
+function drawChest(now) {
+  const side = reactor.width;
+  const R = side * 0.44;
+  const hot = (reduce ? 1 : 0.94 + 0.06 * Math.sin(now / 520)) + (document.body.dataset.state === "speaking" ? level * 0.2 : 0);
+  rctx.setTransform(1, 0, 0, 1, 0, 0);
+  rctx.clearRect(0, 0, side, side);
+  rctx.save();
+  rctx.translate(side / 2, side / 2);
+  rctx.lineCap = "butt";
+  rctx.strokeStyle = ink.ring;
+  for (let i = 0; i < 84; i++) {
+    const a = -Math.PI / 2 + i / 84 * Math.PI * 2;
+    const major = i % 7 === 0;
+    rctx.globalAlpha = major ? 0.95 : 0.4;
+    rctx.lineWidth = major ? Math.max(1.6, side * 0.006) : Math.max(1, side * 0.003);
+    rctx.beginPath();
+    rctx.moveTo(Math.cos(a) * R * (major ? 0.9 : 0.945), Math.sin(a) * R * (major ? 0.9 : 0.945));
+    rctx.lineTo(Math.cos(a) * R, Math.sin(a) * R);
+    rctx.stroke();
   }
-  ctx.globalAlpha = 1;
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 0.44, 0, Math.PI * 2);
-  ctx.fillStyle = "oklch(0.08 0.02 255)";
-  ctx.fill();
-  ctx.strokeStyle = ink.copper2;
-  ctx.lineWidth = Math.max(1.5, R * 0.012);
-  ctx.stroke();
-  ctx.beginPath();
-  const tr = R * 0.23;
-  for (let i = 0; i < 3; i++) {
-    const a = -Math.PI / 2 + i * (Math.PI * 2 / 3);
-    const x = Math.cos(a) * tr;
-    const y = Math.sin(a) * tr;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  const bands = [[0.86, 0.014, 0.95], [0.74, 0.005, 0.55], [0.6, 0.004, 0.4]];
+  for (const [k, w, a] of bands) {
+    rctx.globalAlpha = a;
+    rctx.lineWidth = Math.max(1, side * w);
+    rctx.beginPath();
+    rctx.arc(0, 0, R * k, 0, Math.PI * 2);
+    rctx.stroke();
   }
-  ctx.closePath();
-  ctx.strokeStyle = ink.core;
-  ctx.lineWidth = Math.max(2, R * 0.016);
-  ctx.stroke();
-  const coreR = R * (0.055 + (state === "speaking" ? level * 0.03 : 0)) * hot;
-  const bloom = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 0.34 * hot);
-  bloom.addColorStop(0, ink.core);
-  bloom.addColorStop(0.25, ink.plasma);
-  bloom.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = bloom;
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 0.34 * hot, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#f7fbff";
-  ctx.beginPath();
-  ctx.arc(0, 0, coreR, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 0.45;
-  ctx.strokeStyle = "rgba(255,255,255,0.85)";
-  ctx.lineWidth = Math.max(2, R * 0.02);
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 0.93, -2.5, -0.7);
-  ctx.stroke();
-  ctx.restore();
-  ctx.globalAlpha = 1;
-}
-function drawGlobe(cx, cy, radius, now) {
-  const spin = reduce ? 0.2 : now / 8000;
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(spin);
-  ctx.strokeStyle = "rgba(150, 214, 230, 0.42)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(0, 0, radius, 0, Math.PI * 2);
-  ctx.stroke();
-  for (let i = 1; i <= 4; i++) {
-    const frac = i / 5;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, radius * frac, radius, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.ellipse(0, 0, radius, radius * frac, 0, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  ctx.restore();
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.setLineDash([11, 9]);
-  ctx.strokeStyle = "rgba(198, 236, 246, 0.7)";
-  ctx.lineWidth = 1.25;
-  ctx.beginPath();
-  ctx.arc(0, 0, radius * 1.08, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.lineDashOffset = reduce ? 0 : -now / 80;
-  ctx.beginPath();
-  ctx.arc(0, 0, radius * 1.18, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.restore();
-  ctx.globalAlpha = 0.28;
-  ctx.strokeStyle = "rgba(190, 232, 242, 0.9)";
-  ctx.beginPath();
-  ctx.moveTo(cx - radius * 1.28, cy);
-  ctx.lineTo(cx + radius * 1.28, cy);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-}
-function drawBrackets(rect) {
-  const inset = 16;
-  const arm = Math.min(36, rect.width * 0.05);
-  const x0 = rect.left + inset;
-  const y0 = rect.top + inset;
-  const x1 = rect.right - inset;
-  const y1 = rect.bottom - inset;
-  ctx.strokeStyle = "rgba(176, 226, 238, 0.75)";
-  ctx.lineWidth = 1.5;
-  const corners = [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]];
-  for (const [x, y, sx, sy] of corners) {
-    ctx.beginPath();
-    ctx.moveTo(x, y + arm * sy);
-    ctx.lineTo(x, y);
-    ctx.lineTo(x + arm * sx, y);
-    ctx.stroke();
-  }
+  rctx.strokeStyle = ink.plasma;
+  rctx.globalAlpha = 0.95;
+  rctx.lineWidth = Math.max(2.5, side * 0.02);
+  rctx.beginPath();
+  rctx.arc(0, 0, R * 0.8, -2.15, 0.55);
+  rctx.stroke();
+  rctx.strokeStyle = ink.plasmaHot;
+  rctx.globalAlpha = 0.75;
+  rctx.lineWidth = Math.max(1.4, side * 0.007);
+  rctx.beginPath();
+  rctx.arc(0, 0, R * 0.67, 1.15, 2.7);
+  rctx.stroke();
+  const core = R * 0.07 * hot;
+  const glow = rctx.createRadialGradient(0, 0, 0, 0, 0, core * 3);
+  glow.addColorStop(0, ink.holoHot);
+  glow.addColorStop(0.55, ink.holo);
+  glow.addColorStop(1, ink.accent);
+  rctx.globalAlpha = 0.35;
+  rctx.beginPath();
+  rctx.arc(0, 0, core * 3, 0, Math.PI * 2);
+  rctx.fillStyle = glow;
+  rctx.fill();
+  rctx.globalAlpha = 1;
+  rctx.beginPath();
+  rctx.arc(0, 0, Math.max(1.5, core), 0, Math.PI * 2);
+  rctx.fillStyle = ink.holoHot;
+  rctx.fill();
+  rctx.restore();
+  rctx.globalAlpha = 1;
 }
 function drawReactor(now) {
   const w = canvas.width / DPR, h = canvas.height / DPR;
@@ -498,17 +469,15 @@ function drawReactor(now) {
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
   const minSide = Math.min(rect.width, rect.height);
-  const R = minSide * 0.22;
-  const globe = minSide * 0.36;
-  const scale = minSide * 0.3;
+  const scale = minSide * 0.34;
   const yaw = (reduce ? 0.8 : now / 14000) + yawUser;
   const pitch = pitchUser;
   ctx.save();
   ctx.beginPath();
   ctx.rect(rect.left, rect.top, rect.width, rect.height);
   ctx.clip();
-  const voidGrad = ctx.createRadialGradient(cx, cy, globe * 0.15, cx, cy, minSide * 0.72);
-  voidGrad.addColorStop(0, "oklch(0.14 0.04 255)");
+  const voidGrad = ctx.createRadialGradient(cx, cy, minSide * 0.05, cx, cy, minSide * 0.72);
+  voidGrad.addColorStop(0, ink.voidCore);
   voidGrad.addColorStop(1, ink.void);
   ctx.fillStyle = voidGrad;
   ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
@@ -555,9 +524,7 @@ function drawReactor(now) {
   }
   namedOnScreen = [];
   for (const item of placed) {
-    const outside = Math.hypot(item.p.x - cx, item.p.y - cy) > R * 0.92;
-    namedOnScreen.push({ star: item.star, x: item.p.x, y: item.p.y, outside });
-    if (!outside) continue;
+    namedOnScreen.push({ star: item.star, x: item.p.x, y: item.p.y, outside: true });
     const glow = ctx.createRadialGradient(item.p.x, item.p.y, 0, item.p.x, item.p.y, 16 * item.p.persp);
     glow.addColorStop(0, "rgba(230, 246, 255, 0.95)");
     glow.addColorStop(1, "rgba(80, 170, 220, 0)");
@@ -571,9 +538,6 @@ function drawReactor(now) {
     ctx.arc(item.p.x, item.p.y, Math.max(1.6, 2.4 * item.p.persp), 0, Math.PI * 2);
     ctx.fill();
   }
-  drawGlobe(cx, cy, globe, now);
-  drawArc(cx, cy, R, now);
-  drawBrackets(rect);
   ctx.font = "500 12px " + ink.mono;
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
@@ -582,6 +546,7 @@ function drawReactor(now) {
     if (memory.length > 8 && item.star.id !== picked) continue;
     ctx.globalAlpha = item.star.id === picked ? 1 : 0.8;
     ctx.fillStyle = ink.core;
+    item.labelW = ctx.measureText(item.star.label).width;
     ctx.fillText(item.star.label, item.x, item.y - 10);
   }
   ctx.restore();
@@ -589,13 +554,16 @@ function drawReactor(now) {
 }
 function starAt(x, y) {
   let best = null;
-  let bestD = 46;
+  let bestD = 36;
   for (const item of namedOnScreen) {
     if (!item.outside) continue;
     const dot = Math.hypot(item.x - x, item.y - y);
-    const label = Math.hypot(item.x - x, item.y - 14 - y);
-    const d = Math.min(dot, label);
-    if (d < bestD) { best = item; bestD = d; }
+    if (dot < bestD) { best = item; bestD = dot; }
+    const half = (item.labelW || 0) / 2 + 6;
+    if (half > 6 && Math.abs(x - item.x) <= half && y <= item.y - 4 && y >= item.y - 28) {
+      best = item;
+      bestD = 0;
+    }
   }
   return best;
 }
@@ -611,6 +579,7 @@ function sampleLevel() {
 function frame(now) {
   sampleLevel();
   drawReactor(now || 0);
+  drawChest(now || 0);
   if (!reduce) requestAnimationFrame(frame);
 }
 function tickClock() {
@@ -658,6 +627,7 @@ async function refreshBrain() {
   try {
     const data = await (await fetch("/api/status")).json();
     brainEl.textContent = data.up ? (data.model || "sem modelo") : "ausente";
+    brainEl.classList.toggle("is-down", !data.up);
     if (data.load && data.load.length) {
       loadEl.textContent = String(data.load[0]);
       document.body.dataset.load = String(data.load[0]);
@@ -668,7 +638,9 @@ async function refreshBrain() {
     }
     for (const brain of data.brains || []) {
       const el = document.getElementById("brain-" + brain.id);
-      if (el) el.textContent = brain.up ? "pronto" : "ausente";
+      if (!el) continue;
+      el.textContent = brain.up ? "pronto" : "ausente";
+      el.classList.toggle("is-down", !brain.up);
     }
     refreshSky();
   } catch (err) {
@@ -710,7 +682,7 @@ well.addEventListener("pointermove", (ev) => {
   pitchUser = Math.max(-0.7, Math.min(0.7, drag.pitch + dy * 0.004));
 });
 well.addEventListener("pointerup", (ev) => {
-  if (drag && dragMoved < 6) pointStar(ev, true);
+  if (drag && dragMoved < 12) pointStar({ clientX: drag.x, clientY: drag.y }, true);
   drag = null;
 });
 well.addEventListener("pointerleave", () => {
