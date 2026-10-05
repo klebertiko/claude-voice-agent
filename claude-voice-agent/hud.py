@@ -123,17 +123,20 @@ def spoken_fallback(cleaned: str, name: str, moment: datetime) -> str:
         and "amanha" not in norm
         and "ontem" not in norm
         and "dois dias" not in norm
+        and "2 dias" not in norm
     ):
         return _speak_clock(moment)
     if _asks_date(norm):
-        if "depois de amanha" in norm or "daqui a dois dias" in norm:
+        if "depois de amanha" in norm or "daqui a dois dias" in norm or "daqui a 2 dias" in norm:
             label = "Depois de amanhã" if "depois de amanha" in norm else "Daqui a dois dias"
             return _speak_date(moment + timedelta(days=2), label, "é")
-        if "anteontem" in norm or "antes de ontem" in norm or "ha dois dias" in norm:
+        if "anteontem" in norm or "antes de ontem" in norm or "ha dois dias" in norm or "faz dois dias" in norm:
             if "anteontem" in norm:
                 label = "Anteontem"
             elif "antes de ontem" in norm:
                 label = "Antes de ontem"
+            elif "faz dois dias" in norm:
+                label = "Faz dois dias"
             else:
                 label = "Há dois dias"
             return _speak_date(moment - timedelta(days=2), label, "foi")
@@ -341,7 +344,9 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
         if housed:
             pending["kind"] = asked.get(housed, "")
             if pending["kind"] == "weather" and (
-                "depois de amanha" in _plain(cleaned) or "daqui a dois dias" in _plain(cleaned)
+                "depois de amanha" in _plain(cleaned)
+                or "daqui a dois dias" in _plain(cleaned)
+                or "daqui a 2 dias" in _plain(cleaned)
             ):
                 pending["day"] = "depois"
             elif pending["kind"] == "weather" and _has_word(cleaned, "amanha"):
@@ -390,7 +395,9 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
                 return spoken
             pending["number"] = ""
             if kind == "weather" and (
-                "depois de amanha" in _plain(cleaned) or "daqui a dois dias" in _plain(cleaned)
+                "depois de amanha" in _plain(cleaned)
+                or "daqui a dois dias" in _plain(cleaned)
+                or "daqui a 2 dias" in _plain(cleaned)
             ):
                 day = "depois"
             elif kind == "weather" and _has_word(cleaned, "amanha"):

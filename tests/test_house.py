@@ -102,6 +102,15 @@ def test_day_after_tomorrow_is_not_tomorrow(tmp_path):
     )
     assert "forecast_days=3" in seen[-1]
     assert "name=recife" in seen[-2]
+    assert _reply("vai chover daqui a dois dias", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("vai chover daqui a dois dias em curitiba", fetch, path) == (
+        "Depois de amanhã em Curitiba, máxima de 31 graus, parcialmente nublado, Senhor."
+    )
+    assert "forecast_days=3" in seen[-1]
+    assert _reply("faz calor daqui a dois dias em recife", fetch, path) == (
+        "Depois de amanhã em Recife, máxima de 31 graus, parcialmente nublado, Senhor."
+    )
+    assert _reply("qualidade do ar daqui a dois dias em recife", fetch, path) is None
 
 
 def test_weekend_names_saturday_and_sunday(tmp_path):

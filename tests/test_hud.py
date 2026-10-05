@@ -61,9 +61,15 @@ def test_spoken_clock_and_date():
     daqui = spoken_fallback("que dia é daqui a dois dias", "Orion", WHEN)
     assert daqui.startswith("Daqui a dois dias é")
     assert "domingo, 4 de outubro" in daqui
+    digit = spoken_fallback("que dia é daqui a 2 dias", "Orion", WHEN)
+    assert digit.startswith("Daqui a dois dias é")
+    assert "domingo, 4 de outubro" in digit
     ha = spoken_fallback("que dia foi há dois dias", "Orion", WHEN)
     assert ha.startswith("Há dois dias foi")
     assert "quarta-feira, 30 de setembro" in ha
+    faz = spoken_fallback("que dia foi faz dois dias", "Orion", WHEN)
+    assert faz.startswith("Faz dois dias foi")
+    assert "quarta-feira, 30 de setembro" in faz
     assert spoken_fallback("que horas são antes de ontem", "Orion", WHEN).startswith("Entendido")
     assert spoken_fallback("que horas são daqui a dois dias", "Orion", WHEN).startswith("Entendido")
     assert spoken_fallback("que horas são amanhã", "Orion", WHEN).startswith("Entendido")

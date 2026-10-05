@@ -37,7 +37,7 @@ _WX = {
 
 def _forecast_day(norm: str) -> str:
     """«depois de amanhã» não é amanhã."""
-    if "depois de amanha" in norm or "daqui a dois dias" in norm:
+    if "depois de amanha" in norm or "daqui a dois dias" in norm or "daqui a 2 dias" in norm:
         return "depois"
     if re.search(r"\bamanha\b", norm):
         return "amanha"
@@ -930,7 +930,7 @@ def _bare_sky_place(norm: str) -> str:
     if not match:
         return ""
     place = match.group(1).strip(" .?")
-    if not place or place in {"agora", "hoje", "amanha", "aqui", "o tempo", "daqui a dois dias"}:
+    if not place or place in {"agora", "hoje", "amanha", "aqui", "o tempo", "daqui a dois dias", "daqui a 2 dias"}:
         return ""
     if re.search(r"\b(?:para|que|com|quando|porque|fazer|faz)\b", place):
         return ""
@@ -946,11 +946,11 @@ def _city_name(place: str) -> str:
     """Tira hoje, agora e um lugar vago. «curitiba hoje» fica «curitiba»."""
     place = (place or "").strip(" .")
     place = re.sub(
-        r"^(?:daqui\s+a\s+dois\s+dias|depois\s+de\s+amanha|hoje|agora|la|muito|amanha|depois)(?:\s+(?:em|no|na|de|do|da))?\s+",
+        r"^(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|hoje|agora|la|muito|amanha|depois)(?:\s+(?:em|no|na|de|do|da))?\s+",
         "",
         place,
     )
-    place = re.sub(r"\s+daqui\s+a\s+dois\s+dias$", "", place)
+    place = re.sub(r"\s+daqui\s+a\s+(?:dois|2)\s+dias$", "", place)
     place = re.sub(r"\s+depois\s+de\s+amanha$", "", place)
     place = re.sub(r"\s+(?:hoje|agora|amanha)$", "", place).strip()
     if not place or place in _VAGUE_PLACE:
@@ -978,7 +978,7 @@ def _spoken_place(text: str) -> str:
 
 
 _SKY_WHEN = (
-    r"(?:\s+(?:depois\s+de\s+amanha|hoje|agora|la|muito|amanha|depois))?"
+    r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|hoje|agora|la|muito|amanha|depois))?"
     r"(?:\s+(?:a noite|de noite|a tarde|de tarde|de manha|a manha|de madrugada))?"
 )
 
@@ -986,7 +986,7 @@ _SKY_WHEN = (
 def _heat_place(norm: str) -> str | None:
     """Cidade numa frase de calor, frio, sol ou nuvem. None se não for essa frase."""
     match = re.match(
-        r"^(?:(?:depois\s+de\s+amanha|amanha|hoje|depois)\s+)?"
+        r"^(?:(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|depois)\s+)?"
         r"(?:faz (?:calor|frio|sol)"
         r"|tem (?:sol|calor|frio)"
         r"|(?:esta|ta)(?:\s+fazendo)?(?:\s+muito)?\s+(?:calor|quente|frio|sol|nublado)"
@@ -1009,7 +1009,7 @@ def _rain_place(norm: str) -> str | None:
     match = re.match(
         r"^(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:sera\s+que\s+)?"
-        r"(?:(?:depois\s+de\s+amanha|amanha|hoje|depois)\s+)?"
+        r"(?:(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|depois)\s+)?"
         r"(?:(?:se\s+)?vai chover|(?:esta|ta)\s+(?:chovendo|garoando)|chove|garoa"
         r"|vai dar(?:\s+uma)?\s+chuva|risco de chuva|pode chover)"
         + _SKY_WHEN
@@ -1056,7 +1056,7 @@ def _quanto_place(norm: str) -> str | None:
 def _later_place(norm: str) -> str | None:
     """Cidade em «tempo para amanhã em Curitiba». None se não for essa frase."""
     match = re.match(
-        r"^(?:tempo|clima)\s+para\s+(?:daqui\s+a\s+dois\s+dias|depois\s+de\s+amanha|amanha|hoje|depois)"
+        r"^(?:tempo|clima)\s+para\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|depois)"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?$",
         norm,
     )
@@ -1082,7 +1082,7 @@ def _place_of(norm: str) -> str:
     if quanto is not None:
         return quanto
     day_city = re.search(
-        r"\b(?:tempo|clima|previsao)\s+(?:para\s+)?(?:daqui\s+a\s+dois\s+dias|depois\s+de\s+amanha|amanha|hoje|depois)\s+(?:em|no|na|de)\s+(.+)$",
+        r"\b(?:tempo|clima|previsao)\s+(?:para\s+)?(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|depois)\s+(?:em|no|na|de)\s+(.+)$",
         norm,
     )
     if day_city:
@@ -1098,8 +1098,8 @@ def _place_of(norm: str) -> str:
             rest = norm[len(prefix) :].strip(" .")
             if prefix == "previsao para ":
                 return _city_name(rest)
-            rest = re.sub(r"\s+daqui\s+a\s+dois\s+dias$", "", rest).strip()
-            if not rest or rest == "daqui a dois dias":
+            rest = re.sub(r"\s+daqui\s+a\s+(?:dois|2)\s+dias$", "", rest).strip()
+            if not rest or rest in {"daqui a dois dias", "daqui a 2 dias"}:
                 return ""
             return rest
     match = re.search(
@@ -1332,8 +1332,8 @@ def _humidity_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?umidade(?:\s+do\s+ar)?"
-        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
-        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1342,8 +1342,8 @@ def _humidity_place(norm: str) -> str | None:
     damp = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:(?:esta|ta)\s+)?(?:muito\s+)?umido"
-        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
-        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1357,8 +1357,8 @@ def _feels_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?sensacao(?:\s+termica)?"
-        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
-        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1367,7 +1367,7 @@ def _feels_place(norm: str) -> str | None:
     return _city_name(match.group(1) or "")
 
 
-_SUN_TAIL = r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?"
+_SUN_TAIL = r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?(?:\s+(?:em|no|na|de)\s+(.+))?"
 
 
 def _sun_place(norm: str) -> tuple[str, str] | None:
@@ -1399,8 +1399,8 @@ def _extreme_place(norm: str) -> tuple[str, str] | None:
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?(?:temperatura\s+)?"
         r"(maxima|minima)"
-        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
-        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de|para)\s+(.+))?",
         norm,
     )
@@ -1414,8 +1414,8 @@ def _pressure_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?pressao(?:\s+atmosferica)?"
-        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
-        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1442,8 +1442,8 @@ def _chance_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?(?:chance|probabilidade)\s+de\s+chuva"
-        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
-        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1457,8 +1457,8 @@ def _wind_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:(?:o|a)\s+)?(?:velocidade\s+do\s+)?vento"
-        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
-        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1467,8 +1467,8 @@ def _wind_place(norm: str) -> str | None:
     blowing = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:(?:esta|ta)\s+)?ventando"
-        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
-        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1482,8 +1482,8 @@ def _dew_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:o\s+)?ponto\s+de\s+orvalho"
-        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
-        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1497,8 +1497,8 @@ def _visibility_place(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"(?:qual\s+(?:e\s+)?)?(?:a\s+)?visibilidade"
-        r"(?:\s+(?:de|para)\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
-        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje|agora))?"
+        r"(?:\s+(?:de|para)\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje|agora))?"
         r"(?:\s+(?:em|no|na|de)\s+(.+))?",
         norm,
     )
@@ -1556,7 +1556,7 @@ def _how_city(norm: str) -> str | None:
     match = re.fullmatch(
         r"(?:me\s+(?:fala|fale|diz|conta|da)\s+)?"
         r"como\s+(?:esta|ta|vai)"
-        r"(?:\s+(?:depois\s+de\s+amanha|amanha|hoje))?"
+        r"(?:\s+(?:daqui\s+a\s+(?:dois|2)\s+dias|depois\s+de\s+amanha|amanha|hoje))?"
         r"(?:\s+(?:em|no|na))?"
         r"(?:\s+(.+))?",
         norm,
@@ -1595,7 +1595,7 @@ def _wants_weather(norm: str) -> bool:
         return True
     if norm.startswith("tempo ") and _bare_sky_place(norm):
         return True
-    if "daqui a dois dias" in norm and re.search(r"\b(?:tempo|clima|previsao)\b", norm):
+    if ("daqui a dois dias" in norm or "daqui a 2 dias" in norm) and re.search(r"\b(?:tempo|clima|previsao)\b", norm):
         return True
     if re.search(r"\b(?:tempo|clima|previsao)\s+em\s+\S", norm):
         return True
