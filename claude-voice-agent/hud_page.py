@@ -940,7 +940,11 @@ function drawPlate() {
     const consider = [];
     const pushOpt = (opt, trial, wrapped) => {
       if (!fits(trial)) return;
-      consider.push({ opt, trial, wrapped, cross: crosses(trial), intrusion: intrusion(trial) });
+      const mx = (trial.l + trial.r) / 2;
+      const my = (trial.t + trial.b) / 2;
+      const nest = home ? Math.hypot(mx - home.x, my - home.y) : 0;
+      const inside = home && nest > home.maxD ? 1 : 0;
+      consider.push({ opt, trial, wrapped, cross: crosses(trial), intrusion: intrusion(trial), inside });
     };
     for (const opt of options) pushOpt(opt, labelBox(opt.x, opt.y, opt.align, width), null);
     if (full.indexOf(" ") > 0) {
@@ -959,7 +963,7 @@ function drawPlate() {
         pushOpt(opt, trial, best);
       }
     }
-    consider.sort((a, b) => (a.intrusion - b.intrusion) || (a.cross - b.cross) || ((a.wrapped ? 1 : 0) - (b.wrapped ? 1 : 0)));
+    consider.sort((a, b) => (a.intrusion - b.intrusion) || (a.cross - b.cross) || (a.inside - b.inside) || ((a.wrapped ? 1 : 0) - (b.wrapped ? 1 : 0)));
     let chosen = consider[0] || null;
     if (!chosen && item.star.id === picked) {
       const opt = options[0];
