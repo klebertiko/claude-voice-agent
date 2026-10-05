@@ -88,6 +88,21 @@ def test_reminder_roundtrip(tmp_path):
     assert "voz do orion" in listed
 
 
+def test_note_search_stays_in_the_vault(tmp_path):
+    path = tmp_path / "notes.json"
+    path.write_text(
+        '[{"text": "entregar o projeto na sexta", "at": "a"}]',
+        encoding="utf-8",
+    )
+
+    def fetch(_url):
+        raise AssertionError("busca de nota não abre a web")
+
+    found = _reply("buscar nota projeto", fetch, path)
+    assert found == "Nas notas, Senhor. entregar o projeto na sexta."
+    assert _reply("buscar nota marte", fetch, path) == "Não há nota com isso, Senhor."
+
+
 def test_camera_and_image_are_refused(tmp_path):
     def fetch(_url):
         raise AssertionError("recusa não usa rede")

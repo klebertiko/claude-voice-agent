@@ -120,9 +120,17 @@ def test_page_has_microphone_and_no_camera():
     assert "recusar" in page
     assert "reator" not in page.lower()
     assert "iron" not in page.lower()
-    assert "Glorious" in page
-    assert "Betelgeuse" in page
+    assert "Glorious" not in page
+    assert "Betelgeuse" not in page
+    assert "Meissa" not in page
     assert "constelação" in page
+    assert "Notas" in page
+    assert "Sistemas" in page
+    assert 'id="note"' in page
+    assert 'data-brain="codex"' in page
+    assert 'data-brain="cursor"' in page
+    assert 'data-brain="claude"' in page
+    assert "buscar nota" in page
     assert 'id="sky"' in page
     assert 'id="brain-codex"' in page
     assert 'id="brain-cursor"' in page

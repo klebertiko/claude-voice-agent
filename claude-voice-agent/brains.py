@@ -147,8 +147,12 @@ def subscription_reply(
     cleaned: str,
     *,
     timeout: float = 40.0,
+    prefer: str | None = None,
 ) -> str | None:
-    """A primeira assinatura que responder. Codex, depois Cursor, depois Claude."""
+    """A primeira assinatura que responder. Codex, depois Cursor, depois Claude.
+
+    Com ``prefer``, só aquele cérebro responde. Ausente devolve None.
+    """
     prompt, system = _prompt(persona, history, cleaned)
     order = (
         ("codex", _which(settings.codex_cli), lambda cli: ask_codex(cli, prompt, system, timeout=timeout)),
@@ -161,6 +165,8 @@ def subscription_reply(
             ),
         ),
     )
+    if prefer:
+        order = tuple(row for row in order if row[0] == prefer)
     for _name, path, call in order:
         if not path:
             continue

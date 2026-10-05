@@ -80,6 +80,44 @@ def test_failed_codex_falls_through_to_claude(tmp_path):
     )
 
 
+def test_prefer_uses_only_that_brain(tmp_path):
+    _bin(tmp_path / "codex", "#!/bin/sh\necho 'Pelo Codex, Senhor.'\n")
+    _bin(tmp_path / "claude", "#!/bin/sh\necho 'Pelo Claude, Senhor.'\n")
+    settings = _settings(
+        tmp_path,
+        CLAUDE_VOICE_CODEX_CLI=str(tmp_path / "codex"),
+        CLAUDE_VOICE_CLAUDE_CLI=str(tmp_path / "claude"),
+    )
+    reply = subscription_reply(
+        settings, get_persona("orion"), [], "conte uma coisa", prefer="claude"
+    )
+    assert reply == "Pelo Claude, Senhor."
+    assert subscription_reply(
+        settings, get_persona("orion"), [], "conte uma coisa", prefer="cursor"
+    ) is None
+
+
+def test_choice_does_not_fall_through(tmp_path):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from claude_agent_voice.hud import make_reply_fn
+
+    _bin(tmp_path / "claude", "#!/bin/sh\necho 'Pelo Claude, Senhor.'\n")
+    settings = _settings(tmp_path, CLAUDE_VOICE_CLAUDE_CLI=str(tmp_path / "claude"))
+    choice = {"id": "codex"}
+    reply = make_reply_fn(
+        settings,
+        get_persona("orion"),
+        lambda: datetime(2026, 10, 5, 15, 5, tzinfo=ZoneInfo("America/Sao_Paulo")),
+        choice,
+    )
+    assert reply("conte uma coisa", []) == "Codex não está neste computador, Senhor."
+    choice["id"] = "claude"
+    assert reply("conte uma coisa", []) == "Pelo Claude, Senhor."
+    assert "1.08" in reply("qual o ritmo", [])
+
+
 def test_reply_fn_uses_the_subscription_before_the_fallback(tmp_path):
     from datetime import datetime
     from zoneinfo import ZoneInfo

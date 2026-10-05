@@ -56,8 +56,21 @@ def _load(path: Path) -> list[dict]:
     return data if isinstance(data, list) else []
 
 
+_WIKI = re.compile(r"\[\[([^\]|#]+)")
+
+
 def _words(text: str) -> set[str]:
     return {w for w in re.findall(r"[a-z0-9]{4,}", _plain(text)) if w not in _STOP}
+
+
+def _wikis(text: str) -> set[str]:
+    """Alvos de [[ligação]], no mesmo espírito de uma nota do Obsidian."""
+    found = set()
+    for raw in _WIKI.findall(text or ""):
+        target = _plain(raw.split("|", 1)[0])
+        if target:
+            found.add(target)
+    return found
 
 
 def memory_sky(path: Path) -> dict:
@@ -80,9 +93,14 @@ def memory_sky(path: Path) -> dict:
             }
         )
         bags.append(_words(text))
+    wikis = [_wikis(star["text"]) for star in stars]
+    plains = [_plain(star["text"]) for star in stars]
     links = []
     for i in range(len(stars)):
         for j in range(i + 1, len(stars)):
-            if bags[i] & bags[j]:
+            named = any(target in plains[j] for target in wikis[i]) or any(
+                target in plains[i] for target in wikis[j]
+            )
+            if bags[i] & bags[j] or named:
                 links.append({"a": stars[i]["id"], "b": stars[j]["id"]})
     return {"stars": stars, "links": links}

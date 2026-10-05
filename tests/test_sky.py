@@ -42,3 +42,17 @@ def test_stopwords_do_not_link(tmp_path):
         encoding="utf-8",
     )
     assert memory_sky(path)["links"] == []
+
+
+def test_wikilink_connects_a_short_name(tmp_path):
+    path = tmp_path / "notes.json"
+    path.write_text(
+        json.dumps(
+            [
+                {"text": "ver [[pão]]", "at": "a"},
+                {"text": "comprar pão", "at": "b"},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    assert memory_sky(path)["links"] == [{"a": "n0", "b": "n1"}]

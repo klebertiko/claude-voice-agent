@@ -136,6 +136,23 @@ def _remember(note: str, path: Path, moment: datetime) -> str:
     return "Anotado, Senhor."
 
 
+def _find_notes(query: str, path: Path) -> str:
+    """Busca nas notas, como a busca do Obsidian. Não abre a web."""
+    needle = _plain(query)
+    if not needle:
+        return "O que devo buscar nas notas, Senhor?"
+    hits = []
+    for item in _load(path):
+        if not isinstance(item, dict):
+            continue
+        text = " ".join(str(item.get("text") or "").split())
+        if text and needle in _plain(text):
+            hits.append(text)
+    if not hits:
+        return "Não há nota com isso, Senhor."
+    return "Nas notas, Senhor. " + ". ".join(hits[:3]) + "."
+
+
 def _list_notes(path: Path) -> str:
     items = _load(path)
     if not items:
@@ -216,6 +233,9 @@ def house_reply(
             return _weather("", fetch)
         if "noticia" in norm or "noticias" in norm or "o que esta acontecendo" in norm:
             return _news(fetch)
+        if norm.startswith("buscar nota ") or norm.startswith("notas sobre "):
+            query = norm.split(" ", 2)[-1] if norm.startswith("buscar nota ") else norm[len("notas sobre ") :]
+            return _find_notes(query, reminders_path)
         for prefix in ("pesquise ", "busque ", "procure "):
             if norm.startswith(prefix):
                 return _search(norm[len(prefix) :], fetch)

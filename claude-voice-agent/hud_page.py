@@ -1,4 +1,4 @@
-"""Painel do Orion: asterismo no centro, céu de lembretes ao redor.
+"""Painel do Orion: céu das notas e dos sistemas.
 
 Sem vídeo. Uma ordem no computador aparece inteira e espera permissão.
 """
@@ -13,11 +13,9 @@ _PAGE = r"""<!DOCTYPE html>
 <title>__NAME__</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,400&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
 <style>
-  /* Painel. Escala 16 × 1.25. Source Sans no miolo, Newsreader só no nome.
-   * Um acento. Grelha de 8. A carta é o asterismo, com posições reais.
-   */
+  /* Uma família. 16 no corpo, 14 no apoio. Sem filete em cada linha. */
   :root {
     color-scheme: dark;
     --color-bg: #070d16;
@@ -28,11 +26,9 @@ _PAGE = r"""<!DOCTYPE html>
     --color-focus: #e8eef6;
     --color-ok: #b7d4c4;
     --color-bad: #e7b2a8;
-    --font-display: "Newsreader", Georgia, serif;
     --font-body: "Source Sans 3", "Segoe UI", sans-serif;
     --text-support: 0.875rem;
     --text-body: 1rem;
-    --text-title: 2rem;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; background: var(--color-bg); color: var(--color-ink); }
@@ -55,27 +51,16 @@ _PAGE = r"""<!DOCTYPE html>
   }
   #log, #text, #permit-cmd { user-select: text; }
   .strip {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 16px; padding: 16px;
-    border-bottom: 1px solid var(--color-line);
-  }
-  .brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
-  .plate-num {
-    font-size: var(--text-support); font-weight: 600; letter-spacing: 0.14em; color: var(--color-ink-2);
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 24px; padding: 24px;
+    background: var(--color-bg);
   }
   .strip h1 {
-    font-family: var(--font-display); font-weight: 500; font-size: clamp(1.5rem, 4vw, var(--text-title));
-    line-height: 1; letter-spacing: -0.02em; text-transform: uppercase;
+    font-family: var(--font-body); font-weight: 600; font-size: var(--text-body);
+    line-height: 1.25; letter-spacing: 0;
   }
-  .epithet {
-    font-family: var(--font-display); font-style: italic; font-weight: 400;
-    font-size: var(--text-body); line-height: 1.2; color: var(--color-ink-2);
-  }
-  .meta { display: flex; align-items: baseline; gap: 16px; }
-  #status {
-    font-size: var(--text-support); font-weight: 600; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--color-ink-2);
-  }
+  .meta { display: flex; align-items: baseline; gap: 24px; }
+  #status { font-size: var(--text-body); color: var(--color-ink-2); }
   body[data-state="listening"] #status,
   body[data-state="speaking"] #status,
   body[data-state="thinking"] #status { color: var(--color-accent); }
@@ -89,59 +74,52 @@ _PAGE = r"""<!DOCTYPE html>
     font-size: var(--text-body); line-height: 1.5; color: var(--color-ink-2);
   }
   .telemetry, .talk {
-    min-width: 0; min-height: 0; padding: 24px 16px;
-    border-top: 1px solid var(--color-line);
+    min-width: 0; min-height: 0; padding: 8px 24px 32px;
+    background: var(--color-bg);
   }
-  h2 {
-    margin: 0 0 16px;
-    font-family: var(--font-body); font-size: var(--text-support); font-weight: 600;
-    line-height: 1.25; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-ink-2);
+  .systems { margin: 0; display: flex; flex-flow: row wrap; gap: 8px 24px; }
+  .systems div, .systems button.fact {
+    display: flex; justify-content: flex-start; align-items: baseline;
+    gap: 8px; min-width: 0; min-height: 44px;
+    margin: 0; padding: 0; border: 0; background: transparent;
+    font: inherit; color: inherit; cursor: pointer; text-align: left;
   }
-  .systems { margin: 0; display: flex; flex-direction: column; }
-  .systems div {
-    display: flex; justify-content: space-between; align-items: baseline;
-    gap: 16px; min-width: 0; padding: 8px 0;
-    border-bottom: 1px solid var(--color-line);
-  }
-  .systems div:last-child { border-bottom: 0; }
-  .systems dt {
-    font-size: var(--text-support); font-weight: 600; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--color-ink-2);
-  }
-  .systems dd {
-    margin: 0; font-size: var(--text-body); line-height: 1.3; text-align: right;
+  .systems button.fact[aria-pressed="true"] { color: var(--color-accent); }
+  .systems .k, .systems dt { font-size: var(--text-body); font-weight: 400; color: var(--color-ink-2); }
+  .systems .v, .systems dd {
+    margin: 0; font-size: var(--text-body); line-height: 1.5; text-align: left;
     font-variant-numeric: tabular-nums; color: var(--color-ink); overflow-wrap: anywhere;
   }
-  .systems dd.is-down { color: var(--color-ink-2); }
-  .talk { display: flex; flex-direction: column; }
+  .systems .is-down { color: var(--color-ink-2); }
+  .talk { display: flex; flex-direction: column; gap: 16px; }
+  #note { display: flex; flex-direction: column; gap: 8px; max-width: 72ch; }
+  #note[hidden] { display: none; }
+  #note-text { font-size: var(--text-body); line-height: 1.5; }
+  #note-links { display: flex; flex-wrap: wrap; gap: 8px 16px; }
   #log {
-    flex: 1; min-height: 0; max-height: 24rem; overflow: auto;
-    display: flex; flex-direction: column; gap: 16px; max-width: 65ch;
+    flex: 1; min-height: 0; max-height: 8rem; overflow: auto;
+    display: flex; flex-direction: column; gap: 16px; max-width: 72ch;
   }
   #log p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; font-size: var(--text-body); }
   #log .empty, #log .meta { color: var(--color-ink-2); }
   #log p[data-speaker]::before {
     content: attr(data-speaker);
-    display: block; margin: 0 0 8px;
-    font-size: var(--text-support); font-weight: 600; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--color-ink-2);
+    display: block; margin: 0 0 4px;
+    font-size: var(--text-support); font-weight: 600; color: var(--color-ink-2);
   }
   #permit {
     display: flex; align-items: center; flex-wrap: wrap; gap: 16px;
-    padding: 16px; border-top: 1px solid var(--color-accent);
+    padding: 16px 24px; background: var(--color-bg);
   }
   #permit[hidden] { display: none; }
-  #permit p {
-    font-size: var(--text-body); font-weight: 600; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--color-accent);
-  }
+  #permit p { font-size: var(--text-body); font-weight: 600; color: var(--color-accent); }
   #permit-cmd {
     flex: 1 1 12rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     font-size: var(--text-body); color: var(--color-ink);
   }
   .floor {
     display: flex; align-items: center; flex-wrap: wrap; gap: 16px;
-    padding: 8px 16px 16px; border-top: 1px solid var(--color-line);
+    padding: 8px 24px 24px; background: var(--color-bg);
   }
   #text {
     flex: 1 1 12rem; min-width: 0; min-height: 44px;
@@ -159,7 +137,7 @@ _PAGE = r"""<!DOCTYPE html>
   #text[data-state="success"] { border-bottom-color: var(--color-ok); }
   .act {
     font-family: var(--font-body); font-size: var(--text-body); font-weight: 400;
-    letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none; white-space: nowrap;
+    letter-spacing: 0; text-decoration: none; white-space: nowrap;
     cursor: pointer; min-height: 44px; padding: 8px 8px;
     border: 0; border-radius: 0; background: transparent; color: var(--color-ink-2);
     transition: color 180ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -173,26 +151,20 @@ _PAGE = r"""<!DOCTYPE html>
   #mic[data-hot="1"] { color: var(--color-bad); }
   @media (min-width: 960px) {
     .room {
-      grid-template-columns: 17.5rem minmax(0, 1fr) 22rem;
-      grid-template-rows: auto minmax(0, 1fr) auto auto;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto minmax(0, 1fr) auto auto;
     }
-    .strip, #permit, .floor { grid-column: 1 / -1; }
+    .strip, .telemetry, .well, .talk, #permit, .floor { grid-column: 1; }
+    .strip { grid-row: 1; }
+    .telemetry { grid-row: 2; padding-top: 0; padding-bottom: 8px; }
+    .well { grid-row: 3; min-height: 0; }
+    .talk { grid-row: 4; padding-top: 8px; padding-bottom: 8px; }
+    .floor { grid-row: 5; }
     .strip, #permit, .floor, .telemetry, .talk { padding-left: 24px; padding-right: 24px; }
-    .well { grid-column: 2; grid-row: 2; min-height: 0; }
-    .telemetry {
-      grid-column: 1; grid-row: 2; overflow: auto;
-      border-top: 0; border-right: 1px solid var(--color-line); padding-top: 24px; padding-bottom: 24px;
-    }
-    .talk {
-      grid-column: 3; grid-row: 2; overflow: hidden;
-      border-top: 0; border-left: 1px solid var(--color-line); padding-top: 24px; padding-bottom: 24px;
-    }
-    #log { max-height: none; }
-    .floor { padding-bottom: 24px; }
   }
   @media (max-width: 640px) {
-    .epithet { display: none; }
-    .meta { gap: 8px; }
+    .strip, .floor, .telemetry, .talk, #permit { padding-left: 16px; padding-right: 16px; }
+    .meta { gap: 16px; }
   }
   @media (prefers-reduced-motion: reduce) { .act { transition: none; } }
 </style>
@@ -201,11 +173,7 @@ _PAGE = r"""<!DOCTYPE html>
 <canvas id="field" aria-label="constelação"></canvas>
 <div class="room">
   <header class="strip">
-    <div class="brand">
-      <p class="plate-num">XXIX</p>
-      <h1>__NAME__</h1>
-      <p class="epithet">the Glorious One</p>
-    </div>
+    <h1>__NAME__</h1>
     <div class="meta">
       <p id="status">pronto</p>
       <p id="clock">00:00:00</p>
@@ -215,24 +183,28 @@ _PAGE = r"""<!DOCTYPE html>
     <p id="sky-read">Arraste para orbitar. A roda aproxima.</p>
   </div>
   <aside class="telemetry">
-    <h2>Estado</h2>
-    <dl class="systems">
-      <div><dt>codex</dt><dd class="is-down" id="brain-codex">ausente</dd></div>
-      <div><dt>cursor</dt><dd class="is-down" id="brain-cursor">ausente</dd></div>
-      <div><dt>claude</dt><dd class="is-down" id="brain-claude">ausente</dd></div>
-      <div><dt>cérebro</dt><dd class="is-down" id="brain">ausente</dd></div>
-      <div><dt>céu</dt><dd id="sky">0</dd></div>
-      <div><dt>lembretes</dt><dd id="notes">0</dd></div>
-      <div><dt>voz</dt><dd id="voice-name">george</dd></div>
-      <div><dt>ritmo</dt><dd>1.08</dd></div>
-      <div><dt>carga</dt><dd id="load">—</dd></div>
-      <div><dt>fuso</dt><dd>Brasília</dd></div>
-      <div><dt>data</dt><dd id="date">—</dd></div>
-      <div><dt>sessão</dt><dd id="sess">à espera do nome</dd></div>
-    </dl>
+    <div class="systems">
+      <button type="button" class="fact" data-brain="codex"><span class="k">Codex</span><span class="v is-down" id="brain-codex">ausente</span></button>
+      <button type="button" class="fact" data-brain="cursor"><span class="k">Cursor</span><span class="v is-down" id="brain-cursor">ausente</span></button>
+      <button type="button" class="fact" data-brain="claude"><span class="k">Claude</span><span class="v is-down" id="brain-claude">ausente</span></button>
+      <button type="button" class="fact" data-brain="ollama"><span class="k">Cérebro</span><span class="v is-down" id="brain">ausente</span></button>
+      <button type="button" class="fact" data-ask="quais lembretes"><span class="k">Céu</span><span class="v" id="sky">0</span></button>
+      <button type="button" class="fact" data-ask="quais lembretes"><span class="k">Lembretes</span><span class="v" id="notes">0</span></button>
+      <button type="button" class="fact" data-voice="1"><span class="k">Voz</span><span class="v" id="voice-name">george</span></button>
+      <button type="button" class="fact" data-ask="qual o ritmo"><span class="k">Ritmo</span><span class="v">1.08</span></button>
+      <button type="button" class="fact" data-ask="qual a carga"><span class="k">Carga</span><span class="v" id="load">—</span></button>
+      <button type="button" class="fact" data-ask="qual o fuso"><span class="k">Fuso</span><span class="v">Brasília</span></button>
+      <button type="button" class="fact" data-ask="qual a data"><span class="k">Data</span><span class="v" id="date">—</span></button>
+      <button type="button" class="fact" data-ask="qual seu nome"><span class="k">Sessão</span><span class="v" id="sess">à espera do nome</span></button>
+      <button type="button" class="fact" data-draft="anote "><span class="k">Nova nota</span></button>
+      <button type="button" class="fact" data-draft="buscar nota "><span class="k">Buscar nota</span></button>
+    </div>
   </aside>
   <section class="talk">
-    <h2>Conversa</h2>
+    <article id="note" hidden>
+      <p id="note-text"></p>
+      <div id="note-links"></div>
+    </article>
     <div id="log" aria-live="polite"><p class="empty" id="empty">Diga, Senhor.</p></div>
   </section>
   <div id="permit" hidden>
@@ -281,9 +253,13 @@ const ink = {
 };
 const well = document.querySelector(".well");
 const skyRead = document.getElementById("sky-read");
+const noteEl = document.getElementById("note");
+const noteText = document.getElementById("note-text");
+const noteLinks = document.getElementById("note-links");
 let permitId = "";
 let memory = [];
 let memoryLinks = [];
+let noteQuery = "";
 let namedOnScreen = [];
 let picked = "";
 let hovered = "";
@@ -296,27 +272,9 @@ let drag = null;
 let dragMoved = 0;
 const orbitHint = "Arraste para orbitar. A roda aproxima.";
 const GROUPS = {
-  notas: { name: "Notas", x: -1.2, y: 0.05, z: 0.25, r: 1.15, rgb: "120, 86, 58" },
-  sistemas: { name: "Sistemas", x: 1.25, y: -1.15, z: -0.1, r: 1.15, rgb: "64, 96, 168" },
-  orion: { name: "Órion", x: 0.1, y: 1.45, z: -0.55, r: 1.05, rgb: "92, 64, 140" },
+  notas: { name: "Notas", x: -2.15, y: 0.35, z: 0.15, r: 1.7, rgb: "186, 92, 140" },
+  sistemas: { name: "Sistemas", x: 2.05, y: -0.45, z: -0.35, r: 1.85, rgb: "64, 112, 196" },
 };
-const MYTH = [
-  { id: "meissa", name: "Meissa", greek: "λ", x: 51.2, y: 14.7, mag: 1.8 },
-  { id: "betelgeuse", name: "Betelgeuse", greek: "α", x: 25.2, y: 22.9, mag: 3.6, warm: true },
-  { id: "bellatrix", name: "Bellatrix", greek: "γ", x: 64.2, y: 26.4, mag: 2.5 },
-  { id: "alnitak", name: "Alnitak", greek: "ζ", x: 43.9, y: 53.3, mag: 2.4 },
-  { id: "alnilam", name: "Alnilam", greek: "ε", x: 49.8, y: 50.9, mag: 2.5 },
-  { id: "mintaka", name: "Mintaka", greek: "δ", x: 55.2, y: 48.0, mag: 2.2 },
-  { id: "saiph", name: "Saiph", greek: "κ", x: 34.8, y: 78.4, mag: 2.3 },
-  { id: "rigel", name: "Rigel", greek: "β", x: 77.8, y: 73.7, mag: 4.0 },
-  { id: "sword", name: "Espada", greek: "", x: 50.9, y: 66.2, mag: 1.6 },
-];
-const MYTH_LINKS = [
-  ["meissa", "betelgeuse"], ["meissa", "bellatrix"], ["betelgeuse", "bellatrix"],
-  ["betelgeuse", "alnitak"], ["bellatrix", "mintaka"],
-  ["mintaka", "alnilam"], ["alnilam", "alnitak"],
-  ["alnitak", "saiph"], ["mintaka", "rigel"], ["alnilam", "sword"],
-];
 const SYSTEMS = [
   { id: "sys-cerebro", label: "Cérebro", lx: 0, ly: 0, lz: 0 },
   { id: "sys-codex", label: "Codex", lx: -0.58, ly: 0.42, lz: 0.16 },
@@ -357,14 +315,6 @@ function notePos(index, total) {
     z: g.z + Math.sin(theta) * ring,
   };
 }
-function mythPos(star) {
-  const g = GROUPS.orion;
-  return {
-    x: g.x + (star.x - 50) / 42,
-    y: g.y + (46 - star.y) / 42,
-    z: g.z + ((star.x - 50) * (star.y - 40)) / 9000,
-  };
-}
 function systemPos(star) {
   const g = GROUPS.sistemas;
   return { x: g.x + star.lx, y: g.y + star.ly, z: g.z + star.lz };
@@ -378,18 +328,7 @@ function buildWorld() {
     star: { id: star.id, label: star.label, text: systemText[star.id] || star.label, kind: "sistema" },
     pos: systemPos(star),
   }));
-  const myth = MYTH.map((star) => ({
-    star: {
-      id: star.id,
-      label: star.greek ? star.greek + "  " + star.name : star.name,
-      text: star.name + ", da constelação de Órion.",
-      kind: "mito",
-      warm: !!star.warm,
-      mag: star.mag,
-    },
-    pos: mythPos(star),
-  }));
-  const all = notes.concat(systems, myth);
+  const all = notes.concat(systems);
   const byId = {};
   for (const node of all) byId[node.star.id] = node;
   const links = [];
@@ -400,7 +339,6 @@ function buildWorld() {
   };
   for (const link of memoryLinks) add(link.a, link.b);
   for (const link of SYSTEM_LINKS) add(link[0], link[1]);
-  for (const link of MYTH_LINKS) add(link[0], link[1]);
   if (memory.length > 0 && memory.length <= 12) {
     for (const star of memory) add("sys-lembretes", star.id);
   }
@@ -456,7 +394,7 @@ function drawPlate() {
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height * 0.5;
   const minSide = Math.min(rect.width, rect.height);
-  const scale = minSide * 0.32 * zoom;
+  const scale = Math.max(rect.width, rect.height) * 0.22 * zoom;
   const yaw = yawUser;
   const pitch = pitchUser;
   const world = buildWorld();
@@ -506,7 +444,8 @@ function drawPlate() {
     const chosen = item.star.id === picked;
     const near = item.p.persp;
     const pulse = chosen ? 1 + level * 0.65 : 1;
-    ctx.globalAlpha = Math.max(0.4, Math.min(1, 0.3 + near * 0.65));
+    const dim = item.star.kind === "nota" && noteQuery && !noteHit(item.star);
+    ctx.globalAlpha = (dim ? 0.16 : 1) * Math.max(0.4, Math.min(1, 0.3 + near * 0.65));
     if (item.star.kind === "sistema") {
       ctx.strokeStyle = chosen ? ink.accent : ink.ink;
       ctx.lineWidth = 1.25;
@@ -518,7 +457,7 @@ function drawPlate() {
       ctx.arc(item.p.x, item.p.y, Math.max(1.6, 2.2 * near), 0, Math.PI * 2);
       ctx.fill();
     } else {
-      const mag = item.star.kind === "mito" ? (item.star.mag || 2) : 3.2;
+      const mag = 3.2;
       ctx.fillStyle = (chosen || item.star.warm) ? ink.accent : ink.ink;
       ctx.beginPath();
       ctx.arc(item.p.x, item.p.y, Math.max(1.8, mag * 0.9 * near) * pulse, 0, Math.PI * 2);
@@ -544,15 +483,13 @@ function drawPlate() {
     const af = a.star.id === picked || a.star.id === hovered;
     const bf = b.star.id === picked || b.star.id === hovered;
     if (af !== bf) return af ? -1 : 1;
-    const rank = { nota: 0, sistema: 1, mito: 2 };
+    const rank = { nota: 0, sistema: 1 };
     return (rank[a.star.kind] || 3) - (rank[b.star.kind] || 3) || (b.p.persp - a.p.persp);
   });
   for (const item of ranked) {
     if (!item.star.label) continue;
+    if (item.star.kind === "nota" && noteQuery && !noteHit(item.star) && item.star.id !== picked) continue;
     const focus = item.star.id === picked || item.star.id === hovered;
-    if (item.star.kind === "mito" && !focus && zoom < 1.45) {
-      if (item.star.id !== "betelgeuse" && item.star.id !== "rigel" && item.star.id !== "meissa") continue;
-    }
     if (item.p.persp < 0.42 && !focus) continue;
     const onStage = item.p.x >= rect.left + 8 && item.p.x <= rect.right - 8 && item.p.y >= rect.top + 28 && item.p.y <= rect.bottom - 8;
     if (!onStage && item.star.id !== picked) continue;
@@ -588,7 +525,7 @@ function drawPlate() {
   ctx.font = "600 14px " + ink.body;
   ctx.textAlign = "center";
   for (const group of Object.values(GROUPS)) {
-    const above = { x: group.x, y: group.y + group.r * 0.78, z: group.z };
+    const above = { x: group.x, y: group.y + group.r * 0.55, z: group.z };
     const p = project(rotate(above, yaw, pitch), cx, cy, scale);
     if (p.persp < 0.4) continue;
     if (p.x < rect.left + 28 || p.x > rect.right - 28 || p.y < rect.top + 24 || p.y > rect.bottom - 12) continue;
@@ -670,8 +607,8 @@ function addLine(cls, message) {
   const p = document.createElement("p");
   p.className = cls;
   p.textContent = message;
-  if (cls === "user") p.dataset.speaker = "senhor";
-  if (cls === "agent") p.dataset.speaker = "orion";
+  if (cls === "user") p.dataset.speaker = "Senhor";
+  if (cls === "agent") p.dataset.speaker = "Orion";
   logEl.appendChild(p);
   logEl.scrollTop = logEl.scrollHeight;
 }
@@ -702,10 +639,14 @@ async function refreshBrain() {
       el.classList.toggle("is-down", !brain.up);
     }
     const stateWord = (row) => (row && row.up ? "pronto" : "ausente");
-    systemText["sys-codex"] = "Codex, " + stateWord(brainById.codex) + ".";
-    systemText["sys-cursor"] = "Cursor, " + stateWord(brainById.cursor) + ".";
-    systemText["sys-claude"] = "Claude, " + stateWord(brainById.claude) + ".";
-    systemText["sys-cerebro"] = data.up ? "Cérebro, " + (data.model || "pronto") + "." : "Cérebro, ausente.";
+    const choice = data.choice || "";
+    systemText["sys-codex"] = (choice === "codex" ? "Codex, escolhido." : "Codex, " + stateWord(brainById.codex) + ".");
+    systemText["sys-cursor"] = (choice === "cursor" ? "Cursor, escolhido." : "Cursor, " + stateWord(brainById.cursor) + ".");
+    systemText["sys-claude"] = (choice === "claude" ? "Claude, escolhido." : "Claude, " + stateWord(brainById.claude) + ".");
+    systemText["sys-cerebro"] = (choice === "ollama" ? "Cérebro local, escolhido." : (data.up ? "Cérebro, " + (data.model || "pronto") + "." : "Cérebro, ausente."));
+    for (const btn of document.querySelectorAll(".fact[data-brain]")) {
+      btn.setAttribute("aria-pressed", btn.dataset.brain === choice ? "true" : "false");
+    }
     if (picked && String(picked).indexOf("sys-") === 0) {
       skyRead.textContent = systemText[picked] || skyRead.textContent;
     }
@@ -722,6 +663,96 @@ async function refreshSky() {
     const el = document.getElementById("sky");
     if (el) el.textContent = String(memory.length);
   } catch (err) { /* o céu fica como está */ }
+}
+function fold(value) {
+  return (value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+function noteHit(star) {
+  if (!noteQuery) return true;
+  return fold(star.text || star.label).includes(noteQuery);
+}
+function linksOf(id) {
+  const ids = new Set();
+  for (const link of memoryLinks) {
+    if (link.a === id) ids.add(link.b);
+    if (link.b === id) ids.add(link.a);
+  }
+  return memory.filter((star) => ids.has(star.id));
+}
+function openNote(star) {
+  if (!noteEl) return;
+  noteEl.hidden = false;
+  noteText.textContent = star.text || star.label;
+  noteLinks.replaceChildren();
+  const linked = linksOf(star.id);
+  if (!linked.length) {
+    const empty = document.createElement("p");
+    empty.className = "meta";
+    empty.textContent = "Sem ligações.";
+    noteLinks.appendChild(empty);
+    return;
+  }
+  for (const other of linked) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "act";
+    btn.textContent = other.label;
+    btn.addEventListener("click", () => focusStar(other.id));
+    noteLinks.appendChild(btn);
+  }
+}
+function focusStar(id) {
+  const star = memory.find((item) => item.id === id);
+  if (!star) return;
+  picked = id;
+  skyRead.textContent = star.text || star.label;
+  const node = buildWorld().all.find((item) => item.star.id === id);
+  if (node) {
+    const aim = anglesToward(node.pos);
+    yawTarget = aim.yaw;
+    pitchTarget = aim.pitch;
+  }
+  openNote(star);
+}
+async function sendText(value) {
+  const folded = fold(value);
+  if (folded.startsWith("buscar nota ")) noteQuery = folded.slice("buscar nota ".length).trim();
+  else if (folded.startsWith("notas sobre ")) noteQuery = folded.slice("notas sobre ".length).trim();
+  else if (folded.startsWith("anote ") || folded.startsWith("anota ")) noteQuery = "";
+  setState("thinking");
+  try { await showTurn(await post("/api/turn", { text: value }), null); }
+  catch (err) { setState("idle"); addLine("meta", "Não consegui falar agora."); }
+}
+async function chooseBrain(id) {
+  setState("thinking");
+  try {
+    const data = await post("/api/use", { id });
+    for (const btn of document.querySelectorAll(".fact[data-brain]")) {
+      btn.setAttribute("aria-pressed", btn.dataset.brain === data.choice ? "true" : "false");
+    }
+    if (data.reply) {
+      addLine("agent", data.reply);
+      skyRead.textContent = data.reply;
+    }
+    if (data.audio_b64) await playWav(data.audio_b64);
+    else setState("idle");
+  } catch (err) {
+    setState("idle");
+    addLine("meta", "Não consegui escolher o cérebro.");
+  }
+}
+function runSystem(id) {
+  const brains = { "sys-codex": "codex", "sys-cursor": "cursor", "sys-claude": "claude", "sys-cerebro": "ollama" };
+  if (brains[id]) { chooseBrain(brains[id]); return; }
+  if (id === "sys-clima") { sendText("qual o tempo"); return; }
+  if (id === "sys-noticias") { sendText("notícias"); return; }
+  if (id === "sys-lembretes") { sendText("quais lembretes"); return; }
+  if (id === "sys-voz") { voiceBtn.click(); return; }
+  if (id === "sys-busca") {
+    text.value = "busque ";
+    text.focus();
+    skyRead.textContent = "O que devo procurar, Senhor?";
+  }
 }
 function pointStar(ev, choose) {
   const hit = starAt(ev.clientX, ev.clientY);
@@ -741,6 +772,8 @@ function pointStar(ev, choose) {
     const aim = anglesToward(hit.pos);
     yawTarget = aim.yaw;
     pitchTarget = aim.pitch;
+    if (hit.star.kind === "nota") openNote(hit.star);
+    else runSystem(hit.star.id);
   }
   skyRead.textContent = hit.star.kind === "sistema" ? (systemText[hit.star.id] || hit.star.text) : hit.star.text;
 }
@@ -830,6 +863,7 @@ async function showTurn(data, sourceBtn) {
   if (data.audio_b64) await playWav(data.audio_b64);
   else setState("idle");
   if (sourceBtn && data.reply) mark(sourceBtn, "success");
+  refreshSky();
 }
 async function decide(allow) {
   if (!permitId) return;
@@ -844,6 +878,10 @@ form.addEventListener("submit", async (ev) => {
   const value = text.value.trim();
   if (!value) return;
   text.value = "";
+  const folded = fold(value);
+  if (folded.startsWith("buscar nota ")) noteQuery = folded.slice("buscar nota ".length).trim();
+  else if (folded.startsWith("notas sobre ")) noteQuery = folded.slice("notas sobre ".length).trim();
+  else if (folded.startsWith("anote ") || folded.startsWith("anota ")) noteQuery = "";
   setState("thinking");
   try { await showTurn(await post("/api/turn", { text: value }), submitBtn); }
   catch (err) { setState("idle"); addLine("meta", "Não consegui falar agora."); mark(submitBtn, "error"); }
@@ -863,6 +901,14 @@ voiceBtn.addEventListener("click", async () => {
     mark(voiceBtn, "error");
   }
 });
+for (const btn of document.querySelectorAll(".fact")) {
+  btn.addEventListener("click", () => {
+    if (btn.dataset.brain) { chooseBrain(btn.dataset.brain); return; }
+    if (btn.dataset.voice) { voiceBtn.click(); return; }
+    if (btn.dataset.draft) { text.value = btn.dataset.draft; text.focus(); return; }
+    if (btn.dataset.ask) sendText(btn.dataset.ask);
+  });
+}
 allowBtn.addEventListener("click", () => decide(true));
 denyBtn.addEventListener("click", () => decide(false));
 let micStream, captureCtx, processor, chunks = [], capturing = false;

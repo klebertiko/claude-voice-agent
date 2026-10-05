@@ -8,6 +8,7 @@ para a voz ainda poder ser ouvida.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import unicodedata
 from dataclasses import dataclass, field
@@ -153,14 +154,43 @@ def take_turn(
     return TurnResult("replied", heard, reply)
 
 
-def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now):
+_BRAIN_LABEL = {
+    "codex": "Codex",
+    "cursor": "Cursor",
+    "claude": "Claude",
+}
+
+
+def _panel_fact(cleaned: str, persona: Persona) -> str | None:
+    """Fatos do painel. Não chamam assinatura."""
+    norm = _plain(cleaned)
+    if norm in {"qual o ritmo", "o ritmo"}:
+        rate = persona.speech_rate
+        shown = f"{rate:g}"
+        return f"O ritmo é {shown}, Senhor."
+    if norm in {"qual a carga", "a carga"}:
+        try:
+            load = os.getloadavg()[0]
+        except OSError:
+            return "Não li a carga, Senhor."
+        return f"A carga está em {load}, Senhor."
+    if norm in {"qual o fuso", "o fuso"}:
+        return "O fuso é Brasília, Senhor."
+    if norm in {"qual a voz", "a voz"}:
+        voice = persona.voice.rsplit("_", 1)[-1]
+        return f"A voz é {voice}, Senhor."
+    return None
+
+
+def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict | None = None):
     """Ordem local, depois as assinaturas, depois o Ollama, depois a reserva.
 
-    Hora, data, nome e ``execute …`` não dependem de rede. O resto tenta
-    Codex, Cursor e Claude, e só então o Ollama.
+    Hora, data, nome e ``execute …`` não dependem de rede. Sem escolha, tenta
+    Codex, Cursor e Claude, e só então o Ollama. Com escolha, só aquele.
     """
     host = settings.ollama_host
     preferred = settings.ollama_model
+    chosen = choice if choice is not None else {"id": ""}
 
     def reply(cleaned: str, history: list[tuple[str, str]]) -> str:
         cmd = local_command(cleaned)
@@ -170,9 +200,41 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now):
         housed = house_reply(cleaned, moment, reminders_path=settings.reminders_path)
         if housed:
             return housed
+        fact = _panel_fact(cleaned, persona)
+        if fact:
+            return fact
         local = spoken_fallback(cleaned, persona.name, moment)
         if not local.startswith("Entendido, Senhor. Ainda não"):
             return local
+        prefer = str(chosen.get("id") or "")
+        if prefer in _BRAIN_LABEL:
+            label = _BRAIN_LABEL[prefer]
+            try:
+                spoken = subscription_reply(
+                    settings, persona, history, cleaned, prefer=prefer
+                )
+                if spoken:
+                    return spoken
+            except (OSError, subprocess.TimeoutExpired):
+                spoken = None
+            from .brains import probe_subscriptions
+
+            rows = {row["id"]: row["up"] for row in probe_subscriptions(settings)}
+            if not rows.get(prefer):
+                return f"{label} não está neste computador, Senhor."
+            return f"{label} não respondeu, Senhor."
+        if prefer == "ollama":
+            if host:
+                try:
+                    info = probe_ollama(host)
+                    model = preferred or info.get("model")
+                    if info.get("up") and model:
+                        text = ask_ollama(host, model, persona.system_prompt(), history, cleaned)
+                        if text:
+                            return text
+                except (OSError, TimeoutError, json.JSONDecodeError, ValueError):
+                    pass
+            return "O cérebro local não está neste computador, Senhor."
         try:
             spoken = subscription_reply(settings, persona, history, cleaned)
             if spoken:
@@ -182,9 +244,9 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now):
         if host:
             try:
                 info = probe_ollama(host)
-                chosen = preferred or info.get("model")
-                if info.get("up") and chosen:
-                    text = ask_ollama(host, chosen, persona.system_prompt(), history, cleaned)
+                model = preferred or info.get("model")
+                if info.get("up") and model:
+                    text = ask_ollama(host, model, persona.system_prompt(), history, cleaned)
                     if text:
                         return text
             except (OSError, TimeoutError, json.JSONDecodeError, ValueError):

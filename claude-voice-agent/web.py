@@ -79,6 +79,7 @@ class VoiceHud:
         )
         self._status_at = 0.0
         self._status_cache: dict | None = None
+        self.choice = {"id": ""}
 
     def handle(
         self,
@@ -158,10 +159,50 @@ class VoiceHud:
             "brains": brains,
             "load": load,
             "notes": notes,
+            "choice": self.choice["id"],
         }
         self._status_cache = payload
         self._status_at = now
         return payload
+
+    def use(self, brain_id: str) -> dict:
+        """Escolhe o cérebro do próximo turno. Vazio volta à ordem automática."""
+        allowed = {"", "codex", "cursor", "claude", "ollama"}
+        brain_id = (brain_id or "").strip().lower()
+        if brain_id not in allowed:
+            raise ValueError("cérebro desconhecido")
+        labels = {"codex": "Codex", "cursor": "Cursor", "claude": "Claude", "ollama": "O cérebro local"}
+        self.choice["id"] = brain_id
+        self._status_cache = None
+        if not brain_id:
+            line = "Escolho sozinho, Senhor."
+        elif brain_id == "ollama":
+            info = self.probe_fn() or {}
+            # probe marca up se alguma assinatura existe. Ollama é o modelo local.
+            local = bool(info.get("models"))
+            line = (
+                "Cérebro local, escolhido, Senhor."
+                if local
+                else "O cérebro local não está neste computador, Senhor."
+            )
+        else:
+            settings = self._settings()
+            rows = (
+                {row["id"]: row for row in probe_subscriptions(settings)} if settings is not None else {}
+            )
+            up = bool(rows.get(brain_id, {}).get("up"))
+            label = labels[brain_id]
+            line = (
+                f"{label}, escolhido, Senhor."
+                if up
+                else f"{label} não está neste computador, Senhor."
+            )
+        payload = self._with_audio("replied", "", line)
+        payload["choice"] = brain_id
+        return payload
+
+    def _settings(self):
+        return getattr(self, "settings", None)
 
     def sky_payload(self) -> dict:
         return memory_sky(Path(self.reminders_path))
@@ -251,15 +292,19 @@ def create_hud(settings: Settings | None = None) -> VoiceHud:
         compute_type=settings.whisper_compute,
         language=settings.whisper_lang,
     )
-    return VoiceHud(
+    choice = {"id": ""}
+    hud = VoiceHud(
         session=session,
-        reply_fn=make_reply_fn(settings, persona),
+        reply_fn=make_reply_fn(settings, persona, choice=choice),
         synth_fn=_default_synth(tts),
         transcribe_fn=_default_transcribe(stt),
         clock=time.monotonic,
         probe_fn=probe,
         reminders_path=settings.reminders_path,
     )
+    hud.choice = choice
+    hud.settings = settings
+    return hud
 
 
 def _handler(hud: VoiceHud, page: str):
@@ -318,6 +363,8 @@ def _handler(hud: VoiceHud, page: str):
                     )
                 elif path == "/api/permit":
                     payload = hud.resolve(str(data.get("id") or ""), bool(data.get("allow")))
+                elif path == "/api/use":
+                    payload = hud.use(str(data.get("id") or ""))
                 else:
                     self._send(404, b"{}", "application/json")
                     return
