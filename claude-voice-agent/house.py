@@ -404,11 +404,29 @@ def _heat_place(norm: str) -> str | None:
 
 
 def _rain_place(norm: str) -> str | None:
-    """Cidade numa frase de chuva. None se não for essa frase."""
+    """Cidade numa frase de chuva, garoa ou trovoada. None se não for essa frase."""
     match = re.match(
-        r"^(?:vai chover|(?:esta|ta)\s+chovendo|chove)"
+        r"^(?:vai chover|(?:esta|ta)\s+(?:chovendo|garoando)|chove|garoa)"
         r"(?:\s+(?:hoje|agora|la|muito))?"
         r"(?:\s+(?:em|no|na)\s+(.+))?$",
+        norm,
+    )
+    if match:
+        return _city_name(match.group(1) or "")
+    storm = re.match(
+        r"^tem\s+(?:trovoada|chuva|garoa)(?:\s+(?:em|no|na)\s+(.+))?$",
+        norm,
+    )
+    if storm:
+        return _city_name(storm.group(1) or "")
+    return None
+
+
+def _later_place(norm: str) -> str | None:
+    """Cidade em «tempo para amanhã em Curitiba». None se não for essa frase."""
+    match = re.match(
+        r"^(?:tempo|clima)\s+para\s+(?:amanha|hoje|depois)"
+        r"(?:\s+(?:em|no|na|de)\s+(.+))?$",
         norm,
     )
     if not match:
@@ -423,6 +441,9 @@ def _place_of(norm: str) -> str:
     wet = _rain_place(norm)
     if wet is not None:
         return wet
+    later = _later_place(norm)
+    if later is not None:
+        return later
     for prefix in (
         "tempo em ", "clima em ", "previsao em ", "previsao para ",
         "clima de ", "tempo de ", "clima do ", "tempo do ", "clima da ", "tempo da ",
@@ -535,7 +556,11 @@ def continue_house(
 def _wants_weather(norm: str) -> bool:
     if "faz tempo" in norm:
         return False
-    if _heat_place(norm) is not None or _rain_place(norm) is not None:
+    if (
+        _heat_place(norm) is not None
+        or _rain_place(norm) is not None
+        or _later_place(norm) is not None
+    ):
         return True
     if _place_of(norm):
         return True

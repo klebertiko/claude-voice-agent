@@ -23,6 +23,9 @@ def test_weather_asks_for_the_place(tmp_path):
     assert _reply("faz sol", fetch, path) == "De qual lugar, Senhor."
     assert _reply("está nublado", fetch, path) == "De qual lugar, Senhor."
     assert _reply("vai esfriar", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("tempo para amanhã", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("está garoando", fetch, path) == "De qual lugar, Senhor."
+    assert _reply("tem trovoada", fetch, path) == "De qual lugar, Senhor."
     assert _reply("está quente", fetch, path) == "De qual lugar, Senhor."
     assert _reply("chove", fetch, path) == "De qual lugar, Senhor."
     assert _reply("vai chover hoje", fetch, path) == "De qual lugar, Senhor."
@@ -165,6 +168,19 @@ def test_weather_hears_the_city_inside_the_question(tmp_path):
     )
     assert "name=curitiba" in seen[-2]
     assert "hoje" not in seen[-2]
+    assert _reply("tempo para amanhã em curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    assert "amanha" not in seen[-2]
+    assert _reply("está garoando em curitiba", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "name=curitiba" in seen[-2]
+    assert _reply("tem trovoada no rio", fetch, path) == (
+        "Em São Paulo, 22 graus, quase limpo, Senhor."
+    )
+    assert "name=rio" in seen[-2]
 
 
 def test_unrelated_tempo_is_not_weather(tmp_path):
