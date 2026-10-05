@@ -655,10 +655,17 @@ def _topic_of(norm: str) -> str:
         norm,
     ):
         return "brasil"
+    fresh_bit = re.match(
+        r"^(?:(?:tem(?:\s+alguma)?|alguma)\s+noticias?(?:\s+novas?)?|noticias?\s+novas?)"
+        r"(?:\s+(?:sobre|de|do|da)\s+(.+))?$",
+        norm,
+    )
+    if fresh_bit:
+        return _usable_topic(fresh_bit.group(1) or "") or "brasil"
     bare = re.match(r"^noticias?\s+(?!sobre\s|de\s|do\s|da\s)(.+)$", norm)
     if bare:
         topic = _usable_topic(bare.group(1))
-        if topic == "ultimas":
+        if topic in {"ultimas", "nova", "novas"}:
             return "brasil"
         return topic
     happening = re.match(r"^o que (?:esta acontecendo|aconteceu)\s+(.+)$", norm)

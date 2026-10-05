@@ -306,7 +306,25 @@ def test_news_asks_then_reads_the_topic(tmp_path):
     before = len(seen)
     assert _reply("notícias sobre", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
     assert _reply("quais as novidades", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
+    assert _reply("notícias", fetch, tmp_path / "n.json") == "Sobre o que, Senhor."
     assert len(seen) == before
+    assert _reply("notícia nova", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert "brasil" in seen[-1].lower()
+    assert "nova" not in seen[-1].lower()
+    assert _reply("tem notícia nova", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert "brasil" in seen[-1].lower()
+    assert _reply("alguma novidade", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert "brasil" in seen[-1].lower()
+    assert _reply("notícia nova de economia", fetch, tmp_path / "n.json") == (
+        "Nas notícias, Senhor. Alpha sobe. Beta cai."
+    )
+    assert "economia" in seen[-1]
     assert _reply("últimas notícias", fetch, tmp_path / "n.json") == (
         "Nas notícias, Senhor. Alpha sobe. Beta cai."
     )
