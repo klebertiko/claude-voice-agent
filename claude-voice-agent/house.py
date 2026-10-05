@@ -11,7 +11,7 @@ import re
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 _WX = {
@@ -334,13 +334,22 @@ def _speak_reais(amount: float) -> str:
     return f"{reais} {real} e {centavos} {centavo}"
 
 
-def _dollar(fetch) -> str:
-    raw = fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL")
-    data = json.loads(raw)
-    bid = ((data.get("USDBRL") or {}).get("bid"))
-    if bid is None:
-        return "Não alcancei o dólar, Senhor."
-    return f"O dólar está em {_speak_reais(float(bid))}, Senhor."
+def _dollar(fetch, moment: datetime) -> str:
+    """PTAX de venda. Se o dia não tem cotação, volta até uma semana."""
+    for back in range(8):
+        day = moment.date() - timedelta(days=back)
+        stamp = day.strftime("%m-%d-%Y")
+        url = (
+            "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/"
+            "CotacaoDolarDia(dataCotacao=@dataCotacao)?"
+            f"@dataCotacao='{stamp}'&$top=1&$orderby=dataHoraCotacao%20desc&$format=json"
+        )
+        data = json.loads(fetch(url))
+        rows = data.get("value") or []
+        if not rows or rows[0].get("cotacaoVenda") is None:
+            continue
+        return f"O dólar está em {_speak_reais(float(rows[0]['cotacaoVenda']))}, Senhor."
+    return "Não alcancei o dólar, Senhor."
 
 
 def _search(query: str, fetch) -> str:
@@ -1657,7 +1666,7 @@ def house_reply(
                 return "O que devo buscar nas notas, Senhor?"
             return _find_notes(subject, reminders_path)
         if _wants_dollar(norm):
-            return _dollar(fetch)
+            return _dollar(fetch, moment)
         about = re.match(
             r"^(?:me\s+)?(?:fala|fale|falar|conta|conte|explica|explique)"
             r"\s+sobre(?:\s+(.*))?$",

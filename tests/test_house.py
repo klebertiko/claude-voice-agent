@@ -1181,8 +1181,9 @@ def test_dollar_names_the_quote(tmp_path):
 
     def fetch(url):
         seen.append(url)
-        if "USD-BRL" in url:
-            return '{"USDBRL":{"bid":"%s"}}' % quote["bid"]
+        if "CotacaoDolarDia" in url:
+            assert "10-05-2026" in url
+            return '{"value":[{"cotacaoVenda":%s}]}' % quote["bid"]
         if "news.google" in url:
             return (
                 '<?xml version="1.0"?><rss><channel>'
@@ -1197,7 +1198,7 @@ def test_dollar_names_the_quote(tmp_path):
     assert _reply("dólar hoje", fetch, path) == said
     assert _reply("me fala a cotação do dólar", fetch, path) == said
     assert _reply("quanto tá o dólar agora", fetch, path) == said
-    assert all("USD-BRL" in url for url in seen)
+    assert all("CotacaoDolarDia" in url for url in seen)
     quote["bid"] = "5.00"
     assert _reply("o dólar", fetch, path) == "O dólar está em 5 reais, Senhor."
     quote["bid"] = "5.01"
@@ -1218,6 +1219,17 @@ def test_dollar_names_the_quote(tmp_path):
     )
     assert "news.google" in seen[-1]
     assert seen[-1].endswith("q=o%20dolar")
+
+    def earlier(url):
+        if "10-05-2026" in url:
+            return '{"value":[]}'
+        if "10-04-2026" in url:
+            return '{"value":[{"cotacaoVenda":5.10}]}'
+        raise AssertionError(url)
+
+    assert _reply("dólar hoje", earlier, path) == (
+        "O dólar está em 5 reais e 10 centavos, Senhor."
+    )
 
 
 def test_search_speaks_the_abstract(tmp_path):
