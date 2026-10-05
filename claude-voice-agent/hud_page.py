@@ -896,7 +896,8 @@ function drawPlate() {
     const far = Object.assign({}, center, { z: (center.z || 0) + center.radius * 0.42 });
     ctx.globalAlpha = 0.5;
     paintDisc(far, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, false, reach * 0.7);
-    ctx.globalAlpha = 0.88;
+    const quietNotes = item.disc.strong && rect.width < WIDE && rect.height >= 448 && rect.height <= 516;
+    ctx.globalAlpha = quietNotes ? 0.86 : 0.88;
     paintDisc(center, item.disc.tilt, item.disc.rgb, yaw, pitch, cx, cy, scale, item.disc.strong, reach);
     const lean = item.disc.tilt;
     const zScale = center.zScale == null ? 1 : center.zScale;
@@ -906,7 +907,7 @@ function drawPlate() {
     const near = Object.assign({}, center, {
       z: (center.z || 0) - Math.sin(lean) * center.radius * DEPTH * zScale * forward,
     });
-    ctx.globalAlpha = item.disc.strong ? 0.62 : 0.75;
+    ctx.globalAlpha = quietNotes ? 0.36 : (item.disc.strong ? 0.62 : 0.75);
     paintDisc(near, lean, item.disc.rgb, yaw, pitch, cx, cy, scale, true, lobe);
   }
   ctx.restore();
