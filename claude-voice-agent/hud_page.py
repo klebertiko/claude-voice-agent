@@ -367,15 +367,82 @@ function systemPos(star, center) {
   const ring = (ringIds === INNER_RING ? 0.48 : 0.95) * center.radius;
   return ringPos(index, ringIds.length, center, ring);
 }
+let restKey = "";
+let rest = {};
+function settle() {
+  const key = memory.map((star) => star.id).join(",") + "|" + memoryLinks.map((link) => link.a + "-" + link.b).join(",");
+  if (key === restKey) return rest;
+  restKey = key;
+  const nodes = [];
+  memory.forEach((star, index) => {
+    const p = notePos(index, memory.length, { x: 0, y: 0, z: 0, radius: 1 });
+    nodes.push({ id: star.id, x: p.x, y: p.y, z: p.z, hx: p.x, hy: p.y, hz: p.z, group: "nota" });
+  });
+  SYSTEMS.forEach((star) => {
+    const p = systemPos(star, { x: 0, y: 0, z: 0, radius: 1 });
+    nodes.push({ id: star.id, x: p.x, y: p.y, z: p.z, hx: p.x, hy: p.y, hz: p.z, group: "sistema" });
+  });
+  const by = {};
+  for (const node of nodes) by[node.id] = node;
+  const pairs = [];
+  const add = (a, b) => {
+    if (by[a] && by[b] && by[a].group === by[b].group) pairs.push([by[a], by[b]]);
+  };
+  for (const link of memoryLinks) add(link.a, link.b);
+  for (const link of SYSTEM_LINKS) add(link[0], link[1]);
+  for (let step = 0; step < 40; step++) {
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i];
+        const b = nodes[j];
+        if (a.group !== b.group) continue;
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const dz = a.z - b.z;
+        const dist = Math.max(0.05, Math.hypot(dx, dy, dz));
+        const push = Math.min(0.06, 0.012 / (dist * dist));
+        a.x += dx / dist * push; a.y += dy / dist * push; a.z += dz / dist * push;
+        b.x -= dx / dist * push; b.y -= dy / dist * push; b.z -= dz / dist * push;
+      }
+    }
+    for (const pair of pairs) {
+      const a = pair[0];
+      const b = pair[1];
+      a.x += (b.x - a.x) * 0.045; a.y += (b.y - a.y) * 0.045; a.z += (b.z - a.z) * 0.045;
+      b.x += (a.x - b.x) * 0.045; b.y += (a.y - b.y) * 0.045; b.z += (a.z - b.z) * 0.045;
+    }
+    for (const node of nodes) {
+      node.x += (node.hx - node.x) * 0.08;
+      node.y += (node.hy - node.y) * 0.08;
+      node.z += (node.hz - node.z) * 0.08;
+      const limit = node.group === "nota" ? 0.95 : 1.2;
+      const mag = Math.hypot(node.x, node.y, node.z);
+      if (mag > limit) {
+        node.x *= limit / mag; node.y *= limit / mag; node.z *= limit / mag;
+      }
+    }
+  }
+  rest = {};
+  for (const node of nodes) rest[node.id] = node;
+  return rest;
+}
+function place(local, center) {
+  return {
+    x: center.x + local.x * center.radius,
+    y: center.y + local.y * center.radius,
+    z: (center.z || 0) + local.z * center.radius,
+  };
+}
 function buildWorld(fit) {
   const scene = fit || fitScene(well.getBoundingClientRect());
+  const laid = settle();
   const notes = memory.map((star, index) => ({
     star: { id: star.id, label: star.label, text: star.text, kind: "nota" },
-    pos: notePos(index, memory.length, scene.notas),
+    pos: place(laid[star.id] || notePos(index, memory.length, { x: 0, y: 0, z: 0, radius: 1 }), scene.notas),
   }));
   const systems = SYSTEMS.map((star) => ({
     star: { id: star.id, label: star.label, text: systemText[star.id] || star.label, kind: "sistema" },
-    pos: systemPos(star, scene.sistemas),
+    pos: place(laid[star.id] || systemPos(star, { x: 0, y: 0, z: 0, radius: 1 }), scene.sistemas),
   }));
   const all = notes.concat(systems);
   const byId = {};
@@ -417,6 +484,25 @@ function project(p, cx, cy, scale) {
   const z = p.z + 4.15 / zoom;
   const persp = 2.55 / Math.max(0.35, z);
   return { x: cx + p.x * persp * scale, y: cy - p.y * persp * scale, persp, z: p.z };
+}
+const glowCache = {};
+function glowSprite(rgb) {
+  const cached = glowCache[rgb];
+  if (cached) return cached;
+  const sprite = document.createElement("canvas");
+  sprite.width = 64;
+  sprite.height = 64;
+  const pen = sprite.getContext("2d");
+  const grad = pen.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, "rgba(" + rgb + ",0.92)");
+  grad.addColorStop(0.2, "rgba(" + rgb + ",0.4)");
+  grad.addColorStop(1, "rgba(" + rgb + ",0)");
+  pen.fillStyle = grad;
+  pen.beginPath();
+  pen.arc(32, 32, 32, 0, Math.PI * 2);
+  pen.fill();
+  glowCache[rgb] = sprite;
+  return sprite;
 }
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -501,12 +587,24 @@ function drawPlate() {
   }
   const byId = {};
   for (const item of view) byId[item.star.id] = item;
+  const focusId = picked || hovered;
+  const neigh = new Set();
+  if (focusId) {
+    neigh.add(focusId);
+    for (const pair of world.links) {
+      const a = pair[0].star.id;
+      const b = pair[1].star.id;
+      if (a === focusId) neigh.add(b);
+      if (b === focusId) neigh.add(a);
+    }
+  }
   ctx.lineCap = "round";
   for (const pair of world.links) {
     const a = byId[pair[0].star.id];
     const b = byId[pair[1].star.id];
     if (!a || !b) continue;
     const hot = picked && (a.star.id === picked || b.star.id === picked);
+    const aside = focusId && !neigh.has(a.star.id) && !neigh.has(b.star.id);
     const dx = b.p.x - a.p.x;
     const dy = b.p.y - a.p.y;
     const len = Math.hypot(dx, dy) || 1;
@@ -515,7 +613,7 @@ function drawPlate() {
     const ux = dx / len;
     const uy = dy / len;
     ctx.strokeStyle = hot ? ink.accent : ink.ink;
-    ctx.globalAlpha = hot ? 1 : 0.9;
+    ctx.globalAlpha = hot ? 1 : aside ? 0.14 : 0.9;
     ctx.lineWidth = hot ? 1.6 : 1.25;
     ctx.setLineDash(hot ? [5, 6] : [8, 10]);
     ctx.beginPath();
@@ -531,30 +629,22 @@ function drawPlate() {
     const near = item.p.persp;
     const pulse = chosen ? 1 + level * 0.65 : 1;
     const dim = item.star.kind === "nota" && noteQuery && !noteHit(item.star);
-    ctx.globalAlpha = (dim ? 0.16 : 1) * Math.max(0.4, Math.min(1, 0.3 + near * 0.65));
+    const aside = focusId && !neigh.has(item.star.id);
+    const rgb = chosen ? "212, 196, 168" : item.star.kind === "nota" ? GROUPS.notas.rgb : GROUPS.sistemas.rgb;
+    ctx.globalAlpha = (dim ? 0.16 : aside ? 0.2 : 1) * Math.max(0.45, Math.min(1, 0.35 + near * 0.6));
+    const size = (item.star.kind === "sistema" ? 42 : 34) * Math.max(0.75, near) * pulse;
+    const sprite = glowSprite(rgb);
+    ctx.drawImage(sprite, item.p.x - size / 2, item.p.y - size / 2, size, size);
+    ctx.fillStyle = chosen ? ink.accent : ink.ink;
+    ctx.beginPath();
+    ctx.arc(item.p.x, item.p.y, (item.star.kind === "sistema" ? 3.1 : 2.8) * pulse, 0, Math.PI * 2);
+    ctx.fill();
     if (item.star.kind === "sistema") {
       ctx.strokeStyle = chosen ? ink.accent : ink.ink;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.35;
       ctx.beginPath();
       ctx.arc(item.p.x, item.p.y, Math.max(7, 11 * near) * pulse, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.fillStyle = chosen ? ink.accent : ink.ink;
-      ctx.beginPath();
-      ctx.arc(item.p.x, item.p.y, Math.max(2.4, 3.2 * near), 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      ctx.fillStyle = (chosen || item.star.warm) ? ink.accent : ink.ink;
-      ctx.beginPath();
-      ctx.arc(item.p.x, item.p.y, Math.max(4.2, 6.5 * near) * pulse, 0, Math.PI * 2);
-      ctx.fill();
-      if (chosen) {
-        ctx.strokeStyle = ink.accent;
-        ctx.globalAlpha = 0.85;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(item.p.x, item.p.y, Math.max(8, 12 * near), 0, Math.PI * 2);
-        ctx.stroke();
-      }
     }
     namedOnScreen.push({
       star: item.star, pos: item.pos, x: item.p.x, y: item.p.y,
@@ -588,6 +678,7 @@ function drawPlate() {
     if (!item.star.label) continue;
     if (item.star.kind === "nota" && noteQuery && !noteHit(item.star) && item.star.id !== picked) continue;
     const focus = item.star.id === picked || item.star.id === hovered;
+    if (focusId && !neigh.has(item.star.id) && !focus) continue;
     if (item.p.persp < 0.42 && !focus) continue;
     const onStage = item.p.x >= rect.left + 8 && item.p.x <= rect.right - 8 && item.p.y >= rect.top + 12 && item.p.y <= rect.bottom - 36;
     if (!onStage && item.star.id !== picked) continue;
@@ -623,7 +714,7 @@ function drawPlate() {
 }
 function starAt(x, y) {
   let best = null;
-  let bestD = 26;
+  let bestD = 32;
   for (const item of namedOnScreen) {
     if (!item.outside) continue;
     const dot = Math.hypot(item.x - x, item.y - y);
@@ -645,16 +736,26 @@ function sampleLevel() {
   for (let i = 0; i < timeBuf.length; i++) { const v = (timeBuf[i] - 128) / 128; s += v * v; }
   level = Math.min(1, Math.sqrt(s / timeBuf.length) * 5);
 }
+let raf = 0;
+function wake() {
+  if (reduce) { drawPlate(); return; }
+  if (raf) return;
+  raf = requestAnimationFrame(frame);
+}
 function frame() {
   sampleLevel();
+  let moving = !!drag || level > 0.03;
   if (!drag) {
     const k = picked ? 0.08 : 1;
-    yawUser = dampAngle(yawUser, yawTarget, k);
-    pitchUser += (pitchTarget - pitchUser) * k;
-    pitchUser = Math.max(-1.15, Math.min(1.15, pitchUser));
+    const nextYaw = dampAngle(yawUser, yawTarget, k);
+    let nextPitch = pitchUser + (pitchTarget - pitchUser) * k;
+    nextPitch = Math.max(-1.15, Math.min(1.15, nextPitch));
+    if (Math.abs(nextYaw - yawUser) > 0.0006 || Math.abs(nextPitch - pitchUser) > 0.0006) moving = true;
+    yawUser = nextYaw;
+    pitchUser = nextPitch;
   }
   drawPlate();
-  if (!reduce) requestAnimationFrame(frame);
+  raf = moving ? requestAnimationFrame(frame) : 0;
 }
 function tickClock() {
   const now = new Date();
@@ -667,6 +768,7 @@ function tickClock() {
 }
 function setState(name) {
   document.body.dataset.state = name;
+  wake();
   statusEl.textContent = labels[name] || name;
   const busy = name === "thinking";
   for (const btn of [submitBtn, voiceBtn, micBtn, allowBtn, denyBtn]) {
@@ -742,6 +844,7 @@ async function refreshSky() {
     memoryLinks = data.links || [];
     const el = document.getElementById("sky");
     if (el) el.textContent = String(memory.length);
+    wake();
   } catch (err) { /* o céu fica como está */ }
 }
 function fold(value) {
@@ -871,9 +974,10 @@ well.addEventListener("pointerdown", (ev) => {
   drag = { x: ev.clientX, y: ev.clientY, yaw: yawUser, pitch: pitchUser };
   dragMoved = 0;
   well.setPointerCapture(ev.pointerId);
+  wake();
 });
 well.addEventListener("pointermove", (ev) => {
-  if (!drag) { pointStar(ev, false); return; }
+  if (!drag) { pointStar(ev, false); wake(); return; }
   const dx = ev.clientX - drag.x;
   const dy = ev.clientY - drag.y;
   dragMoved = Math.max(dragMoved, Math.hypot(dx, dy));
@@ -881,19 +985,22 @@ well.addEventListener("pointermove", (ev) => {
   pitchUser = Math.max(-1.15, Math.min(1.15, drag.pitch + dy * 0.004));
   yawTarget = yawUser;
   pitchTarget = pitchUser;
-  if (reduce) drawPlate(0);
+  wake();
 });
 well.addEventListener("pointerup", () => {
   if (drag && dragMoved < 12) pointStar({ clientX: drag.x, clientY: drag.y }, true);
   drag = null;
-  if (reduce) drawPlate(0);
+  wake();
 });
 well.addEventListener("pointerleave", () => {
+  if (!drag) hovered = "";
   if (!drag && !picked) skyRead.textContent = orbitHint;
+  wake();
 });
 well.addEventListener("wheel", (ev) => {
   ev.preventDefault();
   zoom = Math.max(0.45, Math.min(3.2, zoom * (ev.deltaY > 0 ? 0.92 : 1.08)));
+  wake();
 }, { passive: false });
 let audioCtx, analyser;
 function ensureAnalyser() {
@@ -1060,13 +1167,13 @@ async function stopMic(ev) {
 micBtn.addEventListener("pointerdown", startMic);
 micBtn.addEventListener("pointerup", stopMic);
 micBtn.addEventListener("pointerleave", stopMic);
-addEventListener("resize", () => { resize(); if (reduce) drawPlate(0); });
+addEventListener("resize", () => { resize(); wake(); });
 resize();
 tickClock();
 setInterval(tickClock, 1000);
 refreshBrain();
 setInterval(refreshBrain, 5000);
-requestAnimationFrame(frame);
+wake();
 </script>
 </body>
 </html>
