@@ -1051,6 +1051,27 @@ function hemEdge(ang, phase) {
   if (edge > 0.98) edge = 0.98;
   return edge;
 }
+function boxOnCloud(box, item) {
+  const pc = item.mark.pc;
+  const ux = item.mark.pu.x - pc.x;
+  const uy = item.mark.pu.y - pc.y;
+  const vx = item.mark.pv.x - pc.x;
+  const vy = item.mark.pv.y - pc.y;
+  const det = ux * vy - vx * uy;
+  if (Math.abs(det) < 1e-4) return false;
+  const pts = [
+    [box.l, box.t], [box.r, box.t], [box.l, box.b], [box.r, box.b],
+    [(box.l + box.r) / 2, (box.t + box.b) / 2],
+  ];
+  for (let i = 0; i < pts.length; i++) {
+    const dx = pts[i][0] - pc.x;
+    const dy = pts[i][1] - pc.y;
+    const sx = (dx * vy - vx * dy) / det;
+    const sy = (ux * dy - uy * dx) / det;
+    if (Math.hypot(sx, sy) <= hemEdge(Math.atan2(sy, sx), item.phase) + 0.04) return true;
+  }
+  return false;
+}
 function trimCloud(marks, rect, boxes, stars) {
   for (let n = 0; n < marks.length; n++) {
     const item = marks[n];
@@ -1062,6 +1083,7 @@ function trimCloud(marks, rect, boxes, stars) {
     ctx.rect(rect.left, rect.top, rect.width, rect.height);
     for (let b = 0; b < boxes.length; b++) {
       const box = boxes[b];
+      if (!boxOnCloud(box, item)) continue;
       ctx.rect(box.l - 6, box.t - 6, (box.r - box.l) + 12, (box.b - box.t) + 12);
     }
     if (other) {
