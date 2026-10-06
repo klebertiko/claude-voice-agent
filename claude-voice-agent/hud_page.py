@@ -1043,11 +1043,11 @@ function paintDisc(center, tilt, rgb, yaw, pitch, cx, cy, scale, strong, reach) 
   return { pc, pu, pv };
 }
 function hemEdge(ang, phase) {
-  let edge = 0.72
-    + 0.16 * Math.sin(ang * 3 + phase)
-    + 0.08 * Math.sin(ang * 2 + phase * 0.7)
-    + 0.05 * Math.sin(ang * 5 + 1.1);
-  if (edge < 0.48) edge = 0.48;
+  let edge = 0.66
+    + 0.22 * Math.sin(ang * 2 + phase)
+    + 0.12 * Math.sin(ang * 3 + phase * 1.4)
+    + 0.06 * Math.sin(ang * 5 + 0.6);
+  if (edge < 0.36) edge = 0.36;
   if (edge > 0.98) edge = 0.98;
   return edge;
 }
