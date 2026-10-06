@@ -729,7 +729,7 @@ function settle() {
       node.x += (node.hx - node.x) * 0.22;
       node.y += (node.hy - node.y) * 0.22;
       node.z += (node.hz - node.z) * 0.22;
-      const limit = node.group === "nota" ? 0.82 : 0.9;
+      const limit = node.group === "nota" ? 0.82 : 0.64;
       const mag = Math.hypot(node.x, node.y, node.z);
       if (mag > limit) {
         node.x *= limit / mag; node.y *= limit / mag; node.z *= limit / mag;
