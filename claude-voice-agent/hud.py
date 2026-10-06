@@ -1,0 +1,486 @@
+"""Painel de voz: decide o turno e fala em pt-BR.
+
+A página só mostra o anel e o texto. O microfone, quando existe, é áudio.
+Sem o CLI ``claude``, a resposta é local (hora, data, ou um aviso curto)
+para a voz ainda poder ser ouvida.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import unicodedata
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+from .actions import local_command
+from .brains import subscription_reply
+from .house import (
+    continue_house,
+    continue_whatsapp,
+    forget_last_note,
+    house_reply,
+    whatsapp_number,
+)
+from .llm_ollama import ask_ollama, probe_ollama
+from .noise import is_noise_transcript
+from .personas import Persona, spoken_voice
+from .speech import strip_for_speech
+from .wake import WakeGate
+
+_WEEKDAYS = (
+    "segunda-feira",
+    "terça-feira",
+    "quarta-feira",
+    "quinta-feira",
+    "sexta-feira",
+    "sábado",
+    "domingo",
+)
+_MONTHS = (
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro",
+)
+
+
+def brazil_now() -> datetime:
+    """Relógio falado no fuso de Brasília."""
+    return datetime.now(ZoneInfo("America/Sao_Paulo"))
+
+
+def _weather_field(text: str) -> str:
+    """Qual leitura o pedido quer. Vazio é a temperatura de sempre."""
+    norm = _plain(text)
+    if "fim de semana" in norm and (
+        _has_word(text, "clima") or _has_word(text, "tempo") or _has_word(text, "previsao")
+    ):
+        return "fim"
+    if _has_word(text, "semana") and (
+        _has_word(text, "clima") or _has_word(text, "tempo") or _has_word(text, "previsao")
+    ):
+        return "semana"
+    if "nascer do sol" in norm or "sol nasce" in norm or "nasce o sol" in norm:
+        return "nascer"
+    if "por do sol" in norm or "sol se poe" in norm or "se poe o sol" in norm:
+        return "por"
+    if _has_word(text, "uv"):
+        return "uv"
+    if _has_word(text, "pressao"):
+        return "pressao"
+    if _has_word(text, "visibilidade"):
+        return "visibilidade"
+    if _has_word(text, "ponto") and _has_word(text, "orvalho"):
+        return "orvalho"
+    if _has_word(text, "umidade") or _has_word(text, "umido"):
+        return "umidade"
+    if _has_word(text, "sensacao"):
+        return "sensacao"
+    if _has_word(text, "vento") or _has_word(text, "ventando"):
+        return "vento"
+    if _has_word(text, "maxima"):
+        return "maxima"
+    if _has_word(text, "minima"):
+        return "minima"
+    if (_has_word(text, "chance") or _has_word(text, "probabilidade")) and _has_word(text, "chuva"):
+        return "chance"
+    if _has_word(text, "qualidade") and _has_word(text, "ar"):
+        return "ar"
+    return ""
+
+
+def _has_word(text: str, word: str) -> bool:
+    norm = _plain(text)
+    return f" {word} " in f" {norm} "
+
+
+def _plain(text: str) -> str:
+    folded = unicodedata.normalize("NFKD", (text or "").lower())
+    stripped = "".join(ch for ch in folded if not unicodedata.combining(ch))
+    return " ".join(stripped.split())
+
+
+def spoken_fallback(cleaned: str, name: str, moment: datetime) -> str:
+    """Resposta curta quando o cérebro não está disponível. Pura."""
+    norm = _plain(cleaned)
+    if not norm:
+        return "Pois não, Senhor."
+    if "seu nome" in norm or "se chama" in norm or "quem e voce" in norm or "o que e voce" in norm:
+        return f"O nome é {name}, Senhor."
+    if (
+        {"hora", "horas"} & set(norm.split())
+        and "amanha" not in norm
+        and "ontem" not in norm
+        and "dois dias" not in norm
+        and "2 dias" not in norm
+    ):
+        return _speak_clock(moment)
+    if _asks_date(norm):
+        if "depois de amanha" in norm or "daqui a dois dias" in norm or "daqui a 2 dias" in norm:
+            label = "Depois de amanhã" if "depois de amanha" in norm else "Daqui a dois dias"
+            return _speak_date(moment + timedelta(days=2), label, "é")
+        if "anteontem" in norm or "antes de ontem" in norm or "ha dois dias" in norm or "faz dois dias" in norm:
+            if "anteontem" in norm:
+                label = "Anteontem"
+            elif "antes de ontem" in norm:
+                label = "Antes de ontem"
+            elif "faz dois dias" in norm:
+                label = "Faz dois dias"
+            else:
+                label = "Há dois dias"
+            return _speak_date(moment - timedelta(days=2), label, "foi")
+        if "amanha" in norm:
+            return _speak_date(moment + timedelta(days=1), "Amanhã", "é")
+        if "ontem" in norm:
+            return _speak_date(moment - timedelta(days=1), "Ontem", "foi")
+        return _speak_date(moment)
+    if norm in {"bom dia", "um bom dia"}:
+        return "Bom dia, Senhor."
+    if norm in {"boa tarde", "uma boa tarde"}:
+        return "Boa tarde, Senhor."
+    if norm in {"boa noite", "uma boa noite"}:
+        return "Boa noite, Senhor."
+    if norm in {"obrigado", "obrigada", "valeu", "muito obrigado", "muito obrigada"}:
+        return "Disponha, Senhor."
+    if norm in {
+        "como esta voce",
+        "como vai voce",
+        "como voce esta",
+        "como voce vai",
+        "tudo bem",
+        "tudo bom",
+        "tudo certo",
+        "esta tudo bem",
+        "tudo bem com voce",
+    }:
+        return "Estou pronto, Senhor."
+    if norm in {"ate logo", "ate mais", "ate breve", "tchau"}:
+        return "Até logo, Senhor."
+    return (
+        "Entendido, Senhor. Ainda não consigo fazer isso "
+        "sem o cérebro ligado."
+    )
+
+
+def _speak_clock(moment: datetime) -> str:
+    hour = moment.hour
+    minute = moment.minute
+    horas = "hora" if hour == 1 else "horas"
+    if minute == 0:
+        return f"São {hour} {horas}, Senhor."
+    minutos = "minuto" if minute == 1 else "minutos"
+    return f"São {hour} {horas} e {minute} {minutos}, Senhor."
+
+
+def _asks_date(norm: str) -> bool:
+    return (
+        "que dia" in norm
+        or "qual a data" in norm
+        or "qual e a data" in norm
+        or "qual e o dia" in norm
+        or norm in {"data", "que data", "data de hoje", "a data"}
+        or norm.startswith(("me diz a data", "me fala a data"))
+    )
+
+
+def _speak_date(moment: datetime, label: str = "Hoje", verb: str = "é") -> str:
+    weekday = _WEEKDAYS[moment.weekday()]
+    month = _MONTHS[moment.month - 1]
+    return f"{label} {verb} {weekday}, {moment.day} de {month}, Senhor."
+
+
+@dataclass
+class HudSession:
+    persona: Persona
+    require_wake: bool = True
+    gate: WakeGate = field(default_factory=WakeGate)
+    history: list[tuple[str, str]] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if self.gate.wake_words != self.persona.wake_words:
+            self.gate = WakeGate(
+                wake_words=self.persona.wake_words,
+                window_s=self.gate.window_s,
+            )
+
+
+@dataclass(frozen=True)
+class TurnResult:
+    status: str
+    heard: str
+    reply: str
+
+
+def take_turn(
+    session: HudSession,
+    heard: str,
+    now: float,
+    reply_fn,
+    *,
+    enforce_wake: bool | None = None,
+) -> TurnResult:
+    """Aplica ruído e wake-gate. ``reply_fn(cleaned, history) -> str``.
+
+    ``enforce_wake=False`` é a barra de texto: a pessoa já está na conversa
+    e a pergunta não pode morrer por falta do nome. O microfone deixa o
+    argumento ausente e continua no portão.
+    """
+    heard = (heard or "").strip()
+    if not heard:
+        return TurnResult("empty", "", "")
+    if is_noise_transcript(heard):
+        return TurnResult("noise", heard, "")
+
+    require = session.require_wake if enforce_wake is None else enforce_wake
+    if require:
+        should, cleaned = session.gate.process(heard, now)
+        if not should:
+            return TurnResult("ignored", heard, "")
+    elif session.require_wake:
+        cleaned = session.gate.admit(heard, now)
+    else:
+        cleaned = heard
+
+    reply = strip_for_speech(reply_fn(cleaned, list(session.history)))
+    user_text = cleaned or "(o usuário chamou você pelo nome)"
+    session.history.append(("user", user_text))
+    session.history.append(("assistant", reply))
+    if len(session.history) > 16:
+        session.history = session.history[-16:]
+    return TurnResult("replied", heard, reply)
+
+
+_BRAIN_LABEL = {
+    "codex": "Codex",
+    "cursor": "Cursor",
+    "claude": "Claude",
+}
+
+
+def _panel_fact(cleaned: str, persona: Persona) -> str | None:
+    """Fatos do painel. Não chamam assinatura."""
+    norm = _plain(cleaned)
+    if norm in {"qual o ritmo", "o ritmo"}:
+        rate = persona.speech_rate
+        shown = f"{rate:g}"
+        return f"O ritmo é {shown}, Senhor."
+    if norm in {"qual a carga", "a carga"}:
+        try:
+            load = os.getloadavg()[0]
+        except OSError:
+            return "Não li a carga, Senhor."
+        shown = f"{load:.2f}".replace(".", ",")
+        return f"A carga está em {shown}, Senhor."
+    if norm in {"qual o fuso", "o fuso"}:
+        return "O fuso é Brasília, Senhor."
+    if norm in {"qual a voz", "a voz"}:
+        return f"A voz é {spoken_voice(persona.voice)}, Senhor."
+    return None
+
+
+_REPEAT = {
+    "repete",
+    "repita",
+    "repete isso",
+    "repita isso",
+    "pode repetir",
+    "pode repetir isso",
+}
+
+
+def _repeat(cleaned: str, history: list[tuple[str, str]]) -> str | None:
+    """A última fala, sem repetir uma ordem de abrir o computador."""
+    if _plain(cleaned) not in _REPEAT:
+        return None
+    for role, text in reversed(history):
+        if role == "assistant" and text and not text.startswith("ACAO:"):
+            return text
+    return "Não tenho o que repetir, Senhor."
+
+
+def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict | None = None):
+    """Ordem local, depois as assinaturas, depois o Ollama, depois a reserva.
+
+    Hora, data, nome e ``execute …`` não dependem de rede. Sem escolha, tenta
+    Codex, Cursor e Claude, e só então o Ollama. Com escolha, só aquele.
+    """
+    host = settings.ollama_host
+    preferred = settings.ollama_model
+    chosen = choice if choice is not None else {"id": ""}
+    pending = {"kind": "", "number": "", "day": "", "field": ""}
+    asked = {
+        "De qual lugar, Senhor.": "weather",
+        "Sobre o que, Senhor.": "news",
+        "O que devo procurar, Senhor?": "search",
+        "O que devo anotar, Senhor?": "note",
+        "O que devo buscar nas notas, Senhor?": "notes",
+        "Diga o número, Senhor.": "zap-number",
+        "O que devo escrever, Senhor?": "zap-text",
+    }
+
+    def reply(cleaned: str, history: list[tuple[str, str]]) -> str:
+        def drop_pending() -> None:
+            pending["kind"] = ""
+            pending["number"] = ""
+            pending["day"] = ""
+            pending["field"] = ""
+
+        cmd = local_command(cleaned)
+        if cmd:
+            drop_pending()
+            return f"ACAO: {cmd}"
+        moment = moment_fn()
+        housed = house_reply(cleaned, moment, reminders_path=settings.reminders_path)
+        if housed:
+            pending["kind"] = asked.get(housed, "")
+            if pending["kind"] == "weather" and (
+                "depois de amanha" in _plain(cleaned)
+                or "daqui a dois dias" in _plain(cleaned)
+                or "daqui a 2 dias" in _plain(cleaned)
+            ):
+                pending["day"] = "depois"
+            elif pending["kind"] == "weather" and _has_word(cleaned, "amanha"):
+                pending["day"] = "amanha"
+            else:
+                pending["day"] = ""
+            if pending["kind"] == "weather":
+                pending["field"] = _weather_field(cleaned)
+            else:
+                pending["field"] = ""
+            if housed == "O que devo escrever, Senhor?":
+                found = whatsapp_number(cleaned)
+                if found:
+                    pending["number"] = found
+            else:
+                pending["number"] = ""
+            return housed
+        repeated = _repeat(cleaned, history)
+        if repeated:
+            return repeated
+        if _plain(cleaned) in {"desfaz", "desfaz isso", "desfaca", "desfaca isso"}:
+            previous = ""
+            for role, text in reversed(history):
+                if role == "assistant" and text and not text.startswith("ACAO:"):
+                    previous = text
+                    break
+            if previous == "Anotado, Senhor.":
+                return forget_last_note(settings.reminders_path)
+            return "Nada para desfazer, Senhor."
+        if pending["kind"]:
+            fact = _panel_fact(cleaned, persona)
+            local = spoken_fallback(cleaned, persona.name, moment)
+            if fact or not local.startswith("Entendido, Senhor. Ainda não"):
+                drop_pending()
+                return fact or local
+            kind = pending["kind"]
+            day = pending["day"]
+            field = pending["field"]
+            pending["kind"] = ""
+            if kind in {"zap-number", "zap-text"}:
+                spoken, number = continue_whatsapp(kind, cleaned, pending["number"])
+                pending["number"] = number
+                pending["day"] = ""
+                pending["field"] = ""
+                pending["kind"] = asked.get(spoken, "")
+                return spoken
+            pending["number"] = ""
+            if kind == "weather" and (
+                "depois de amanha" in _plain(cleaned)
+                or "daqui a dois dias" in _plain(cleaned)
+                or "daqui a 2 dias" in _plain(cleaned)
+            ):
+                day = "depois"
+            elif kind == "weather" and _has_word(cleaned, "amanha"):
+                day = "amanha"
+            elif kind == "weather" and _has_word(cleaned, "hoje"):
+                day = ""
+            if kind == "weather" and _weather_field(cleaned):
+                field = _weather_field(cleaned)
+            try:
+                spoken = continue_house(
+                    kind,
+                    cleaned,
+                    reminders_path=settings.reminders_path,
+                    moment=moment,
+                    day=day if kind == "weather" else "",
+                    field=field if kind == "weather" else "",
+                )
+            except (OSError, ValueError, json.JSONDecodeError, TimeoutError):
+                pending["day"] = ""
+                pending["field"] = ""
+                return "Não alcancei isso agora, Senhor."
+            if asked.get(spoken, "") == "weather" and kind == "weather":
+                pending["day"] = day
+                pending["field"] = field
+            else:
+                pending["day"] = ""
+                pending["field"] = ""
+            pending["kind"] = asked.get(spoken, "")
+            return spoken
+        fact = _panel_fact(cleaned, persona)
+        if fact:
+            return fact
+        local = spoken_fallback(cleaned, persona.name, moment)
+        if not local.startswith("Entendido, Senhor. Ainda não"):
+            return local
+        prefer = str(chosen.get("id") or "")
+        if prefer in _BRAIN_LABEL:
+            label = _BRAIN_LABEL[prefer]
+            try:
+                spoken = subscription_reply(
+                    settings, persona, history, cleaned, prefer=prefer
+                )
+                if spoken:
+                    return spoken
+            except (OSError, subprocess.TimeoutExpired):
+                spoken = None
+            from .brains import brain_presence
+
+            state = brain_presence(settings).get(prefer, "down")
+            if state == "login":
+                return f"{label} precisa de login, Senhor."
+            if state != "ready":
+                return f"{label} não está neste computador, Senhor."
+            return f"{label} não respondeu, Senhor."
+        if prefer == "ollama":
+            if host:
+                try:
+                    info = probe_ollama(host)
+                    model = preferred or info.get("model")
+                    if info.get("up") and model:
+                        text = ask_ollama(host, model, persona.system_prompt(), history, cleaned)
+                        if text:
+                            return text
+                except (OSError, TimeoutError, json.JSONDecodeError, ValueError):
+                    pass
+            return "O cérebro local não está neste computador, Senhor."
+        try:
+            spoken = subscription_reply(settings, persona, history, cleaned)
+            if spoken:
+                return spoken
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        if host:
+            try:
+                info = probe_ollama(host)
+                model = preferred or info.get("model")
+                if info.get("up") and model:
+                    text = ask_ollama(host, model, persona.system_prompt(), history, cleaned)
+                    if text:
+                        return text
+            except (OSError, TimeoutError, json.JSONDecodeError, ValueError):
+                pass
+        return local
+
+    return reply

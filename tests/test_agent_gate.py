@@ -15,7 +15,6 @@ from claude_agent_voice.agent import (
 from claude_agent_voice.personas import get_persona
 from claude_agent_voice.settings import Settings
 from claude_agent_voice.tts_kokoro import KokoroTTS
-from claude_agent_voice.tts_piper import PiperTTS
 from claude_agent_voice.wake import WakeGate
 
 
@@ -72,11 +71,13 @@ def test_noise_transcript_suppressed_with_wake_active():
         asyncio.run(agent.on_user_turn_completed(None, _msg("é é é é")))
 
 
-def test_make_tts_gambit_is_piper():
-    s = Settings.from_env(env={"PERSONA": "gambit"})
-    t = make_tts(s, get_persona("gambit"))
-    assert isinstance(t, PiperTTS)
-    assert t.sample_rate == 22050
+def test_make_tts_orion_is_kokoro_british_blend():
+    s = Settings.from_env(env={"PERSONA": "orion"})
+    t = make_tts(s, get_persona("orion"))
+    assert isinstance(t, KokoroTTS)
+    assert t.sample_rate == 24000
+    assert t._voice == "bm_daniel*0.7+bm_lewis*0.3"
+    assert t._speed == 1.2
 
 
 def test_make_tts_lilith_is_kokoro():
@@ -86,22 +87,34 @@ def test_make_tts_lilith_is_kokoro():
     assert t.sample_rate == 24000
 
 
-def test_greeting_uses_active_persona_name():
-    assert greeting(get_persona("gambit")).startswith("Gambit aqui")
-    assert greeting(get_persona("lilith")).startswith("Lilith aqui")
+def test_greeting_follows_the_hour_and_changes():
+    from datetime import datetime
+
+    orion = get_persona("orion")
+    morning = greeting(orion, datetime(2026, 10, 2, 9, 0))
+    again = greeting(orion, datetime(2026, 10, 2, 9, 0), salt=1)
+    evening = greeting(orion, datetime(2026, 10, 2, 20, 10))
+    late = greeting(orion, datetime(2026, 10, 2, 2, 0))
+    assert "bom dia" in morning.lower()
+    assert again != morning
+    assert "boa noite" in evening.lower()
+    assert late != morning
+    assert "Orion aqui" not in morning
+    assert "chamar" not in morning
+    assert "Senhor" in greeting(get_persona("lilith"), datetime(2026, 10, 2, 15, 0))
 
 
 def test_agent_uses_persona_wake_words_by_default():
     # sem gate explícito, o agente monta o WakeGate com as wake-words da persona
-    s = Settings.from_env(env={"PERSONA": "gambit"})
+    s = Settings.from_env(env={"PERSONA": "orion"})
     agent = ClaudeAgentVoice(s, clock=lambda: 100.0)
-    msg = _msg("Gambit que horas são")
+    msg = _msg("Orion que horas são")
     asyncio.run(agent.on_user_turn_completed(None, msg))
     assert msg.text_content == "que horas sao"
 
 
 def test_agent_default_gate_ignores_other_persona_wake():
-    s = Settings.from_env(env={"PERSONA": "gambit"})
+    s = Settings.from_env(env={"PERSONA": "orion"})
     agent = ClaudeAgentVoice(s, clock=lambda: 100.0)
     with pytest.raises(StopResponse):
         asyncio.run(agent.on_user_turn_completed(None, _msg("Lilith que horas são")))

@@ -1,21 +1,22 @@
 """claude-voice-agent — agente de voz LiveKit (console-first, local).
 
-Pipeline: mic -> silero VAD -> Whisper (STT) -> [wake-gate] -> Claude (LLM) ->
-kokoro (TTS) -> alto-falante. Rode local, sem servidor:
+Pipeline: mic -> silero VAD -> Whisper (STT) -> [wake-gate] -> assinatura
+(Codex, Cursor ou Claude) -> kokoro (TTS) -> alto-falante. Rode local:
 
     uv run python -m claude_agent_voice.agent console
 
-O cérebro (Claude) é OPCIONAL: sem ``ANTHROPIC_API_KEY`` o agente ainda te ouve
-e fala (greeting + eco de teste), o que prova voz+ouvido. Com a chave, ele pensa.
+O cérebro é o CLI já logado na assinatura. Sem esses binários o agente ainda
+ouve e fala.
 """
 
 from __future__ import annotations
 
 import logging
-import shutil
 import sys
 import time
 from collections.abc import Callable
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from livekit.agents import (
     Agent,
@@ -57,7 +58,7 @@ def interruption_kwargs(settings: Settings) -> dict:
 
 
 def make_tts(settings: Settings, persona: Persona):
-    """Instancia o TTS da persona ativa (Piper p/ Gambit, kokoro p/ Lilith)."""
+    """Instancia o TTS da persona ativa (kokoro ou piper)."""
     if persona.tts_engine == "piper":
         return PiperTTS(
             model_path=settings.piper_model,
@@ -70,20 +71,58 @@ def make_tts(settings: Settings, persona: Persona):
         voices_path=settings.kokoro_voices,
         voice=persona.voice,
         lang=settings.lang,
-        speed=settings.speed,
+        speed=settings.speed * persona.speech_rate,
     )
 
 
-def greeting(persona: Persona) -> str:
-    """Saudação falada da persona ativa."""
-    return f"{persona.name} aqui. É só me chamar pelo nome quando precisar."
+_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def _greet_pool(address: str, hour: int) -> tuple[str, ...]:
+    """Frases de mordomo. Nenhuma se apresenta nem ensina a wake-word."""
+    # Só frases que esta voz consegue dizer por inteiro. Linha curta demais
+    # ("Bom dia, Senhor.") o ataque some; frase esperta vira loop.
+    if 5 <= hour < 12:
+        return (
+            f"Então, bom dia, {address}.",
+            f"Pode dizer, {address}.",
+            f"Diga, {address}.",
+        )
+    if 12 <= hour < 18:
+        return (
+            f"Boa tarde, {address}.",
+            f"{address}. Boa tarde.",
+            f"Pode dizer, {address}.",
+        )
+    if 18 <= hour < 23:
+        return (
+            f"Boa noite, {address}.",
+            f"{address}. Boa noite.",
+            f"Boa noite. Diga, {address}.",
+        )
+    return (
+        f"Diga, {address}.",
+        f"Pode dizer, {address}.",
+        f"{address}. Boa noite.",
+    )
+
+
+def greeting(persona: Persona, when: datetime | None = None, salt: int = 0) -> str:
+    """Saudação falada. Muda com a hora e com ``salt``, para não repetir a mesma linha."""
+    moment = when or datetime.now(_TZ)
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=_TZ)
+    else:
+        moment = moment.astimezone(_TZ)
+    pool = _greet_pool(persona.form_of_address, moment.hour)
+    return pool[salt % len(pool)]
 
 
 class ClaudeAgentVoice(Agent):
     """O agente. O wake-gate decide, a cada turno, se ele deve responder.
 
     A classe é persona-agnóstica: a persona ativa vem de ``settings.persona`` —
-    prompt, wake-words e saudação saem da persona (Lilith, Gambit, ...), não são
+    prompt, wake-words e saudação saem da persona (Lilith, Orion, ...), não são
     fixos na classe.
     """
 
@@ -123,7 +162,7 @@ class ClaudeAgentVoice(Agent):
 
 
 def build_session(settings: Settings, vad) -> AgentSession:
-    """Monta a AgentSession. Cérebro = Claude via subscription (CLI `claude -p`)."""
+    """Monta a AgentSession. Cérebro = Codex, Cursor ou Claude, pela assinatura."""
     persona = get_persona(settings.persona)
     whisper = WhisperSTT(
         model=settings.whisper_model,
@@ -136,23 +175,17 @@ def build_session(settings: Settings, vad) -> AgentSession:
         "vad": vad,
         "tts": make_tts(settings, persona),
     }
-    if shutil.which(settings.claude_cli):
-        from .llm_claude_cli import ClaudeCliLLM
+    from .brains import probe_subscriptions
 
-        kwargs["llm"] = ClaudeCliLLM(
-            fallback_system=persona.system_prompt(),
-            model=settings.llm_model,
-            cli=settings.claude_cli,
-            label=persona.name,
-        )
-        logger.info(
-            "cérebro Claude via subscription (%s -p) — persona %s",
-            settings.claude_cli,
-            persona.name,
-        )
+    brains = [row["label"] for row in probe_subscriptions(settings) if row["up"]]
+    if brains:
+        from .llm_claude_cli import SubscriptionCliLLM
+
+        kwargs["llm"] = SubscriptionCliLLM(settings=settings, persona=persona)
+        logger.info("cérebro por assinatura (%s) — persona %s", ", ".join(brains), persona.name)
     else:
         logger.warning(
-            "CLI '%s' ausente: o agente ouve e fala, mas não pensa", settings.claude_cli
+            "Codex, Cursor e Claude ausentes: o agente ouve e fala, mas não pensa"
         )
     kwargs.update(interruption_kwargs(settings))
     return AgentSession(**kwargs)

@@ -4,16 +4,24 @@ from claude_agent_voice.personas import get_persona
 from claude_agent_voice.wake import WakeGate, _normalize
 
 
-def test_gambit_wake_activates_with_its_own_words():
-    gate = WakeGate(wake_words=get_persona("gambit").wake_words, window_s=30.0)
-    should, text = gate.process("Gambit que horas são", now=100.0)
+def test_orion_wake_activates_with_its_own_words():
+    gate = WakeGate(wake_words=get_persona("orion").wake_words, window_s=30.0)
+    should, text = gate.process("Orion que horas são", now=100.0)
     assert should is True
     assert text == "que horas sao"
 
 
-def test_gambit_gate_ignores_other_personas_wake():
-    # a wake-word da Lilith NÃO deve abrir a janela do Gambit
-    gate = WakeGate(wake_words=get_persona("gambit").wake_words, window_s=30.0)
+def test_orion_wake_accepts_the_heard_spelling():
+    # O reconhecimento ouve "Orião". Sem acento isso é "oriao", não "orion".
+    gate = WakeGate(wake_words=get_persona("orion").wake_words, window_s=30.0)
+    should, text = gate.process("Orião, que horas são", now=100.0)
+    assert should is True
+    assert text == "que horas sao"
+
+
+def test_orion_gate_ignores_other_personas_wake():
+    # a wake-word da Lilith NÃO deve abrir a janela do Orion
+    gate = WakeGate(wake_words=get_persona("orion").wake_words, window_s=30.0)
     should, _ = gate.process("Lilith oi", now=100.0)
     assert should is False
 
@@ -72,6 +80,15 @@ def test_close_ends_window_immediately():
     gate.close()
     should, _ = gate.process("continua", now=101.0)
     assert should is False
+
+
+def test_typed_bar_keeps_orion_when_it_is_the_subject():
+    gate = WakeGate(wake_words=get_persona("orion").wake_words, window_s=30.0)
+    assert gate.admit("busque Orion", now=100.0) == "busque Orion"
+    assert gate.admit("Orion, busque Orion", now=100.0) == "busque Orion"
+    assert gate.admit("anote a constelação de Órion", now=100.0) == (
+        "anote a constelação de Órion"
+    )
 
 
 def test_within_window_name_still_stripped_if_leading():

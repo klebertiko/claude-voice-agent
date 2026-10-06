@@ -78,6 +78,30 @@ class WakeGate:
 
         return (False, "")
 
+    def admit(self, transcript: str, now: float) -> str:
+        """Aceita um turno em que o usuário já está na conversa.
+
+        A barra de texto não exige o nome: a pessoa já está falando com o
+        painel. Só um vocativo no início sai (``Orion, busque …``). O nome
+        no assunto fica (``busque Orion``). A fala do microfone continua no
+        portão. Abrir a janela aqui deixa a frase seguinte, dita em voz,
+        entrar sem repetir o nome.
+        """
+        self._active_until = now + self.window_s
+        raw = (transcript or "").strip()
+        if not raw:
+            return ""
+        tokens = _normalize(raw).split()
+        parts = raw.split()
+        drop = 0
+        while drop < len(tokens) and tokens[drop] in self.wake_words:
+            drop += 1
+        if drop == 0:
+            return raw
+        if drop >= len(parts):
+            return ""
+        return " ".join(parts[drop:]).strip()
+
     def close(self) -> None:
         """Fecha a janela imediatamente (ex.: após 'tchau, Lilith')."""
         self._active_until = 0.0

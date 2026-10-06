@@ -1,23 +1,31 @@
-"""Contrato do registry de personas (Lilith + Gambit) e do seletor."""
+"""Contrato do registry de personas (Lilith + Orion) e do seletor."""
 
 import pytest
 
-from claude_agent_voice.personas import DEFAULT_PERSONA, PERSONAS, Persona, get_persona
+from claude_agent_voice.personas import (
+    DEFAULT_PERSONA,
+    PERSONAS,
+    Persona,
+    get_persona,
+    spoken_voice,
+)
 
 
-def test_registry_has_lilith_and_gambit():
-    assert set(PERSONAS) >= {"lilith", "gambit"}
+def test_registry_has_lilith_and_orion():
+    assert set(PERSONAS) >= {"lilith", "orion"}
     assert isinstance(PERSONAS["lilith"], Persona)
-    assert isinstance(PERSONAS["gambit"], Persona)
+    assert isinstance(PERSONAS["orion"], Persona)
 
 
-def test_gambit_preset_is_piper_masculino():
-    g = PERSONAS["gambit"]
-    assert g.name == "Gambit"
+def test_orion_preset_is_kokoro_masculino_ptbr():
+    g = PERSONAS["orion"]
+    assert g.name == "Orion"
     assert g.gender == "masculino"
-    assert g.tts_engine == "piper"
-    assert g.voice == "pt_BR-faber-medium"
-    assert "gambit" in g.wake_words
+    assert g.tts_engine == "kokoro"
+    assert g.voice == "bm_daniel*0.7+bm_lewis*0.3"
+    assert g.speech_rate == 1.2
+    assert spoken_voice(g.voice) == "daniel"
+    assert "orion" in g.wake_words
     assert g.form_of_address == "Senhor"
 
 
@@ -31,11 +39,12 @@ def test_lilith_preset_is_kokoro_feminino():
     assert li.form_of_address == "Senhor"
 
 
-def test_gambit_prompt_masculino_senhor_gambit():
-    p = PERSONAS["gambit"].system_prompt()
-    assert "Gambit" in p
+def test_orion_prompt_masculino_senhor_orion():
+    p = PERSONAS["orion"].system_prompt()
+    assert "Orion" in p
     assert "Senhor" in p
-    assert "um assistente" in p  # gênero masculino
+    assert "mordomo" in p
+    assert "Jarvis" in p
     assert "uma assistente" not in p
 
 
@@ -46,14 +55,14 @@ def test_lilith_prompt_feminino_senhor_lilith():
     assert "uma assistente" in p  # gênero feminino
 
 
-def test_default_persona_is_gambit():
-    assert DEFAULT_PERSONA == "gambit"
-    assert get_persona(None) is PERSONAS["gambit"]
-    assert get_persona("") is PERSONAS["gambit"]
+def test_default_persona_is_orion():
+    assert DEFAULT_PERSONA == "orion"
+    assert get_persona(None) is PERSONAS["orion"]
+    assert get_persona("") is PERSONAS["orion"]
 
 
 def test_get_persona_is_case_insensitive():
-    assert get_persona("GAMBIT") is PERSONAS["gambit"]
+    assert get_persona("ORION") is PERSONAS["orion"]
     assert get_persona(" Lilith ") is PERSONAS["lilith"]
 
 
@@ -67,8 +76,8 @@ def test_namespaced_voice_override():
     # override de voz é por-persona (namespaced), nunca knob global
     li = get_persona("lilith", env={"LILITH_VOICE": "pf_alex"})
     assert li.voice == "pf_alex"
-    g = get_persona("gambit", env={"GAMBIT_VOICE": "pt_BR-edresson-low"})
+    g = get_persona("orion", env={"ORION_VOICE": "pt_BR-edresson-low"})
     assert g.voice == "pt_BR-edresson-low"
     # override da OUTRA persona não vaza
-    li2 = get_persona("lilith", env={"GAMBIT_VOICE": "x"})
+    li2 = get_persona("lilith", env={"ORION_VOICE": "x"})
     assert li2.voice == "pf_dora"

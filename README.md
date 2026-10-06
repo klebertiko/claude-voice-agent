@@ -1,16 +1,33 @@
 # claude-voice-agent — assistente de voz de mão dupla (local-first)
 
-Voz conversacional estilo JARVIS. Você fala, ela ouve, pensa e responde. Ativação
-por **wake-word "Lilith"**. Tudo local exceto o cérebro (Claude).
+Voz conversacional estilo JARVIS, em português do Brasil. Você fala, ela ouve,
+pensa e — com a sua permissão — age no computador. A persona padrão é o
+**Orion** (kokoro, fonemas pt-BR). A Lilith continua disponível (`pf_dora`).
 
-**Pipeline:** mic → silero VAD → **faster-whisper** (STT, pt-BR) → wake-gate →
-**Claude** (cérebro) → **kokoro** (TTS, voz `pf_dora`) → alto-falante.
-Transporte/orquestração: **LiveKit Agents** (modo `console`, sem servidor).
+**Pipeline:** mic ou texto → **faster-whisper** (STT, pt-BR) → wake-gate →
+assinatura **Codex** (ChatGPT), **Cursor** ou **Claude** (o CLI já logado, sem
+chave de API) → **Ollama** se nenhum CLI responder → **kokoro** (TTS). Clima,
+notícias, lembrete e busca falam direto. Uma ordem (`execute …`, WhatsApp ou
+uma linha `ACAO:`) aparece no painel e só corre depois de permitir. O céu no
+centro são as notas, em 3D.
 
 ## Rodar
 
+Painel (céu 3D das notas e dos sistemas; conversa na margem):
+
 ```bash
-cd claude-agent-voice
+uv run python -m claude_agent_voice.web
+```
+
+Abre em http://127.0.0.1:8765. Escreva ou fale **"Orion, ..."**. O microfone
+pede só áudio. O cérebro é o primeiro CLI logado entre `codex`, `cursor-agent`
+e `claude`. Sem eles, tenta o Ollama em `127.0.0.1:11434`. Sem nenhum, ainda
+fala hora, data, o nome, clima se a rede responder, e pede permissão para
+`execute …`.
+
+Console, sem painel:
+
+```bash
 uv run python -m claude_agent_voice.agent console
 ```
 
@@ -18,8 +35,9 @@ uv run python -m claude_agent_voice.agent console
 está autenticado na tua assinatura (mesma auth do Claude Code). Não precisa de
 `ANTHROPIC_API_KEY` nem paga por token. Basta o `claude` estar no PATH e logado.
 
-No console: fale **"Lilith, ..."** para ativá-la. Após o wake, a conversa segue
-aberta por ~30s sem repetir o nome. `Ctrl+C` encerra.
+No console, a wake-word é a da persona ativa (`Orion` por padrão, ou `Lilith`
+com `PERSONA=lilith`). Depois do nome, a conversa segue aberta por ~30s.
+`Ctrl+C` encerra.
 
 Se o `claude` não estiver no PATH, ela ainda te ouve e fala a saudação (prova
 voz+ouvido), mas não pensa.
@@ -28,7 +46,11 @@ voz+ouvido), mas não pensa.
 
 | Var | Default | O quê |
 |---|---|---|
-| `CLAUDE_VOICE_CLAUDE_CLI` | `claude` | binário do CLI (cérebro via subscription) |
+| `OLLAMA_HOST` | `http://127.0.0.1:11434` | Ollama local, depois das assinaturas |
+| `OLLAMA_MODEL` | primeiro instalado | modelo do Ollama |
+| `CLAUDE_VOICE_CODEX_CLI` | `codex` | assinatura ChatGPT / Codex, só leitura |
+| `CLAUDE_VOICE_CURSOR_CLI` | `cursor-agent` | assinatura do Cursor, sem `--force` |
+| `CLAUDE_VOICE_CLAUDE_CLI` | `claude` | assinatura Claude, `claude -p` |
 | `CLAUDE_VOICE_LLM_MODEL` | (default do CLI) | modelo do cérebro (`--model`) |
 | `CLAUDE_VOICE_VOICE` | `pf_dora` | voz kokoro |
 | `CLAUDE_VOICE_WHISPER_MODEL` | `small` | modelo faster-whisper |
