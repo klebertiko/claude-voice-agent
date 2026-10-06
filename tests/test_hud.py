@@ -286,6 +286,8 @@ def test_page_has_microphone_and_no_camera():
     assert 'id="brain-codex"' in page
     assert 'id="brain-cursor"' in page
     assert 'id="brain-claude"' in page
+    assert "/api/login-code" in page
+    assert "Abrir login do " in page
 
 
 def test_turn_tells_the_sky_which_notes_match(tmp_path):

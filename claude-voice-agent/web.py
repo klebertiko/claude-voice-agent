@@ -22,7 +22,15 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from .actions import DENY_SPOKEN, PERMIT_SPOKEN, extract_proposal, run_command, speak_result
-from .brains import probe_subscriptions
+from .brains import (
+    begin_login,
+    brain_paths,
+    brain_presence,
+    clear_session,
+    login_snapshot,
+    probe_subscriptions,
+    submit_login_code,
+)
 from .agent import greeting, make_tts
 from .house import note_query_of
 from .hud import HudSession, make_reply_fn, take_turn
@@ -159,6 +167,7 @@ class VoiceHud:
         if self._status_cache is not None and now - self._status_at < 3:
             payload = dict(self._status_cache)
             payload["notes"] = self._notes_count()
+            payload["logins"] = login_snapshot()
             return payload
         info = self.probe_fn() or {}
         try:
@@ -175,6 +184,7 @@ class VoiceHud:
             "load": load,
             "notes": notes,
             "choice": self.choice["id"],
+            "logins": login_snapshot(),
         }
         self._status_cache = payload
         self._status_at = now
@@ -189,6 +199,8 @@ class VoiceHud:
         labels = {"codex": "Codex", "cursor": "Cursor", "claude": "Claude", "ollama": "O cérebro local"}
         self.choice["id"] = brain_id
         self._status_cache = None
+        settings = None
+        rows: dict = {}
         if not brain_id:
             line = "Escolho sozinho, Senhor."
         elif brain_id == "ollama":
@@ -214,8 +226,42 @@ class VoiceHud:
                 line = f"{label} precisa de login, Senhor."
             else:
                 line = f"{label} não está neste computador, Senhor."
+        offer = {"url": "", "code": "", "needs_code": False}
+        if brain_id in {"codex", "cursor", "claude"} and settings is not None:
+            path = brain_paths(settings).get(brain_id)
+            if path and (rows.get(brain_id) or {}).get("auth") == "login":
+                offer = begin_login(brain_id, path)
         payload = self._with_audio("replied", "", line)
         payload["choice"] = brain_id
+        payload["login_url"] = str(offer.get("url") or "")
+        payload["login_code"] = str(offer.get("code") or "")
+        payload["login_needs_code"] = bool(offer.get("needs_code"))
+        return payload
+
+    def accept_login_code(self, brain_id: str, code: str) -> dict:
+        """Cola o código que o login do Claude mostrou."""
+        brain_id = (brain_id or "").strip().lower()
+        if brain_id not in {"codex", "cursor", "claude"}:
+            raise ValueError("cérebro desconhecido")
+        if not submit_login_code(brain_id, code):
+            line = "Não há login esperando código, Senhor."
+            ready = False
+        else:
+            ready = False
+            settings = self._settings()
+            path = brain_paths(settings).get(brain_id) if settings is not None else None
+            deadline = time.monotonic() + 8
+            while path and settings is not None and time.monotonic() < deadline:
+                clear_session(path)
+                if brain_presence(settings).get(brain_id) == "ready":
+                    ready = True
+                    break
+                time.sleep(0.4)
+            line = "Conta aberta, Senhor." if ready else "Código enviado, Senhor."
+        self._status_cache = None
+        payload = self._with_audio("replied", "", line)
+        payload["choice"] = self.choice["id"]
+        payload["ready"] = ready
         return payload
 
     def _settings(self):
@@ -382,6 +428,10 @@ def _handler(hud: VoiceHud, page: str):
                     payload = hud.resolve(str(data.get("id") or ""), bool(data.get("allow")))
                 elif path == "/api/use":
                     payload = hud.use(str(data.get("id") or ""))
+                elif path == "/api/login-code":
+                    payload = hud.accept_login_code(
+                        str(data.get("id") or ""), str(data.get("code") or "")
+                    )
                 else:
                     self._send(404, b"{}", "application/json")
                     return

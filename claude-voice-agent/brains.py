@@ -9,8 +9,12 @@ from __future__ import annotations
 
 import json
 import os
+import pty
+import re
 import shutil
+import signal
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -42,6 +46,19 @@ def _which(name: str) -> str | None:
 
 
 _session_cache: dict[str, tuple[float, bool]] = {}
+_login_lock = threading.Lock()
+_logins: dict[str, dict] = {}
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07]*\x07")
+_URL = re.compile(r"https://[^\s<>\"')\]]+")
+_CODE = re.compile(r"\b[A-Z0-9]{4,8}-[A-Z0-9]{4,8}\b")
+
+
+def clear_session(path: str) -> None:
+    """A próxima consulta de conta fala com o CLI de novo."""
+    prefix = path + "\0"
+    for key in list(_session_cache):
+        if key.startswith(prefix):
+            _session_cache.pop(key, None)
 
 
 def _session_ready(kind: str, path: str) -> bool:
@@ -136,6 +153,190 @@ def probe_subscriptions(settings: Settings) -> list[dict]:
         {"id": key, "label": labels[key], "up": presence[key] == "ready", "auth": presence[key]}
         for key in ("codex", "cursor", "claude")
     ]
+
+
+def _clean_login(text: str) -> str:
+    return _ANSI.sub("", text)
+
+
+def _harvest_login(slot: dict, line: str) -> None:
+    text = _clean_login(line)
+    slot["blob"] += text + "\n"
+    if not slot["url"]:
+        found = _URL.search(text)
+        if found:
+            slot["url"] = found.group(0).rstrip(".,")
+    if not slot["code"]:
+        found = _CODE.search(text)
+        if found:
+            slot["code"] = found.group(0)
+    if "paste code" in text.lower():
+        slot["needs_code"] = True
+
+
+def _read_login(slot: dict) -> None:
+    fd = slot["fd"]
+    buf = ""
+    try:
+        while True:
+            try:
+                chunk = os.read(fd, 4096)
+            except OSError:
+                break
+            if not chunk:
+                break
+            buf += chunk.decode("utf-8", "replace")
+            while "\n" in buf:
+                line, buf = buf.split("\n", 1)
+                with _login_lock:
+                    _harvest_login(slot, line)
+        if buf:
+            with _login_lock:
+                _harvest_login(slot, buf)
+    finally:
+        clear_session(slot.get("cli") or "")
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        slot["fd"] = -1
+
+
+def _login_stale(slot: dict) -> bool:
+    if slot["kind"] != "codex":
+        return False
+    return time.monotonic() - slot["started"] > 14 * 60
+
+
+def _stop_login(slot: dict) -> None:
+    proc = slot["proc"]
+    if proc.poll() is not None:
+        return
+    try:
+        os.killpg(proc.pid, signal.SIGTERM)
+    except OSError:
+        proc.terminate()
+    try:
+        proc.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except OSError:
+            proc.kill()
+
+
+def _spawn_login(kind: str, cli: str) -> dict:
+    if kind == "codex":
+        args = [cli, "login", "--device-auth"]
+    elif kind == "claude":
+        args = [cli, "auth", "login", "--claudeai"]
+    else:
+        args = [cli, "login"]
+    env = os.environ.copy()
+    env["NO_OPEN_BROWSER"] = "1"
+    master, slave = pty.openpty()
+    try:
+        proc = subprocess.Popen(
+            args,
+            stdin=slave,
+            stdout=slave,
+            stderr=slave,
+            env=env,
+            start_new_session=True,
+        )
+    except OSError:
+        os.close(master)
+        os.close(slave)
+        raise
+    os.close(slave)
+    slot = {
+        "kind": kind,
+        "cli": cli,
+        "proc": proc,
+        "fd": master,
+        "url": "",
+        "code": "",
+        "needs_code": False,
+        "blob": "",
+        "started": time.monotonic(),
+    }
+    threading.Thread(target=_read_login, args=(slot,), name=f"login-{kind}", daemon=True).start()
+    return slot
+
+
+def _wait_login(slot: dict, seconds: float) -> None:
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        with _login_lock:
+            if slot["kind"] == "codex":
+                ready = bool(slot["url"] and slot["code"])
+            elif slot["kind"] == "claude":
+                ready = bool(slot["url"] and (slot["needs_code"] or slot["code"]))
+            else:
+                ready = bool(slot["url"])
+            dead = slot["proc"].poll() is not None
+        if ready or dead:
+            return
+        time.sleep(0.05)
+
+
+def _login_view(slot: dict) -> dict[str, str | bool]:
+    return {
+        "url": slot["url"],
+        "code": slot["code"],
+        "needs_code": bool(slot["needs_code"] and slot["proc"].poll() is None and not slot["code"]),
+    }
+
+
+def begin_login(kind: str, cli: str) -> dict[str, str | bool]:
+    """Abre o login do CLI e devolve o endereço. O mesmo processo vale até expirar."""
+    empty: dict[str, str | bool] = {"url": "", "code": "", "needs_code": False}
+    try:
+        with _login_lock:
+            slot = _logins.get(kind)
+            if slot and slot["proc"].poll() is None and not _login_stale(slot):
+                pending = slot
+            else:
+                if slot:
+                    _stop_login(slot)
+                pending = _spawn_login(kind, cli)
+                _logins[kind] = pending
+    except OSError:
+        return empty
+    _wait_login(pending, 8.0)
+    with _login_lock:
+        return _login_view(pending)
+
+
+def login_snapshot() -> dict[str, dict[str, str | bool]]:
+    """Logins já abertos, sem disparar outro processo."""
+    out: dict[str, dict[str, str | bool]] = {}
+    with _login_lock:
+        for kind, slot in _logins.items():
+            if _login_stale(slot):
+                continue
+            if not slot["url"] and slot["proc"].poll() is not None:
+                continue
+            out[kind] = _login_view(slot)
+    return out
+
+
+def submit_login_code(kind: str, code: str) -> bool:
+    """Entrega o código que o Claude pediu para colar."""
+    token = (code or "").strip()
+    if not token or any(ch.isspace() for ch in token) or len(token) > 400:
+        return False
+    with _login_lock:
+        slot = _logins.get(kind)
+        fd = slot["fd"] if slot else -1
+        if not slot or fd < 0 or slot["proc"].poll() is not None:
+            return False
+        try:
+            os.write(fd, (token + "\n").encode("utf-8"))
+        except OSError:
+            return False
+        slot["needs_code"] = False
+        return True
 
 
 def _prompt(persona: Persona, history: list[tuple[str, str]], cleaned: str) -> tuple[str, str]:

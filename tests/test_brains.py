@@ -137,6 +137,97 @@ def test_choice_does_not_fall_through(tmp_path):
     assert reply("qual o ritmo", []) == "O ritmo é 1.2, Senhor."
 
 
+def test_login_offer_is_reused_and_shows_the_code(tmp_path):
+    from claude_agent_voice.brains import begin_login, login_snapshot
+    from claude_agent_voice.brains import _logins, _stop_login
+    from claude_agent_voice.hud import HudSession
+    from claude_agent_voice.wake import WakeGate
+    from claude_agent_voice.web import VoiceHud
+
+    count = tmp_path / "starts"
+    count.write_text("0", encoding="utf-8")
+    _bin(
+        tmp_path / "codex",
+        "#!/usr/bin/env python3\n"
+        "import pathlib, sys, time\n"
+        f"count = pathlib.Path({str(count)!r})\n"
+        "args = sys.argv[1:]\n"
+        "if args[:2] == ['login', 'status']:\n"
+        "    print('Not logged in')\n"
+        "    raise SystemExit(1)\n"
+        "count.write_text(str(int(count.read_text() or '0') + 1))\n"
+        "print('https://auth.example/codex/device', flush=True)\n"
+        "print('one-time code ABCD-EF12', flush=True)\n"
+        "time.sleep(30)\n",
+    )
+    settings = _settings(tmp_path, CLAUDE_VOICE_CODEX_CLI=str(tmp_path / "codex"))
+    persona = get_persona("orion")
+    hud = VoiceHud(
+        session=HudSession(
+            persona=persona,
+            gate=WakeGate(wake_words=persona.wake_words, window_s=30),
+        ),
+        reply_fn=lambda cleaned, history: "não",
+        synth_fn=lambda text: (b"\x00\x00" * 4, 24000),
+        transcribe_fn=lambda pcm, rate: "",
+        clock=lambda: 1.0,
+        probe_fn=lambda: {"up": False, "models": []},
+    )
+    hud.settings = settings
+    hud.choice = {"id": ""}
+    try:
+        first = begin_login("codex", str(tmp_path / "codex"))
+        second = begin_login("codex", str(tmp_path / "codex"))
+        assert first["url"] == "https://auth.example/codex/device"
+        assert first["code"] == "ABCD-EF12"
+        assert second["url"] == first["url"]
+        assert count.read_text(encoding="utf-8") == "1"
+        opened = hud.use("codex")
+        assert opened["reply"] == "Codex precisa de login, Senhor."
+        assert opened["login_url"] == "https://auth.example/codex/device"
+        assert opened["login_code"] == "ABCD-EF12"
+        assert login_snapshot()["codex"]["code"] == "ABCD-EF12"
+        assert count.read_text(encoding="utf-8") == "1"
+    finally:
+        slot = _logins.get("codex")
+        if slot:
+            _stop_login(slot)
+
+
+def test_claude_login_accepts_a_pasted_code(tmp_path):
+    from claude_agent_voice.brains import begin_login, submit_login_code
+    from claude_agent_voice.brains import _logins, _stop_login
+
+    saved = tmp_path / "pasted"
+    _bin(
+        tmp_path / "claude",
+        "#!/usr/bin/env python3\n"
+        "import pathlib, sys\n"
+        "args = sys.argv[1:]\n"
+        "if args[:2] == ['auth', 'status']:\n"
+        "    print('{\"loggedIn\": false}')\n"
+        "    raise SystemExit(1)\n"
+        "print('https://claude.example/oauth', flush=True)\n"
+        "print('Paste code here if prompted >', flush=True)\n"
+        f"pathlib.Path({str(saved)!r}).write_text(sys.stdin.readline().strip())\n",
+    )
+    try:
+        offer = begin_login("claude", str(tmp_path / "claude"))
+        assert offer["url"] == "https://claude.example/oauth"
+        assert offer["needs_code"] is True
+        assert submit_login_code("claude", "abcDEF1234567890xyz_")
+        for _ in range(50):
+            if saved.exists():
+                break
+            import time
+            time.sleep(0.05)
+        assert saved.read_text(encoding="utf-8") == "abcDEF1234567890xyz_"
+    finally:
+        slot = _logins.get("claude")
+        if slot:
+            _stop_login(slot)
+
+
 def test_reply_fn_uses_the_subscription_before_the_fallback(tmp_path):
     from datetime import datetime
     from zoneinfo import ZoneInfo

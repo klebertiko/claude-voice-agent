@@ -131,6 +131,7 @@ _PAGE = r"""<!DOCTYPE html>
   }
   #log-lines { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
   #log p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; font-size: var(--text-body); }
+  #log a { color: var(--color-accent); }
   #log:has(#empty) { display: none; }
   #log .empty, #log .meta { color: var(--color-ink-2); }
   #log p[data-speaker]::before {
@@ -546,6 +547,7 @@ const noteEl = document.getElementById("note");
 const noteText = document.getElementById("note-text");
 const noteLinks = document.getElementById("note-links");
 let permitId = "";
+let loginBrain = "";
 let memory = [];
 let memoryLinks = [];
 let noteQuery = "";
@@ -2064,6 +2066,21 @@ function settleLog() {
     logEl.scrollTop = logEl.scrollHeight;
   }
 }
+function addLoginLink(href, label) {
+  if (!href) return;
+  if (emptyEl) emptyEl.remove();
+  const p = document.createElement("p");
+  p.className = "agent";
+  p.dataset.speaker = "Orion";
+  const a = document.createElement("a");
+  a.href = href;
+  a.target = "_blank";
+  a.rel = "noreferrer";
+  a.textContent = label;
+  p.appendChild(a);
+  (logLines || logEl).appendChild(p);
+  requestAnimationFrame(() => { settleLog(); wake(); });
+}
 function addLine(cls, message) {
   if (emptyEl) emptyEl.remove();
   const p = document.createElement("p");
@@ -2103,8 +2120,10 @@ async function refreshBrain() {
       const el = document.getElementById("brain-" + brain.id);
       if (!el) continue;
       const auth = brain.auth || (brain.up ? "ready" : "down");
-      el.textContent = auth === "ready" ? "pronto" : auth === "login" ? "login" : "ausente";
+      const hint = (data.logins || {})[brain.id] || {};
+      el.textContent = auth === "ready" ? "pronto" : (auth === "login" && hint.code ? hint.code : (auth === "login" ? "login" : "ausente"));
       el.classList.toggle("is-down", auth !== "ready");
+      if (auth === "ready" && loginBrain === brain.id) loginBrain = "";
     }
     const stateWord = (row) => {
       const auth = row && (row.auth || (row.up ? "ready" : "down"));
@@ -2283,11 +2302,34 @@ function focusStar(id) {
   openNote(star);
 }
 async function sendText(value) {
+  const token = (value || "").trim();
+  if (loginBrain && token.length >= 20 && !/\s/.test(token)) {
+    setState("thinking");
+    try {
+      const data = await post("/api/login-code", { id: loginBrain, code: token });
+      if (data.reply) {
+        addLine("agent", data.reply);
+        readSkyFit(data.reply);
+      }
+      if (data.ready) loginBrain = "";
+      await refreshBrain();
+      if (data.audio_b64) await playWav(data.audio_b64);
+      else setState("idle");
+    } catch (err) {
+      setState("idle");
+      addLine("meta", "Não consegui enviar o código.");
+    }
+    return;
+  }
   setState("thinking");
   try { await showTurn(await post("/api/turn", { text: value }), null); }
   catch (err) { setState("idle"); addLine("meta", "Não consegui falar agora."); }
 }
 async function chooseBrain(id) {
+  const slot = document.getElementById("brain-" + id);
+  const word = slot ? slot.textContent : "";
+  const opening = word === "login" || /^[A-Z0-9]{4,8}-[A-Z0-9]{4,8}$/.test(word);
+  const popup = opening ? window.open("about:blank", "_blank") : null;
   setState("thinking");
   try {
     const data = await post("/api/use", { id });
@@ -2295,16 +2337,38 @@ async function chooseBrain(id) {
       btn.setAttribute("aria-pressed", btn.dataset.brain === data.choice ? "true" : "false");
     }
     revealChoice();
+    if (data.login_url && popup) popup.location.href = data.login_url;
+    else if (popup) popup.close();
+    if (data.login_code && slot) slot.textContent = data.login_code;
+    if (data.login_needs_code) loginBrain = data.choice || id;
     if (data.reply) {
       addLine("agent", data.reply);
-      readSkyFit(data.reply);
+      readSkyFit(data.login_needs_code ? "Cole o código e envie." : data.reply);
+    }
+    if (data.login_url) {
+      const names = { codex: "Codex", cursor: "Cursor", claude: "Claude" };
+      addLoginLink(data.login_url, "Abrir login do " + (names[id] || "cérebro"));
+      armLoginWatch();
     }
     if (data.audio_b64) await playWav(data.audio_b64);
     else setState("idle");
   } catch (err) {
+    if (popup) popup.close();
     setState("idle");
     addLine("meta", "Não consegui escolher o cérebro.");
   }
+}
+let loginWatch = 0;
+function armLoginWatch() {
+  const token = ++loginWatch;
+  let n = 0;
+  const tick = async () => {
+    if (token !== loginWatch) return;
+    n += 1;
+    await refreshBrain();
+    if (n < 40 && token === loginWatch) setTimeout(tick, 3000);
+  };
+  setTimeout(tick, 3000);
 }
 function runSystem(id) {
   const brains = { "sys-codex": "codex", "sys-cursor": "cursor", "sys-claude": "claude", "sys-cerebro": "ollama" };
@@ -2707,6 +2771,7 @@ tickClock();
 setInterval(tickClock, 1000);
 refreshBrain();
 setInterval(refreshBrain, 5000);
+addEventListener("focus", () => { refreshBrain(); });
 wake();
 </script>
 </body>
