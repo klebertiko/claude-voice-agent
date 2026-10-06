@@ -280,7 +280,8 @@ def _panel_fact(cleaned: str, persona: Persona) -> str | None:
             load = os.getloadavg()[0]
         except OSError:
             return "Não li a carga, Senhor."
-        return f"A carga está em {load}, Senhor."
+        shown = f"{load:.2f}".replace(".", ",")
+        return f"A carga está em {shown}, Senhor."
     if norm in {"qual o fuso", "o fuso"}:
         return "O fuso é Brasília, Senhor."
     if norm in {"qual a voz", "a voz"}:

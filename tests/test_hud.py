@@ -221,6 +221,15 @@ def test_noise_does_not_open_a_turn():
     assert result.status == "noise"
 
 
+def test_load_is_spoken_in_two_decimals(monkeypatch):
+    monkeypatch.setattr(
+        "claude_agent_voice.hud.os.getloadavg",
+        lambda: (0.10205078125, 0.2, 0.2),
+    )
+    reply = make_reply_fn(Settings(), get_persona("orion"), lambda: WHEN)
+    assert reply("qual a carga", []) == "A carga está em 0,10, Senhor."
+
+
 def test_missing_brain_uses_spoken_fallback():
     settings = Settings.from_env(env={"CLAUDE_VOICE_CLAUDE_CLI": "claude-does-not-exist"})
     reply = make_reply_fn(settings, get_persona("orion"), lambda: WHEN)

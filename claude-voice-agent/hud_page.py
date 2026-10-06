@@ -2033,8 +2033,10 @@ async function refreshBrain() {
     brainEl.textContent = data.up ? (data.model || "sem modelo") : "ausente";
     brainEl.classList.toggle("is-down", !data.up);
     if (data.load && data.load.length) {
-      loadEl.textContent = String(data.load[0]);
-      document.body.dataset.load = String(data.load[0]);
+      const load = Number(data.load[0]);
+      const shown = Number.isFinite(load) ? load.toFixed(2).replace(".", ",") : "—";
+      loadEl.textContent = shown;
+      document.body.dataset.load = shown;
     }
     if (typeof data.notes === "number") {
       const notesEl = document.getElementById("notes");
