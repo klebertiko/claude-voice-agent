@@ -205,13 +205,15 @@ class VoiceHud:
             rows = (
                 {row["id"]: row for row in probe_subscriptions(settings)} if settings is not None else {}
             )
-            up = bool(rows.get(brain_id, {}).get("up"))
+            row = rows.get(brain_id, {})
+            auth = row.get("auth") or ("ready" if row.get("up") else "down")
             label = labels[brain_id]
-            line = (
-                f"{label}, escolhido, Senhor."
-                if up
-                else f"{label} não está neste computador, Senhor."
-            )
+            if auth == "ready":
+                line = f"{label}, escolhido, Senhor."
+            elif auth == "login":
+                line = f"{label} precisa de login, Senhor."
+            else:
+                line = f"{label} não está neste computador, Senhor."
         payload = self._with_audio("replied", "", line)
         payload["choice"] = brain_id
         return payload

@@ -7,8 +7,11 @@ O Claude continua no ``claude -p``, sem ferramentas extras.
 
 from __future__ import annotations
 
+import json
+import os
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 from .llm_claude_cli import render_prompt
@@ -27,7 +30,68 @@ _cursor_cache: dict[str, str | None] = {}
 def _which(name: str) -> str | None:
     if not name:
         return None
-    return shutil.which(name)
+    if os.path.sep in name:
+        return name if os.access(name, os.X_OK) else None
+    found = shutil.which(name)
+    if found:
+        return found
+    home_bin = Path.home() / ".local" / "bin" / name
+    if os.access(home_bin, os.X_OK):
+        return str(home_bin)
+    return None
+
+
+_session_cache: dict[str, tuple[float, bool]] = {}
+
+
+def _session_ready(kind: str, path: str) -> bool:
+    """O CLI existe e a conta já está aberta. O resultado vale por alguns segundos."""
+    now = time.monotonic()
+    hit = _session_cache.get(path + "\0" + kind)
+    if hit and now - hit[0] < 20:
+        return hit[1]
+    ok = False
+    try:
+        if kind == "claude":
+            args = [path, "auth", "status"]
+        elif kind == "codex":
+            args = [path, "login", "status"]
+        else:
+            args = [path, "status"]
+        proc = subprocess.run(args, capture_output=True, timeout=4, check=False)
+        raw = (proc.stdout + proc.stderr).decode("utf-8", "replace")
+        if kind == "claude" and proc.returncode == 0:
+            try:
+                ok = bool(json.loads(proc.stdout.decode("utf-8", "replace")).get("loggedIn"))
+            except json.JSONDecodeError:
+                ok = "not logged in" not in raw.lower()
+        elif proc.returncode == 0:
+            ok = "not logged in" not in raw.lower()
+    except (OSError, subprocess.TimeoutExpired):
+        ok = False
+    _session_cache[path + "\0" + kind] = (now, ok)
+    return ok
+
+
+def brain_paths(settings: Settings) -> dict[str, str | None]:
+    return {
+        "codex": _which(settings.codex_cli),
+        "cursor": cursor_binary(settings.cursor_cli),
+        "claude": _which(settings.claude_cli),
+    }
+
+
+def brain_presence(settings: Settings) -> dict[str, str]:
+    """``ready`` responde, ``login`` está instalado sem conta, ``down`` não está."""
+    out: dict[str, str] = {}
+    for key, path in brain_paths(settings).items():
+        if not path:
+            out[key] = "down"
+        elif _session_ready(key, path):
+            out[key] = "ready"
+        else:
+            out[key] = "login"
+    return out
 
 
 def _cursor_if_cursor(path: str) -> str | None:
@@ -65,13 +129,13 @@ def cursor_binary(preferred: str) -> str | None:
 
 
 def probe_subscriptions(settings: Settings) -> list[dict]:
-    """Presença dos três CLIs. ``up`` é o binário, não uma prova de login."""
-    rows = (
-        ("codex", "Codex", _which(settings.codex_cli)),
-        ("cursor", "Cursor", cursor_binary(settings.cursor_cli)),
-        ("claude", "Claude", _which(settings.claude_cli)),
-    )
-    return [{"id": key, "label": label, "up": bool(path)} for key, label, path in rows]
+    """Presença dos três CLIs. ``up`` só quando a conta já responde."""
+    labels = {"codex": "Codex", "cursor": "Cursor", "claude": "Claude"}
+    presence = brain_presence(settings)
+    return [
+        {"id": key, "label": labels[key], "up": presence[key] == "ready", "auth": presence[key]}
+        for key in ("codex", "cursor", "claude")
+    ]
 
 
 def _prompt(persona: Persona, history: list[tuple[str, str]], cleaned: str) -> tuple[str, str]:
@@ -89,8 +153,8 @@ def _run(args: list[str], *, stdin: bytes | None, timeout: float) -> str:
         check=False,
     )
     text = proc.stdout.decode("utf-8", "replace").strip()
-    if proc.returncode != 0 and not text:
-        err = proc.stderr.decode("utf-8", "replace").strip() or "sem saída"
+    if proc.returncode != 0:
+        err = proc.stderr.decode("utf-8", "replace").strip() or text or "sem saída"
         raise RuntimeError(f"{args[0]} retornou {proc.returncode}: {err}")
     return text
 
@@ -117,7 +181,7 @@ def ask_cursor(cli: str, prompt: str, system: str, *, timeout: float = 40.0) -> 
     """CLI do Cursor, modo impressão, sem ``--force``."""
     body = (system + "\n\n" + prompt).strip()
     return _run(
-        [cli, "-p", "--output-format", "text", body],
+        [cli, "-p", "--mode", "ask", "--trust", "--output-format", "text", body],
         stdin=None,
         timeout=timeout,
     )
@@ -154,12 +218,13 @@ def subscription_reply(
     Com ``prefer``, só aquele cérebro responde. Ausente devolve None.
     """
     prompt, system = _prompt(persona, history, cleaned)
+    paths = brain_paths(settings)
     order = (
-        ("codex", _which(settings.codex_cli), lambda cli: ask_codex(cli, prompt, system, timeout=timeout)),
-        ("cursor", cursor_binary(settings.cursor_cli), lambda cli: ask_cursor(cli, prompt, system, timeout=timeout)),
+        ("codex", paths["codex"], lambda cli: ask_codex(cli, prompt, system, timeout=timeout)),
+        ("cursor", paths["cursor"], lambda cli: ask_cursor(cli, prompt, system, timeout=timeout)),
         (
             "claude",
-            _which(settings.claude_cli),
+            paths["claude"],
             lambda cli: ask_claude_cli(
                 cli, prompt, system, settings.llm_model, timeout=timeout
             ),
@@ -167,8 +232,8 @@ def subscription_reply(
     )
     if prefer:
         order = tuple(row for row in order if row[0] == prefer)
-    for _name, path, call in order:
-        if not path:
+    for name, path, call in order:
+        if not path or not _session_ready(name, path):
             continue
         try:
             spoken = strip_for_speech(call(path))

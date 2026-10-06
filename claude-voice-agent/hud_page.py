@@ -2102,10 +2102,14 @@ async function refreshBrain() {
       brainById[brain.id] = brain;
       const el = document.getElementById("brain-" + brain.id);
       if (!el) continue;
-      el.textContent = brain.up ? "pronto" : "ausente";
-      el.classList.toggle("is-down", !brain.up);
+      const auth = brain.auth || (brain.up ? "ready" : "down");
+      el.textContent = auth === "ready" ? "pronto" : auth === "login" ? "login" : "ausente";
+      el.classList.toggle("is-down", auth !== "ready");
     }
-    const stateWord = (row) => (row && row.up ? "pronto" : "ausente");
+    const stateWord = (row) => {
+      const auth = row && (row.auth || (row.up ? "ready" : "down"));
+      return auth === "ready" ? "pronto" : auth === "login" ? "login" : "ausente";
+    };
     const choice = data.choice || "";
     systemText["sys-codex"] = (choice === "codex" ? "Codex, escolhido." : "Codex, " + stateWord(brainById.codex) + ".");
     systemText["sys-cursor"] = (choice === "cursor" ? "Cursor, escolhido." : "Cursor, " + stateWord(brainById.cursor) + ".");

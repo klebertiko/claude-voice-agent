@@ -63,6 +63,8 @@ def test_cursor_prints_without_force(tmp_path):
     assert reply == "Pelo Cursor, Senhor."
     text = args.read_text(encoding="utf-8")
     assert "-p" in text.splitlines()
+    assert "--mode" in text.splitlines()
+    assert "ask" in text.splitlines()
     assert "--force" not in text
 
 
@@ -95,6 +97,23 @@ def test_prefer_uses_only_that_brain(tmp_path):
     assert subscription_reply(
         settings, get_persona("orion"), [], "conte uma coisa", prefer="cursor"
     ) is None
+
+
+def test_unlogged_brain_asks_for_login(tmp_path):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from claude_agent_voice.hud import make_reply_fn
+
+    _bin(tmp_path / "codex", "#!/bin/sh\necho 'Not logged in'\nexit 1\n")
+    settings = _settings(tmp_path, CLAUDE_VOICE_CODEX_CLI=str(tmp_path / "codex"))
+    reply = make_reply_fn(
+        settings,
+        get_persona("orion"),
+        lambda: datetime(2026, 10, 5, 15, 5, tzinfo=ZoneInfo("America/Sao_Paulo")),
+        {"id": "codex"},
+    )
+    assert reply("conte uma coisa", []) == "Codex precisa de login, Senhor."
 
 
 def test_choice_does_not_fall_through(tmp_path):

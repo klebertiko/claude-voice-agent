@@ -445,10 +445,12 @@ def make_reply_fn(settings, persona: Persona, moment_fn=brazil_now, choice: dict
                     return spoken
             except (OSError, subprocess.TimeoutExpired):
                 spoken = None
-            from .brains import probe_subscriptions
+            from .brains import brain_presence
 
-            rows = {row["id"]: row["up"] for row in probe_subscriptions(settings)}
-            if not rows.get(prefer):
+            state = brain_presence(settings).get(prefer, "down")
+            if state == "login":
+                return f"{label} precisa de login, Senhor."
+            if state != "ready":
                 return f"{label} não está neste computador, Senhor."
             return f"{label} não respondeu, Senhor."
         if prefer == "ollama":
