@@ -2643,7 +2643,7 @@ resize();
 seatLog();
 markMore();
 requestAnimationFrame(markMore);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(markMore);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { markMore(); wake(); });
 tickClock();
 setInterval(tickClock, 1000);
 refreshBrain();

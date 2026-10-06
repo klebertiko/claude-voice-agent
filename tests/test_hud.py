@@ -259,6 +259,7 @@ def test_page_has_microphone_and_no_camera():
     assert "M15.5 14.2l1.9 1.9" in page
     assert "M12.3 17.4l1.3 1.3" in page
     assert "M18.7 12.2l1.3 1.3" in page
+    assert "document.fonts.ready.then(() => { markMore(); wake(); })" in page
     assert "function paintLanes(" in page
     assert "function hemEdge(" in page
     assert "function repaintOuterStars(" in page
