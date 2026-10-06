@@ -457,7 +457,7 @@ _PAGE = r"""<!DOCTYPE html>
 <canvas id="field" aria-label="constelação"></canvas>
 <div class="room">
   <header class="strip">
-    <h1><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linejoin="round"><path stroke-linecap="round" stroke-width="2.35" d="M22.5 3.4C8.8 7.4 7.4 12.2 9.4 16 7.4 19.8 8.8 24.6 22.5 28.6"/><path stroke-linecap="butt" stroke-width="1.45" d="M22.5 3.4Q20.6 16 22.5 28.6"/></g><g fill="currentColor"><path d="M12.3 17.4l1.3 1.3-1.3 1.3-1.3-1.3z"/><path d="M15.5 14.2l1.9 1.9-1.9 1.9-1.9-1.9z"/><path d="M18.7 12.2l1.3 1.3-1.3 1.3-1.3-1.3z"/></g></svg>__NAME__</h1>
+    <h1><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linejoin="round"><path stroke-linecap="round" stroke-width="1.6" d="M22.5 3.4C8.8 7.4 7.4 12.2 9.4 16 7.4 19.8 8.8 24.6 22.5 28.6"/><path stroke-linecap="butt" stroke-width="0.95" d="M22.5 3.4Q20.6 16 22.5 28.6"/></g><g fill="currentColor"><path d="M12.3 17.4l1.3 1.3-1.3 1.3-1.3-1.3z"/><path d="M15.5 14.2l1.9 1.9-1.9 1.9-1.9-1.9z"/><path d="M18.7 12.2l1.3 1.3-1.3 1.3-1.3-1.3z"/></g></svg>__NAME__</h1>
     <div class="meta">
       <p id="status">pronto</p>
       <p id="clock">00:00:00</p>
