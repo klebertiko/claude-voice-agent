@@ -2123,6 +2123,7 @@ async function refreshBrain() {
       const hint = (data.logins || {})[brain.id] || {};
       el.textContent = auth === "ready" ? "pronto" : (auth === "login" && hint.code ? hint.code : (auth === "login" ? "login" : "ausente"));
       el.classList.toggle("is-down", auth !== "ready");
+      if (auth === "login" && hint.needs_code) loginBrain = brain.id;
       if (auth === "ready" && loginBrain === brain.id) loginBrain = "";
     }
     const stateWord = (row) => {

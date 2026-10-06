@@ -186,10 +186,14 @@ def _read_login(slot: dict) -> None:
             if not chunk:
                 break
             buf += chunk.decode("utf-8", "replace")
+            buf = buf.replace("\r\n", "\n").replace("\r", "\n")
             while "\n" in buf:
                 line, buf = buf.split("\n", 1)
                 with _login_lock:
                     _harvest_login(slot, line)
+            if buf and "paste code" in _clean_login(buf).lower():
+                with _login_lock:
+                    slot["needs_code"] = True
         if buf:
             with _login_lock:
                 _harvest_login(slot, buf)

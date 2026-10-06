@@ -208,7 +208,8 @@ def test_claude_login_accepts_a_pasted_code(tmp_path):
         "    print('{\"loggedIn\": false}')\n"
         "    raise SystemExit(1)\n"
         "print('https://claude.example/oauth', flush=True)\n"
-        "print('Paste code here if prompted >', flush=True)\n"
+        "sys.stdout.write('Paste code here if prompted > ')\n"
+        "sys.stdout.flush()\n"
         f"pathlib.Path({str(saved)!r}).write_text(sys.stdin.readline().strip())\n",
     )
     try:
