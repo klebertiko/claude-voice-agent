@@ -1910,33 +1910,41 @@ function drawPlate() {
     paint.alpha = 1;
     paint.halo = false;
   }
-  function paintGround(box) {
-    if (!plate) return false;
+  function paintGround(paint) {
+    const box = paint.box;
+    const px0 = Math.max(0, Math.floor(box.l * DPR));
+    const py0 = Math.max(0, Math.floor(box.t * DPR));
+    const pw = Math.min(canvas.width - px0, Math.max(1, Math.ceil((box.r - box.l) * DPR)));
+    const ph = Math.min(canvas.height - py0, Math.max(1, Math.ceil((box.b - box.t) * DPR)));
+    if (pw < 2 || ph < 2) return false;
+    const data = ctx.getImageData(px0, py0, pw, ph).data;
     const lums = [];
-    for (let y = box.t + 2; y <= box.b - 2; y += 3) {
-      for (let x = box.l + 2; x <= box.r - 2; x += 3) {
-        const px = Math.floor(x * DPR) - plateX;
-        const py = Math.floor(y * DPR) - plateY;
-        if (px < 0 || py < 0 || px >= plateW || py >= plateH) continue;
-        const i = (py * plateW + px) * 4;
-        lums.push(toneLum(plate[i], plate[i + 1], plate[i + 2]));
-      }
-    }
+    const step = Math.max(4, (Math.floor(data.length / 4 / 40) * 4) || 4);
+    for (let i = 0; i < data.length; i += step) lums.push(toneLum(data[i], data[i + 1], data[i + 2]));
     if (lums.length < 4) return false;
     lums.sort((a, b) => a - b);
     if (lums[lums.length >> 1] < 0.04) return false;
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
-    ctx.globalAlpha = 0.92;
-    ctx.fillStyle = ink.bg;
-    ctx.fillRect(box.l, box.t - 4, box.r - box.l, box.b - box.t + 6);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = ink.bg;
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+    ctx.lineWidth = 6;
+    ctx.font = paint.font;
+    ctx.textAlign = paint.spot.align;
+    const strokeAt = (text, x, y) => ctx.strokeText(text, x, y);
+    if (paint.lines) {
+      strokeAt(paint.lines[0], paint.spot.x, paint.spot.y - 8);
+      strokeAt(paint.lines[1], paint.spot.x, paint.spot.y + 8);
+    } else strokeAt(paint.full, paint.spot.x, paint.spot.y);
     ctx.restore();
     return true;
   }
   for (const paint of paints) {
     ctx.font = paint.font;
     ctx.textAlign = paint.spot.align;
-    if (paintGround(paint.box)) paint.halo = false;
+    if (paintGround(paint)) paint.halo = false;
     ctx.globalAlpha = paint.alpha;
     ctx.fillStyle = paint.fill;
     if (paint.lines) {
