@@ -1177,8 +1177,8 @@ function paintLanes(marks, rect, boxes, stars) {
       : [[0.5, 0.2, 0.02, 0.36, -0.48, 0.1], [0.32, -0.4, -0.08, -0.16, -0.46, -0.22]];
     for (let k = 0; k < lanes.length; k++) {
       const lane = lanes[k];
-      ctx.globalAlpha = k === 0 ? 0.42 : 0.24;
-      ctx.lineWidth = k === 0 ? 0.09 : 0.05;
+      ctx.globalAlpha = k === 0 ? 0.55 : 0.32;
+      ctx.lineWidth = k === 0 ? 0.12 : 0.06;
       ctx.beginPath();
       ctx.moveTo(lane[0], lane[1]);
       ctx.quadraticCurveTo(lane[2], lane[3], lane[4], lane[5]);
