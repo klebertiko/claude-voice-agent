@@ -261,6 +261,7 @@ def test_page_has_microphone_and_no_camera():
     assert "M18.7 12.2l1.3 1.3" in page
     assert "document.fonts.ready.then(() => { markMore(); wake(); })" in page
     assert "function paintLanes(" in page
+    assert "function paintGround(" in page
     assert "function hemEdge(" in page
     assert "function repaintOuterStars(" in page
     assert "function boxOnCloud(" in page

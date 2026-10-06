@@ -1412,7 +1412,7 @@ function drawPlate() {
   const plateY = Math.max(0, Math.floor(rect.top * DPR));
   const plateW = Math.min(canvas.width - plateX, Math.floor(rect.width * DPR));
   const plateH = Math.min(canvas.height - plateY, Math.floor(rect.height * DPR));
-  const plate = plateW > 0 && plateH > 0 ? ctx.getImageData(plateX, plateY, plateW, plateH).data : null;
+  let plate = plateW > 0 && plateH > 0 ? ctx.getImageData(plateX, plateY, plateW, plateH).data : null;
   const toneAt = (x, y, kind) => {
     if (!plate) return 0;
     const px = Math.floor(x * DPR) - plateX;
@@ -1834,6 +1834,29 @@ function drawPlate() {
   }
   trimCloud(discMarks, rect, boxes, view);
   paintLanes(discMarks, rect, boxes, view);
+  if (plateW > 0 && plateH > 0) plate = ctx.getImageData(plateX, plateY, plateW, plateH).data;
+  const darkShare = (box, kind) => {
+    let hole = 0;
+    let seen = 0;
+    for (let y = box.t + 2; y <= box.b - 2; y += 4) {
+      for (let x = box.l + 2; x <= box.r - 2; x += 4) {
+        if (!plate) return 0;
+        const px = Math.floor(x * DPR) - plateX;
+        const py = Math.floor(y * DPR) - plateY;
+        if (px < 0 || py < 0 || px >= plateW || py >= plateH) continue;
+        const i = (py * plateW + px) * 4;
+        seen++;
+        if (!toneAt(x, y, kind) && plate[i] + plate[i + 1] + plate[i + 2] < 80) hole++;
+      }
+    }
+    return seen ? hole / seen : 0;
+  };
+  for (const paint of paints) {
+    if (darkShare(paint.box, paint.item.star.kind) <= 0.35) continue;
+    const rest = boxes.filter((box) => box !== paint.box);
+    const next = candidatesFor(paint.item, rest).pool.find((spot) => usable(spot) && darkShare(spot.trial, paint.item.star.kind) <= 0.35);
+    if (next) applySeat(paint, next);
+  }
   repaintOuterStars(discMarks, view, focusId, neigh);
   ctx.lineCap = "round";
   for (const stroke of strokes) {
@@ -1887,11 +1910,35 @@ function drawPlate() {
     paint.alpha = 1;
     paint.halo = false;
   }
+  function paintGround(box) {
+    if (!plate) return false;
+    const lums = [];
+    for (let y = box.t + 2; y <= box.b - 2; y += 3) {
+      for (let x = box.l + 2; x <= box.r - 2; x += 3) {
+        const px = Math.floor(x * DPR) - plateX;
+        const py = Math.floor(y * DPR) - plateY;
+        if (px < 0 || py < 0 || px >= plateW || py >= plateH) continue;
+        const i = (py * plateW + px) * 4;
+        lums.push(toneLum(plate[i], plate[i + 1], plate[i + 2]));
+      }
+    }
+    if (lums.length < 4) return false;
+    lums.sort((a, b) => a - b);
+    if (lums[lums.length >> 1] < 0.04) return false;
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = ink.bg;
+    ctx.fillRect(box.l, box.t - 4, box.r - box.l, box.b - box.t + 6);
+    ctx.restore();
+    return true;
+  }
   for (const paint of paints) {
     ctx.font = paint.font;
+    ctx.textAlign = paint.spot.align;
+    if (paintGround(paint.box)) paint.halo = false;
     ctx.globalAlpha = paint.alpha;
     ctx.fillStyle = paint.fill;
-    ctx.textAlign = paint.spot.align;
     if (paint.lines) {
       paintLabel(paint.lines[0], paint.spot.x, paint.spot.y - 8, paint.halo);
       paintLabel(paint.lines[1], paint.spot.x, paint.spot.y + 8, paint.halo);
