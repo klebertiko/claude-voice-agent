@@ -51,6 +51,21 @@ uv run pytest -q      # 30 passam: wake-gate, persona, settings, TTS/STT (DSP pu
 O código separa **lógica pura testável** (`wake.py`, DSP em `tts_kokoro.py`/`stt_whisper.py`,
 `persona.py`, `settings.py`) do **I/O de áudio** (só exercitado no `console`).
 
+## Flow no harness
+
+Regra de condução para um harness de agentes sobre um grafo de skills.
+Antes de cada passo o harness pergunta qual nó praticar; depois grava na
+memória o quanto aquela skill subiu ou desceu. A voz deste repositório
+não usa essa regra.
+
+```bash
+uv run python -m claude_agent_voice.flow
+uv run pytest -q tests/test_flow_controller.py tests/test_flow_harness.py tests/test_flow_sim.py
+```
+
+Leitura: `docs/estudo-flow-agentes.md`. O encaixe é `FlowSession` em
+`claude_agent_voice.flow.harness`.
+
 ## Estado / roadmap
 
 - [x] Fatia 0 — stack instalada (LiveKit + Whisper + kokoro + Claude) em py3.12.
