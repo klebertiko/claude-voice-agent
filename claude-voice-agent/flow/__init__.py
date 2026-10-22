@@ -16,6 +16,14 @@ from .controller import (
     Zone,
     directive,
 )
+from .harness import (
+    FlowSession,
+    HarnessAdvice,
+    HarnessStep,
+    SkillGraph,
+    SkillMemory,
+    SkillNode,
+)
 from .scale import FlowScale, flow_short_scale
 from .sim import POLICIES, SCENARIOS, run_study
 
@@ -25,10 +33,16 @@ __all__ = [
     "FlowConfig",
     "FlowController",
     "FlowScale",
+    "FlowSession",
+    "HarnessAdvice",
+    "HarnessStep",
     "Mode",
     "Observation",
     "POLICIES",
     "SCENARIOS",
+    "SkillGraph",
+    "SkillMemory",
+    "SkillNode",
     "Zone",
     "directive",
     "flow_short_scale",

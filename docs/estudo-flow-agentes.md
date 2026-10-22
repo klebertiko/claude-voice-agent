@@ -1,11 +1,15 @@
 # Flow em agentes de IA
 
 Estudo a partir do vídeo [BP6nfmdoMAg](https://youtu.be/BP6nfmdoMAg) e de um
-controlador executável. O objetivo é o mesmo estado operacional que o vídeo
-descreve — atenção presa na tarefa, esforço de supervisão baixo, saída
-voluntária — sem fingir que um modelo de linguagem tem córtex pré-frontal.
+controlador executável. O lugar dele é o harness que conduz agentes sobre um
+grafo de skills, com memória do que já foi praticado. A assistente de voz
+deste repositório não é o assunto.
 
-O PoC mora em `claude_agent_voice.flow`. Não está ligado ao loop de voz.
+O objetivo é o mesmo regime que o vídeo descreve: a atenção fica na skill
+certa, a autocrítica baixa, e o agente consegue parar. Um modelo de
+linguagem não ganha córtex com isso.
+
+O código mora em `claude_agent_voice.flow`. O harness chama `FlowSession`.
 
 ```bash
 uv run python -m claude_agent_voice.flow
@@ -197,15 +201,28 @@ overrun e ação insegura — e não depende de questionário.
 - Os limiares (faixa 0,12, sincronia 0,62/0,38, rampa de 4 passos) são
   escolhas de engenharia, não constantes neurais.
 
-## Próximo passo no agente de voz
+## Onde isto senta no harness
 
-O turno falado precisa expor, em código e não em prosa, os campos de
-`Observation`: habilidade estimada na tarefa corrente, corte, clareza da
-meta, atraso do feedback, alinhamento do último passo com a meta, passos
-desde a última troca de assunto, meta cumprida, pedido de parada,
-invariante de segurança. Com isso, `FlowController.decide` escolhe o
-regime e `directive` entra como adendo efêmero — trocado a cada turno,
-nunca gravado como personalidade.
+O framework de skills que roda na sua máquina não está neste ambiente.
+O contrato abaixo é o que esse harness precisa cumprir para usar o flow.
+Os nomes dos nós e o formato da memória ficam do lado de lá.
 
-Até lá, ligar a palavra "flow" no system prompt da Lilith só adiciona
-uma instrução que ninguém verifica.
+Quatro peças, cada uma com um papel:
+
+| Peça | O que entrega ao flow | O que recebe de volta |
+|---|---|---|
+| Grafo de skills | a dificuldade do nó atual e os vizinhos mais fáceis e mais difíceis | ficar neste nó, descer, subir, ou a notícia de que falta um vizinho |
+| Memória | o quanto aquela skill já foi praticada | um valor novo depois do acerto ou do erro |
+| Agente | qual nó ele ia executar, e qual nó de fato andou a meta | se os dois divergem, o regime de execução contínua não abre |
+| Harness | passos sem troca de assunto, meta cumprida, pedido de parada, segurança | continuar, pedir o critério de pronto, parar, ou segurar |
+
+A capacidade mora na memória. Um acerto com a dificuldade perto da prática
+sobe o valor mais do que um acerto numa skill fácil demais. É o efeito de
+aprendizagem do vídeo, escrito como atualização de um número por skill.
+
+Quando o regime pede para descer ou subir e o grafo não tem esse vizinho,
+`missing_edge` vem preenchido e nenhum nó é inventado. Criar essa skill é
+engenharia do grafo, feita por quem mantém o framework.
+
+`directive(decision)` continua disponível como texto curto para o agente,
+trocado a cada passo. Ele descreve o regime. Não substitui a escolha do nó.
